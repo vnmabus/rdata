@@ -1,10 +1,9 @@
-
-from builtins import int
 import bz2
 import enum
 import pathlib
 import typing
 import xdrlib
+
 import numpy as np
 
 
@@ -70,49 +69,62 @@ class RObject(typing.NamedTuple):
     tag: typing.Union['RObject', None] = None
     referenced_object: 'RObject' = None
 
+    def _str_internal(self, indent: int=0, used_references=None):
+
+        if used_references is None:
+            used_references = set()
+
+        string = ""
+
+        string += f"{' ' * indent}{self.info.type}\n"
+
+        if self.tag:
+            tag_string = self.tag._str_internal(indent + 4,
+                                                used_references.copy())
+            string += f"{' ' * (indent + 2)}tag:\n{tag_string}\n"
+
+        if self.info.reference:
+            reference_string = (f"{' ' * (indent + 4)}..."
+                                if self.info.reference in used_references
+                                else self.referenced_object._str_internal(
+                                    indent + 4, used_references.copy()))
+            string += (f"{' ' * (indent + 2)}reference: "
+                       f"{self.info.reference}\n{reference_string}\n")
+
+        string += f"{' ' * (indent + 2)}value:\n"
+
+        if isinstance(self.value, RObject):
+            string += self.value._str_internal(indent + 4,
+                                               used_references.copy())
+        elif isinstance(self.value, tuple) or isinstance(self.value, list):
+            for elem in self.value:
+                string += elem._str_internal(indent + 4,
+                                             used_references.copy())
+        elif isinstance(self.value, np.ndarray):
+            string += " " * (indent + 4)
+            if len(self.value) > 4:
+                string += (f"[{self.value[0]}, {self.value[1]} ... "
+                           f"{self.value[-2]}, {self.value[-1]}]\n")
+            else:
+                string += f"{self.value}\n"
+        else:
+            string += f"{' ' * (indent + 4)}{self.value}\n"
+
+        if(self.attributes):
+            attr_string = self.attributes._str_internal(
+                indent + 4,
+                used_references.copy())
+            string += f"{' ' * (indent + 2)}attributes:\n{attr_string}\n"
+
+        return string
+
+    def __str__(self):
+        return self._str_internal()
+
 
 class RData(typing.NamedTuple):
     versions: RVersions
     object: RObject
-
-
-def print_R_object(obj:RObject, indent=0):
-
-    print(" " * indent, end="")
-    print(f"{obj.info.type}")
-
-    if obj.tag:
-        print(" " * (indent + 2), end="")
-        print("tag:")
-        print_R_object(obj.tag, indent=indent + 4)
-
-    if obj.info.reference:
-        print(" " * (indent + 2), end="")
-        print(f"reference: {obj.info.reference}")
-        print_R_object(obj.referenced_object, indent=indent + 4)
-
-    print(" " * (indent + 2), end="")
-    print("value:")
-
-    if isinstance(obj.value, RObject):
-        print_R_object(obj.value, indent=indent + 4)
-    elif isinstance(obj.value, tuple) or isinstance(obj.value, list):
-        for elem in obj.value:
-            print_R_object(elem, indent=indent + 4)
-    elif isinstance(obj.value, np.ndarray):
-        print(" " * (indent + 4), end="")
-        if len(obj.value) > 4:
-            print(f"[{obj.value[0]}, {obj.value[1]} ... {obj.value[-2]}, {obj.value[-1]}]")
-        else:
-            print(obj.value)
-    else:
-        print(" " * (indent + 4), end="")
-        print(obj.value)
-
-    if(obj.attributes):
-        print(" " * (indent + 2), end="")
-        print("attributes:")
-        print_R_object(obj.attributes, indent=indent + 4)
 
 
 class ParserXDR():
@@ -138,8 +150,6 @@ class ParserXDR():
         format_version = self.parse_int()
         r_version = self.parse_int()
         minimum_r_version = self.parse_int()
-
-        print(format_version, r_version, minimum_r_version)
 
         if format_version != 2:
             raise NotImplementedError("Format version {format_version} unsupported")
@@ -173,7 +183,6 @@ class ParserXDR():
         info_int = self.parse_int()
 
         info = parse_r_object_info(info_int)
-        print(info)
 
         tag = None
         attributes = None
@@ -204,18 +213,15 @@ class ParserXDR():
 
         elif info.type == RObjectType.CHAR:
             length = self.parse_int()
-            print(f'length={length}')
             if length > 0:
                 value = self.parse_string(length=length)
             elif length == -1:
                 value = b""
             else:
                 raise NotImplementedError(f"Length of CHAR can not be {length}")
-            print(f'string={value}')
 
         elif info.type == RObjectType.INT:
             length = self.parse_int()
-            print(f'length={length}')
 
             value = np.empty(length, dtype=np.int32)
 
@@ -224,7 +230,6 @@ class ParserXDR():
 
         elif info.type == RObjectType.REAL:
             length = self.parse_int()
-            print(f'length={length}')
 
             value = np.empty(length, dtype=np.double)
 
@@ -233,7 +238,6 @@ class ParserXDR():
 
         elif info.type == RObjectType.STR:
             length = self.parse_int()
-            print(f'length={length}')
 
             value = [None] * length
 
@@ -242,7 +246,6 @@ class ParserXDR():
 
         elif info.type == RObjectType.VEC:
             length = self.parse_int()
-            print(f'length={length}')
             value = [None] * length
 
             for i in range(length):
@@ -264,8 +267,6 @@ class ParserXDR():
             raise NotImplementedError(f"Tag not implemented")
         if info.attributes and not attributes_read:
             attributes = self.parse_R_object(reference_list)
-            # raise NotImplementedError(f"Attributes not implemented")
-            # print(f'attributes={attributes}')
 
         result = RObject(info=info, tag=tag,
                        attributes=attributes,
@@ -275,7 +276,6 @@ class ParserXDR():
         if add_reference:
             reference_list.append(result)
 
-        print_R_object(result)
         return result
 
 magic_dict = {
