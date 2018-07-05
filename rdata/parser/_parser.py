@@ -1,5 +1,6 @@
 import bz2
 import enum
+import lzma
 import pathlib
 import typing
 import xdrlib
@@ -9,6 +10,7 @@ import numpy as np
 
 class FileTypes(enum.Enum):
     bzip2 = "bz2"
+    xz = "xz"
     rdata_binary = "rdata (binary)"
 
 
@@ -289,6 +291,7 @@ class ParserXDR():
 
 magic_dict = {
     FileTypes.bzip2: b"\x42\x5a\x68",
+    FileTypes.xz: b"\xFD7zXZ\x00",
     FileTypes.rdata_binary: b"RDX2\n"
 }
 
@@ -340,6 +343,8 @@ def parse_data(data: bytes):
 
     if filetype is FileTypes.bzip2:
         return parse_data(bz2.decompress(data))
+    elif filetype is FileTypes.xz:
+        return parse_data(lzma.decompress(data))
     elif filetype is FileTypes.rdata_binary:
         data = data[len(magic_dict[filetype]):]
         return parse_rdata_binary(data)

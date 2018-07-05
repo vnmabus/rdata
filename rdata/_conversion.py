@@ -1,8 +1,6 @@
-from collections import namedtuple
 import typing
 
-from numba.dummyarray import Dim
-import pandas
+import xarray
 
 import numpy as np
 from rdata.parser._parser import RObject
@@ -68,13 +66,13 @@ def decode_tag(r_symbol: parser.RObject):
         raise TypeError("Must receive a SYM or REF object")
 
 
-def array_to_pandas(r_array: RObject):
+def array_to_xarray(r_array: RObject):
     if r_array.info.type not in {parser.RObjectType.INT,
                                 parser.RObjectType.REAL}:
         raise TypeError("Must receive an array object")
 
     if r_array.attributes:
-        attrs = expand_attrs(r_array.attributes, pandas_conversion)
+        attrs = expand_attrs(r_array.attributes, xarray_conversion)
     else:
         attrs = {}
     print(attrs)
@@ -87,17 +85,12 @@ def array_to_pandas(r_array: RObject):
 
     dimnames = attrs.get('dimnames', None)
     if dimnames:
-        index_names = dimnames[0] if len(dimnames) >= 1 else None
-        column_names = dimnames[1] if len(dimnames) >= 2 else None
-
-        value = pandas.DataFrame(value, index=index_names, columns=column_names)
-
-    value = np.transpose(value)
+        value = xarray.DataArray(value, coords=dimnames)
 
     return value
 
 
-def pandas_conversion(data: typing.Union[parser.RData, parser.RObject],
+def xarray_conversion(data: typing.Union[parser.RData, parser.RObject],
                       references=None):
     if isinstance(data, parser.RData):
         obj: RObject = data.object
@@ -115,7 +108,7 @@ def pandas_conversion(data: typing.Union[parser.RData, parser.RObject],
     elif obj.info.type == parser.RObjectType.LIST:
 
         # Expand the list and process the elements
-        value = expand_list(obj, pandas_conversion)
+        value = expand_list(obj, xarray_conversion)
 
     elif obj.info.type == parser.RObjectType.CHAR:
 
@@ -125,22 +118,22 @@ def pandas_conversion(data: typing.Union[parser.RData, parser.RObject],
     elif obj.info.type == parser.RObjectType.INT:
 
         # Return the internal array
-        value = array_to_pandas(obj)
+        value = array_to_xarray(obj)
 
     elif obj.info.type == parser.RObjectType.REAL:
 
         # Return the internal array
-        value = array_to_pandas(obj)
+        value = array_to_xarray(obj)
 
     elif obj.info.type == parser.RObjectType.STR:
 
         # Convert the internal strings
-        value = [pandas_conversion(o) for o in obj.value]
+        value = [xarray_conversion(o) for o in obj.value]
 
     elif obj.info.type == parser.RObjectType.VEC:
 
         # Convert the internal strings
-        value = expand_vector(obj, pandas_conversion)
+        value = expand_vector(obj, xarray_conversion)
 
         return value
 

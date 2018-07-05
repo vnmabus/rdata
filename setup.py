@@ -5,8 +5,9 @@ Read R datasets from Python.
 
 """
 import os
-from setuptools import setup, find_packages
 import sys
+
+from setuptools import setup, find_packages
 
 
 needs_pytest = {'pytest', 'test', 'ptr'}.intersection(sys.argv)
@@ -44,6 +45,7 @@ setup(name='rdata',
       ],
       keywords=['rdata', 'r', 'dataset'],
       install_requires=['numpy',
+                        'xarray',
                         'setuptools'],
       setup_requires=pytest_runner,
       tests_require=['pytest-cov',
