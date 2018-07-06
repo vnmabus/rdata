@@ -1,6 +1,8 @@
+import abc
 import bz2
 import enum
 import lzma
+import os
 import pathlib
 import typing
 import xdrlib
@@ -9,18 +11,27 @@ import numpy as np
 
 
 class FileTypes(enum.Enum):
+    """
+    Type of file containing a R file.
+    """
     bzip2 = "bz2"
     xz = "xz"
     rdata_binary = "rdata (binary)"
 
 
 class RdataFormats(enum.Enum):
+    """
+    Format of a R file.
+    """
     XDR = "XDR"
     ASCII = "ASCII"
     binary = "binary"
 
 
 class RObjectType(enum.Enum):
+    """
+    Type of a R object.
+    """
     NIL = 0  # NULL
     SYM = 1  # symbols
     LIST = 2  # pairlists
@@ -59,12 +70,18 @@ class CharFlags(enum.IntFlag):
 
 
 class RVersions(typing.NamedTuple):
+    """
+    R versions.
+    """
     format: int
     serialized: int
     minimum: int
 
 
 class RObjectInfo(typing.NamedTuple):
+    """
+    Internal attributes of a R object.
+    """
     type: RObjectType
     object: bool
     attributes: bool
@@ -74,6 +91,9 @@ class RObjectInfo(typing.NamedTuple):
 
 
 class RObject(typing.NamedTuple):
+    """
+    Representation of a R object.
+    """
     info: RObjectInfo
     value: typing.Any
     attributes: typing.Container['RObject']
@@ -134,62 +154,72 @@ class RObject(typing.NamedTuple):
 
 
 class RData(typing.NamedTuple):
+    """
+    Data contained in a R file.
+    """
     versions: RVersions
     object: RObject
 
 
-class ParserXDR():
+class Parser(abc.ABC):
+    """
+    Parser interface for a R file.
+    """
 
-    def __init__(self, data, position=0):
-        self.data = data
-        self.position = position
-        self.xdr_parser = xdrlib.Unpacker(data)
+    @abc.abstractmethod
+    def parse_int(self) -> int:
+        """
+        Parse an integer.
+        """
+        pass
 
-    @property
-    def remaining_data(self):
-        return self.data[self.position:]
+    @abc.abstractmethod
+    def parse_double(self) -> float:
+        """
+        Parse a double.
+        """
+        pass
 
-    def parse_all(self):
+    @abc.abstractmethod
+    def parse_string(self, length) -> bytes:
+        """
+        Parse a string.
+        """
+        pass
+
+    def parse_all(self) -> RData:
+        """
+        Parse all the file.
+        """
 
         versions = self.parse_versions()
         obj = self.parse_R_object()
 
         return RData(versions, obj)
 
-    def parse_versions(self):
+    def parse_versions(self) -> RVersions:
+        """
+        Parse the versions header.
+        """
 
         format_version = self.parse_int()
         r_version = self.parse_int()
         minimum_r_version = self.parse_int()
 
         if format_version != 2:
-            raise NotImplementedError("Format version {format_version} unsupported")
+            raise NotImplementedError(
+                "Format version {format_version} unsupported")
 
         return RVersions(format_version, r_version, minimum_r_version)
 
-    def parse_int(self):
-        self.xdr_parser.set_position(self.position)
-        result = self.xdr_parser.unpack_int()
-        self.position = self.xdr_parser.get_position()
-
-        return result
-
-    def parse_double(self):
-        self.xdr_parser.set_position(self.position)
-        result = self.xdr_parser.unpack_double()
-        self.position = self.xdr_parser.get_position()
-
-        return result
-
-    def parse_string(self, length):
-        result = self.data[self.position:(self.position + length)]
-        self.position += length
-        return bytes(result)
-
     def parse_R_object(self, reference_list=None):
+        """
+        Parse a R object.
+        """
 
         if reference_list is None:
-            reference_list = [None]  # Index is 1-based, so we insert a dummy object
+            # Index is 1-based, so we insert a dummy object
+            reference_list = [None]
 
         info_int = self.parse_int()
 
@@ -229,7 +259,8 @@ class ParserXDR():
             elif length == -1:
                 value = b""
             else:
-                raise NotImplementedError(f"Length of CHAR can not be {length}")
+                raise NotImplementedError(
+                    f"Length of CHAR can not be {length}")
 
         elif info.type == RObjectType.INT:
             length = self.parse_int()
@@ -272,22 +303,51 @@ class ParserXDR():
         else:
             raise NotImplementedError(f"Type {info.type} not implemented")
 
-        if info.object:
-            raise NotImplementedError(f"Object not implemented")
         if info.tag and not tag_read:
             raise NotImplementedError(f"Tag not implemented")
         if info.attributes and not attributes_read:
             attributes = self.parse_R_object(reference_list)
 
         result = RObject(info=info, tag=tag,
-                       attributes=attributes,
-                       value=value,
-                       referenced_object=referenced_object)
+                         attributes=attributes,
+                         value=value,
+                         referenced_object=referenced_object)
 
         if add_reference:
             reference_list.append(result)
 
         return result
+
+
+class ParserXDR(Parser):
+    """
+    Parser used when the integers and doubles are in XDR format.
+    """
+
+    def __init__(self, data, position=0):
+        self.data = data
+        self.position = position
+        self.xdr_parser = xdrlib.Unpacker(data)
+
+    def parse_int(self):
+        self.xdr_parser.set_position(self.position)
+        result = self.xdr_parser.unpack_int()
+        self.position = self.xdr_parser.get_position()
+
+        return result
+
+    def parse_double(self):
+        self.xdr_parser.set_position(self.position)
+        result = self.xdr_parser.unpack_double()
+        self.position = self.xdr_parser.get_position()
+
+        return result
+
+    def parse_string(self, length):
+        result = self.data[self.position:(self.position + length)]
+        self.position += length
+        return bytes(result)
+
 
 magic_dict = {
     FileTypes.bzip2: b"\x42\x5a\x68",
@@ -303,9 +363,9 @@ format_dict = {
 
 
 def file_type(data: memoryview):
-    '''
+    """
     Returns the type of the file.
-    '''
+    """
 
     for filetype, magic in magic_dict.items():
         if data[:len(magic)] == magic:
@@ -314,9 +374,9 @@ def file_type(data: memoryview):
 
 
 def rdata_format(data: memoryview):
-    '''
+    """
     Returns the format of the data.
-    '''
+    """
 
     for format_type, magic in format_dict.items():
         if data[:len(magic)] == magic:
@@ -324,19 +384,56 @@ def rdata_format(data: memoryview):
     return None
 
 
-def parse_file(file):
+def parse_file(file_or_path: typing.Union[typing.BinaryIO, os.PathLike,
+                                          str, bytes]) -> RData:
+    """
+    Parse a R file (.rda or .rdata).
 
+    Parameters
+    ----------
+    file_or_path: file-like, str, bytes or path-like
+        File in the R serialization format.
+
+    Returns
+    -------
+    RData
+        Data contained in the file (versions and object).
+
+    See Also
+    --------
+    parse_data
+
+    """
     try:
-        path = pathlib.Path(file)
+        path = pathlib.Path(file_or_path)
         data = path.read_bytes()
-    except:
+    except TypeError:
         # file is a pre-opened file
-        data = file.read()
+        if hasattr(file_or_path, 'buffer'):
+            file_or_path = file_or_path.buffer
+        data = file_or_path.read()
     return parse_data(data)
 
 
-def parse_data(data: bytes):
+def parse_data(data: bytes) -> RData:
+    """
+    Parse the data of a R file, received as a sequence of bytes.
 
+    Parameters
+    ----------
+    data: bytes
+        Data extracted of a R file.
+
+    Returns
+    -------
+    RData
+        Data contained in the file (versions and object).
+
+    See Also
+    --------
+    parse_file
+
+    """
     data = memoryview(data)
 
     filetype = file_type(data)
@@ -353,6 +450,9 @@ def parse_data(data: bytes):
 
 
 def parse_rdata_binary(data: memoryview):
+    """
+    Select the appropiate parser and parse all the info.
+    """
     format_type = rdata_format(data)
 
     if format_type:
@@ -366,6 +466,9 @@ def parse_rdata_binary(data: memoryview):
 
 
 def bits(data, start, stop):
+    """
+    Read bits [start, stop) of an integer.
+    """
     count = stop - start
     mask = ((1 << count) - 1) << start
 
@@ -374,11 +477,17 @@ def bits(data, start, stop):
 
 
 def is_special_r_object_type(r_object_type: RObjectType):
+    """
+    Check if a R type has a different serialization than the usual one.
+    """
     return (r_object_type is RObjectType.NILVALUE
             or r_object_type is RObjectType.REF)
 
 
 def parse_r_object_info(info_int: int) -> RObjectInfo:
+    """
+    Parse the internal information of an object.
+    """
     type_exp = RObjectType(bits(info_int, 0, 8))
 
     reference = 0
@@ -405,4 +514,3 @@ def parse_r_object_info(info_int: int) -> RObjectInfo:
         gp=gp,
         reference=reference
     )
-

@@ -8,7 +8,7 @@ from rdata.parser._parser import RObject
 from . import parser
 
 
-def expand_list(r_list: parser.RObject, function:typing.Callable=lambda x: x):
+def expand_list(r_list: parser.RObject, function: typing.Callable=lambda x: x):
     if r_list.info.type is parser.RObjectType.NILVALUE:
         return {}
     elif r_list.info.type is not parser.RObjectType.LIST:
@@ -16,14 +16,16 @@ def expand_list(r_list: parser.RObject, function:typing.Callable=lambda x: x):
 
     tag = decode_tag(r_list.tag)
 
-    return {tag: function(r_list.value[0]), **expand_list(r_list.value[1], function)}
+    return {tag: function(r_list.value[0]),
+            **expand_list(r_list.value[1], function)}
 
 
 def expand_attrs(attrs, function):
     return expand_list(attrs, function)
 
 
-def expand_vector(r_vec: parser.RObject, function:typing.Callable=lambda x: x):
+def expand_vector(r_vec: parser.RObject,
+                  function: typing.Callable=lambda x: x):
     if r_vec.info.type is not parser.RObjectType.VEC:
         raise TypeError("Must receive a VEC object")
 
@@ -34,8 +36,6 @@ def expand_vector(r_vec: parser.RObject, function:typing.Callable=lambda x: x):
         attrs = expand_attrs(r_vec.attributes, function)
         field_names = attrs.get('names', None)
         if field_names:
-            # name = decode_tag(r_vec.tag).title() if r_vec.tag else "Anonymous"
-            # new_type = namedtuple(name, field_names)
             value = dict(zip(field_names, value))
 
     return value
@@ -68,14 +68,13 @@ def decode_tag(r_symbol: parser.RObject):
 
 def array_to_xarray(r_array: RObject):
     if r_array.info.type not in {parser.RObjectType.INT,
-                                parser.RObjectType.REAL}:
+                                 parser.RObjectType.REAL}:
         raise TypeError("Must receive an array object")
 
     if r_array.attributes:
         attrs = expand_attrs(r_array.attributes, xarray_conversion)
     else:
         attrs = {}
-    print(attrs)
 
     value = r_array.value
 
@@ -85,7 +84,11 @@ def array_to_xarray(r_array: RObject):
 
     dimnames = attrs.get('dimnames', None)
     if dimnames:
-        value = xarray.DataArray(value, coords=dimnames)
+        dimension_names = ["dim_" + str(i) for i, _ in enumerate(dimnames)]
+        coords = {dimension_names[i]: d
+                  for i, d in enumerate(dimnames) if d is not None}
+
+        value = xarray.DataArray(value, dims=dimension_names, coords=coords)
 
     return value
 
@@ -142,9 +145,14 @@ def xarray_conversion(data: typing.Union[parser.RData, parser.RObject],
         # Return the referenced value
         value = references[id(obj.referenced_object)]
 
+    elif obj.info.type == parser.RObjectType.NILVALUE:
+
+        return None
+
     else:
         raise NotImplementedError(f"Type {obj.info.type} not implemented")
 
     references[id(obj)] = value
 
     return value
+
