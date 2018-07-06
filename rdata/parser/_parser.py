@@ -1,6 +1,7 @@
 import abc
 import bz2
 import enum
+import gzip
 import lzma
 import os
 import pathlib
@@ -15,8 +16,28 @@ class FileTypes(enum.Enum):
     Type of file containing a R file.
     """
     bzip2 = "bz2"
+    gzip = "gzip"
     xz = "xz"
     rdata_binary = "rdata (binary)"
+
+
+magic_dict = {
+    FileTypes.bzip2: b"\x42\x5a\x68",
+    FileTypes.gzip: b"\x1f\x8b",
+    FileTypes.xz: b"\xFD7zXZ\x00",
+    FileTypes.rdata_binary: b"RDX2\n"
+}
+
+
+def file_type(data: memoryview):
+    """
+    Returns the type of the file.
+    """
+
+    for filetype, magic in magic_dict.items():
+        if data[:len(magic)] == magic:
+            return filetype
+    return None
 
 
 class RdataFormats(enum.Enum):
@@ -26,6 +47,24 @@ class RdataFormats(enum.Enum):
     XDR = "XDR"
     ASCII = "ASCII"
     binary = "binary"
+
+
+format_dict = {
+    RdataFormats.XDR: b"X\n",
+    RdataFormats.ASCII: b"A\n",
+    RdataFormats.binary: b"B\n",
+}
+
+
+def rdata_format(data: memoryview):
+    """
+    Returns the format of the data.
+    """
+
+    for format_type, magic in format_dict.items():
+        if data[:len(magic)] == magic:
+            return format_type
+    return None
 
 
 class RObjectType(enum.Enum):
@@ -349,41 +388,6 @@ class ParserXDR(Parser):
         return bytes(result)
 
 
-magic_dict = {
-    FileTypes.bzip2: b"\x42\x5a\x68",
-    FileTypes.xz: b"\xFD7zXZ\x00",
-    FileTypes.rdata_binary: b"RDX2\n"
-}
-
-format_dict = {
-    RdataFormats.XDR: b"X\n",
-    RdataFormats.ASCII: b"A\n",
-    RdataFormats.binary: b"B\n",
-}
-
-
-def file_type(data: memoryview):
-    """
-    Returns the type of the file.
-    """
-
-    for filetype, magic in magic_dict.items():
-        if data[:len(magic)] == magic:
-            return filetype
-    return None
-
-
-def rdata_format(data: memoryview):
-    """
-    Returns the format of the data.
-    """
-
-    for format_type, magic in format_dict.items():
-        if data[:len(magic)] == magic:
-            return format_type
-    return None
-
-
 def parse_file(file_or_path: typing.Union[typing.BinaryIO, os.PathLike,
                                           str, bytes]) -> RData:
     """
@@ -440,6 +444,8 @@ def parse_data(data: bytes) -> RData:
 
     if filetype is FileTypes.bzip2:
         return parse_data(bz2.decompress(data))
+    elif filetype is FileTypes.gzip:
+        return parse_data(gzip.decompress(data))
     elif filetype is FileTypes.xz:
         return parse_data(lzma.decompress(data))
     elif filetype is FileTypes.rdata_binary:
