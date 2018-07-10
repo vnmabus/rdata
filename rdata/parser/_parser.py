@@ -5,7 +5,7 @@ import gzip
 import lzma
 import os
 import pathlib
-import typing
+from typing import Optional, NamedTuple, Any, Union, BinaryIO, cast
 import xdrlib
 
 import numpy as np
@@ -108,7 +108,7 @@ class CharFlags(enum.IntFlag):
     ASCII = 1 << 6
 
 
-class RVersions(typing.NamedTuple):
+class RVersions(NamedTuple):
     """
     R versions.
     """
@@ -117,7 +117,7 @@ class RVersions(typing.NamedTuple):
     minimum: int
 
 
-class RObjectInfo(typing.NamedTuple):
+class RObjectInfo(NamedTuple):
     """
     Internal attributes of a R object.
     """
@@ -129,15 +129,15 @@ class RObjectInfo(typing.NamedTuple):
     reference: int
 
 
-class RObject(typing.NamedTuple):
+class RObject(NamedTuple):
     """
     Representation of a R object.
     """
     info: RObjectInfo
-    value: typing.Any
-    attributes: typing.Container['RObject']
-    tag: typing.Union['RObject', None] = None
-    referenced_object: 'RObject' = None
+    value: Any
+    attributes: 'RObject'
+    tag: Optional['RObject'] = None
+    referenced_object: Optional['RObject'] = None
 
     def _str_internal(self, indent: int=0, used_references=None):
 
@@ -154,6 +154,7 @@ class RObject(typing.NamedTuple):
             string += f"{' ' * (indent + 2)}tag:\n{tag_string}\n"
 
         if self.info.reference:
+            assert self.referenced_object
             reference_string = (f"{' ' * (indent + 4)}..."
                                 if self.info.reference in used_references
                                 else self.referenced_object._str_internal(
@@ -192,7 +193,7 @@ class RObject(typing.NamedTuple):
         return self._str_internal()
 
 
-class RData(typing.NamedTuple):
+class RData(NamedTuple):
     """
     Data contained in a R file.
     """
@@ -388,8 +389,8 @@ class ParserXDR(Parser):
         return bytes(result)
 
 
-def parse_file(file_or_path: typing.Union[typing.BinaryIO, os.PathLike,
-                                          str, bytes]) -> RData:
+def parse_file(file_or_path: Union[BinaryIO, os.PathLike,
+                                   str]) -> RData:
     """
     Parse a R file (.rda or .rdata).
 
@@ -408,13 +409,14 @@ def parse_file(file_or_path: typing.Union[typing.BinaryIO, os.PathLike,
     parse_data
 
     """
-    try:
+    if isinstance(file_or_path, (os.PathLike, str)):
         path = pathlib.Path(file_or_path)
         data = path.read_bytes()
-    except TypeError:
+    else:
         # file is a pre-opened file
-        if hasattr(file_or_path, 'buffer'):
-            file_or_path = file_or_path.buffer
+        buffer: Optional[BinaryIO] = getattr(file_or_path, 'buffer', None)
+        if buffer is not None:
+            file_or_path = buffer
         data = file_or_path.read()
     return parse_data(data)
 
@@ -438,9 +440,9 @@ def parse_data(data: bytes) -> RData:
     parse_file
 
     """
-    data = memoryview(data)
+    view = memoryview(data)
 
-    filetype = file_type(data)
+    filetype = file_type(view)
 
     if filetype is FileTypes.bzip2:
         return parse_data(bz2.decompress(data))
@@ -449,8 +451,8 @@ def parse_data(data: bytes) -> RData:
     elif filetype is FileTypes.xz:
         return parse_data(lzma.decompress(data))
     elif filetype is FileTypes.rdata_binary:
-        data = data[len(magic_dict[filetype]):]
-        return parse_rdata_binary(data)
+        view = view[len(magic_dict[filetype]):]
+        return parse_rdata_binary(view)
     else:
         raise NotImplementedError("Unknown file type")
 

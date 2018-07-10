@@ -1,5 +1,5 @@
 import abc
-import typing
+from typing import Callable, Any, List, Mapping, MutableMapping, Union
 import warnings
 
 import xarray
@@ -11,7 +11,8 @@ from .. import parser
 
 
 def convert_list(r_list: parser.RObject,
-                 conversion_function: typing.Callable=lambda x: x):
+                 conversion_function: Callable=lambda x: x
+                 ) -> Mapping[Union[str, bytes], Any]:
     """
     Expand a tagged R pairlist to a Python dictionary.
 
@@ -39,14 +40,18 @@ def convert_list(r_list: parser.RObject,
     elif r_list.info.type is not parser.RObjectType.LIST:
         raise TypeError("Must receive a LIST or NILVALUE object")
 
-    tag = convert_symbol(r_list.tag)
+    if r_list.tag is None:
+        raise NotImplementedError("Lists are assumed to have tags")
+    else:
+        tag = conversion_function(r_list.tag)
 
     return {tag: conversion_function(r_list.value[0]),
             **convert_list(r_list.value[1], conversion_function)}
 
 
 def convert_attrs(r_obj: parser.RObject,
-                  conversion_function: typing.Callable=lambda x: x):
+                  conversion_function: Callable=lambda x: x
+                  ) -> Mapping[Union[str, bytes], Any]:
     """
     Return the attributes of an object as a Python dictionary.
 
@@ -77,7 +82,8 @@ def convert_attrs(r_obj: parser.RObject,
 
 
 def convert_vector(r_vec: parser.RObject,
-                   function: typing.Callable=lambda x: x):
+                   function: Callable=lambda x: x
+                   ) -> Union[List[Any], Mapping[Union[str, bytes], Any]]:
     """
     Convert a R vector to a Python list or dictionary.
 
@@ -107,18 +113,18 @@ def convert_vector(r_vec: parser.RObject,
     if r_vec.info.type is not parser.RObjectType.VEC:
         raise TypeError("Must receive a VEC object")
 
-    value = [function(o) for o in r_vec.value]
+    value: Any = [function(o) for o in r_vec.value]
 
     # If it has the name attribute, use a dict instead
     attrs = convert_attrs(r_vec, function)
-    field_names = attrs.get('names', None)
+    field_names = attrs.get('names')
     if field_names:
         value = dict(zip(field_names, value))
 
     return value
 
 
-def convert_char(r_char: parser.RObject):
+def convert_char(r_char: parser.RObject) -> Union[str, bytes]:
     """
     Decode a R character array to a Python string or bytes.
 
@@ -156,7 +162,7 @@ def convert_char(r_char: parser.RObject):
         raise NotImplementedError("Encoding not implemented")
 
 
-def convert_symbol(r_symbol: parser.RObject):
+def convert_symbol(r_symbol: parser.RObject) -> Union[str, bytes]:
     """
     Decode a R symbol to a Python string or bytes.
 
@@ -177,15 +183,14 @@ def convert_symbol(r_symbol: parser.RObject):
     """
     if r_symbol.info.type is parser.RObjectType.SYM:
         return convert_char(r_symbol.value)
-    elif r_symbol.info.type is parser.RObjectType.REF:
-        return convert_symbol(r_symbol.referenced_object)
     else:
         raise TypeError("Must receive a SYM or REF object")
 
 
 def convert_array(r_array: RObject,
-                  conversion_function: typing.Callable=lambda x: x,
-                  attrs: dict=None):
+                  conversion_function: Callable=lambda x: x,
+                  attrs: Mapping[Union[str, bytes], Any]=None
+                  ) -> Union[np.ndarray, xarray.DataArray]:
     """
     Convert a R array to a Numpy ndarray or a Xarray DataArray.
 
@@ -219,11 +224,11 @@ def convert_array(r_array: RObject,
 
     value = r_array.value
 
-    shape = attrs.get('dim', None)
+    shape = attrs.get('dim')
     if shape is not None:
         value = np.reshape(value, shape)
 
-    dimnames = attrs.get('dimnames', None)
+    dimnames = attrs.get('dimnames')
     if dimnames:
         dimension_names = ["dim_" + str(i) for i, _ in enumerate(dimnames)]
         coords = {dimension_names[i]: d
@@ -237,29 +242,35 @@ def convert_array(r_array: RObject,
 class Converter(abc.ABC):
 
     @abc.abstractmethod
-    def convert(self, data: typing.Union[parser.RData, parser.RObject]):
+    def convert(self, data: Union[parser.RData, parser.RObject]) -> Any:
         pass
 
 
 class SimpleConverter(Converter):
 
-    def __init__(self, constructor_dict=None):
-        self.references = {}
+    def __init__(self,
+                 constructor_dict: Mapping[
+                     Union[str, bytes],
+                     Callable[[Any, Mapping], Any]]=None) -> None:
+        self.references: MutableMapping[int, Any] = {}
 
         self.constructor_dict = ({} if constructor_dict is None
                                  else constructor_dict)
 
-    def convert(self, data: typing.Union[parser.RData, parser.RObject]):
+    def convert(self, data: Union[parser.RData, parser.RObject]) -> Any:
         """
         Convert a R object to a Python one.
         """
+
+        obj: RObject
         if isinstance(data, parser.RData):
-            obj: RObject = data.object
+            obj = data.object
         else:
-            obj: RObject = data
+            obj = data
 
         attrs = convert_attrs(obj, self.convert)
 
+        value: Any
         if obj.info.type == parser.RObjectType.SYM:
 
             # Return the internal string
