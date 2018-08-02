@@ -1,7 +1,11 @@
 import abc
+import enum
+from fractions import Fraction
+from types import MappingProxyType
 from typing import Callable, Any, List, Mapping, MutableMapping, Union
 import warnings
 
+import pandas
 import xarray
 
 import numpy as np
@@ -45,8 +49,11 @@ def convert_list(r_list: parser.RObject,
     else:
         tag = conversion_function(r_list.tag)
 
-    return {tag: conversion_function(r_list.value[0]),
-            **convert_list(r_list.value[1], conversion_function)}
+    cdr = conversion_function(r_list.value[1])
+    if cdr is None:
+        cdr = {}
+
+    return {tag: conversion_function(r_list.value[0]), **cdr}
 
 
 def convert_attrs(r_obj: parser.RObject,
@@ -75,14 +82,15 @@ def convert_attrs(r_obj: parser.RObject,
 
     """
     if r_obj.attributes:
-        attrs = convert_list(r_obj.attributes, conversion_function)
+        attrs = conversion_function(r_obj.attributes)
     else:
         attrs = {}
     return attrs
 
 
 def convert_vector(r_vec: parser.RObject,
-                   function: Callable=lambda x: x
+                   conversion_function: Callable=lambda x: x,
+                   attrs: Mapping[Union[str, bytes], Any]=None
                    ) -> Union[List[Any], Mapping[Union[str, bytes], Any]]:
     """
     Convert a R vector to a Python list or dictionary.
@@ -110,13 +118,15 @@ def convert_vector(r_vec: parser.RObject,
     convert_list
 
     """
+    if attrs is None:
+        attrs = {}
+
     if r_vec.info.type is not parser.RObjectType.VEC:
         raise TypeError("Must receive a VEC object")
 
-    value: Any = [function(o) for o in r_vec.value]
+    value: Any = [conversion_function(o) for o in r_vec.value]
 
     # If it has the name attribute, use a dict instead
-    attrs = convert_attrs(r_vec, function)
     field_names = attrs.get('names')
     if field_names:
         value = dict(zip(field_names, value))
@@ -162,7 +172,9 @@ def convert_char(r_char: parser.RObject) -> Union[str, bytes]:
         raise NotImplementedError("Encoding not implemented")
 
 
-def convert_symbol(r_symbol: parser.RObject) -> Union[str, bytes]:
+def convert_symbol(r_symbol: parser.RObject,
+                   conversion_function: Callable=lambda x: x
+                   ) -> Union[str, bytes]:
     """
     Decode a R symbol to a Python string or bytes.
 
@@ -170,6 +182,9 @@ def convert_symbol(r_symbol: parser.RObject) -> Union[str, bytes]:
     ----------
     r_symbol: RObject
         R symbol.
+    conversion_function: Callable
+        Conversion function to apply to the char element of the symbol.
+        By default is the identity function.
 
     Returns
     -------
@@ -182,9 +197,9 @@ def convert_symbol(r_symbol: parser.RObject) -> Union[str, bytes]:
 
     """
     if r_symbol.info.type is parser.RObjectType.SYM:
-        return convert_char(r_symbol.value)
+        return conversion_function(r_symbol.value)
     else:
-        raise TypeError("Must receive a SYM or REF object")
+        raise TypeError("Must receive a SYM object")
 
 
 def convert_array(r_array: RObject,
@@ -239,6 +254,56 @@ def convert_array(r_array: RObject,
     return value
 
 
+def dataframe_constructor(obj, attrs):
+    return pandas.DataFrame(obj)
+
+
+def factor_constructor(obj, attrs):
+    factor = enum.Enum('Factor', attrs['levels'])
+
+    return [factor(i) for i in obj]
+
+
+def ts_constructor(obj, attrs):
+
+    start, end, frequency = attrs['tsp']
+    substart = subend = 1
+
+    if(not np.isscalar(start) and len(start) > 1):
+        start, substart = start
+
+    if(not np.isscalar(end) and len(end) > 1):
+        end, subend = end
+
+    start = int(start)
+    substart = int(substart)
+    end = int(end)
+    subend = int(subend)
+    frequency = int(frequency)
+
+    real_start = start + Fraction(substart - 1, frequency)
+    real_end = end + Fraction(subend - 1, frequency)
+
+    index = np.arange(real_start, real_end + Fraction(1, frequency),
+                      Fraction(1, frequency))
+
+    if frequency != 1:
+        index = [(int(n), n % 1 * frequency) for n in index]
+    else:
+        index = index.astype(int)
+
+    return pandas.Series(obj, index=index)
+
+
+default_class_map_dict = {
+    "data.frame": dataframe_constructor,
+    "factor": factor_constructor,
+    "ts": ts_constructor,
+}
+
+DEFAULT_CLASS_MAP = MappingProxyType(default_class_map_dict)
+
+
 class Converter(abc.ABC):
 
     @abc.abstractmethod
@@ -254,7 +319,8 @@ class SimpleConverter(Converter):
                      Callable[[Any, Mapping], Any]]=None) -> None:
         self.references: MutableMapping[int, Any] = {}
 
-        self.constructor_dict = ({} if constructor_dict is None
+        self.constructor_dict = (DEFAULT_CLASS_MAP
+                                 if constructor_dict is None
                                  else constructor_dict)
 
     def convert(self, data: Union[parser.RData, parser.RObject]) -> Any:
@@ -270,11 +336,17 @@ class SimpleConverter(Converter):
 
         attrs = convert_attrs(obj, self.convert)
 
-        value: Any
+        reference_id = id(obj)
+
+        # Return the value if previously referenced
+        value: Any = self.references.get(id(obj))
+        if value is not None:
+            pass
+
         if obj.info.type == parser.RObjectType.SYM:
 
             # Return the internal string
-            value = convert_char(obj.value)
+            value = convert_symbol(obj, self.convert)
 
         elif obj.info.type == parser.RObjectType.LIST:
 
@@ -304,18 +376,20 @@ class SimpleConverter(Converter):
         elif obj.info.type == parser.RObjectType.VEC:
 
             # Convert the internal objects
-            value = convert_vector(obj, self.convert)
-
-            return value
+            value = convert_vector(obj, self.convert, attrs=attrs)
 
         elif obj.info.type == parser.RObjectType.REF:
 
             # Return the referenced value
-            value = self.references[id(obj.referenced_object)]
+            value = self.references.get(id(obj.referenced_object))
+            # value = self.references[id(obj.referenced_object)]
+            if value is None:
+                reference_id = id(obj.referenced_object)
+                value = self.convert(obj.referenced_object)
 
         elif obj.info.type == parser.RObjectType.NILVALUE:
 
-            return None
+            value = None
 
         else:
             raise NotImplementedError(f"Type {obj.info.type} not implemented")
@@ -328,18 +402,18 @@ class SimpleConverter(Converter):
             constructor = self.constructor_dict.get(classname, None)
 
             if constructor:
-                new_obj = constructor(obj, attrs)
+                new_value = constructor(value, attrs)
             else:
-                new_obj = NotImplemented
+                new_value = NotImplemented
 
-            if new_obj is NotImplemented:
+            if new_value is NotImplemented:
                 warnings.warn(f"Missing constructor for R class "
                               f"\"{classname}\". "
                               f"The underlying R object is returned instead",
                               stacklevel=1)
             else:
-                obj = new_obj
+                value = new_value
 
-        self.references[id(obj)] = value
+        self.references[reference_id] = value
 
         return value
