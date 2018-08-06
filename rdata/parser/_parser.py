@@ -305,7 +305,7 @@ class Parser(abc.ABC):
         elif info.type == RObjectType.INT:
             length = self.parse_int()
 
-            value = np.empty(length, dtype=np.int32)
+            value = np.empty(length, dtype=np.int64)
 
             for i in range(length):
                 value[i] = self.parse_int()

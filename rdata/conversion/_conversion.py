@@ -259,37 +259,43 @@ def dataframe_constructor(obj, attrs):
 
 
 def factor_constructor(obj, attrs):
-    factor = enum.Enum('Factor', attrs['levels'])
+    factor = enum.Enum('Factor', [(l, l) for l in attrs['levels']])
 
-    return [factor(i) for i in obj]
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            return self is other
+        else:
+            if self.value == other:
+                return True
+            else:
+                value = getattr(other, "value", NotImplemented)
+                if value is not NotImplemented:
+                    return self.value == value
+                else:
+                    return False
+
+    def __hash_(self):
+        return hash(self.value)
+
+    factor.__eq__ = __eq__
+    factor.__hash__ = __hash_
+
+    return [factor(attrs['levels'][i - 1]) for i in obj]
 
 
 def ts_constructor(obj, attrs):
 
     start, end, frequency = attrs['tsp']
-    substart = subend = 1
 
-    if(not np.isscalar(start) and len(start) > 1):
-        start, substart = start
-
-    if(not np.isscalar(end) and len(end) > 1):
-        end, subend = end
-
-    start = int(start)
-    substart = int(substart)
-    end = int(end)
-    subend = int(subend)
     frequency = int(frequency)
 
-    real_start = start + Fraction(substart - 1, frequency)
-    real_end = end + Fraction(subend - 1, frequency)
+    real_start = Fraction(int(round(start * frequency)), frequency)
+    real_end = Fraction(int(round(end * frequency)), frequency)
 
     index = np.arange(real_start, real_end + Fraction(1, frequency),
                       Fraction(1, frequency))
 
-    if frequency != 1:
-        index = [(int(n), n % 1 * frequency) for n in index]
-    else:
+    if frequency == 1:
         index = index.astype(int)
 
     return pandas.Series(obj, index=index)
@@ -417,3 +423,11 @@ class SimpleConverter(Converter):
         self.references[reference_id] = value
 
         return value
+
+
+def convert(data, *args, **kwargs):
+    """
+    Uses the default converter to convert the data.
+
+    """
+    return SimpleConverter(*args, **kwargs).convert(data)

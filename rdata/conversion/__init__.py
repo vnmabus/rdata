@@ -4,4 +4,4 @@ from ._conversion import (convert_list, convert_attrs, convert_vector,
                           dataframe_constructor,
                           factor_constructor,
                           ts_constructor,
-                          DEFAULT_CLASS_MAP)
+                          DEFAULT_CLASS_MAP, convert)

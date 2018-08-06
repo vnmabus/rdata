@@ -9,7 +9,6 @@ import sys
 
 from setuptools import setup, find_packages
 
-
 needs_pytest = {'pytest', 'test', 'ptr'}.intersection(sys.argv)
 pytest_runner = ['pytest-runner'] if needs_pytest else []
 
@@ -51,5 +50,5 @@ setup(name='rdata',
       tests_require=['pytest-cov',
                      'numpy>=1.14'  # The printing format for numpy changes
                      ],
-      # test_suite='rdata.tests',
+      test_suite='rdata.tests',
       zip_safe=False)
