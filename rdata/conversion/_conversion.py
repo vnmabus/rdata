@@ -308,9 +308,19 @@ default_class_map_dict = {
 }
 
 DEFAULT_CLASS_MAP = MappingProxyType(default_class_map_dict)
+"""
+Default mapping of constructor functions.
+
+It has support for converting several commonly used R classes.
+"""
+
+Constructor = Callable[[Any, Mapping], Any]
 
 
 class Converter(abc.ABC):
+    """
+    Interface of a class converting R objects in Python objects.
+    """
 
     @abc.abstractmethod
     def convert(self, data: Union[parser.RData, parser.RObject]) -> Any:
@@ -318,11 +328,28 @@ class Converter(abc.ABC):
 
 
 class SimpleConverter(Converter):
+    """
+    Class converting R objects to Python objects.
+
+    Parameters
+    ----------
+    constructor_dict: dict
+        Dictionary mapping names of R classes to constructor functions with
+        the following prototype:
+
+        .. code-block :: python
+
+            def constructor(obj, attrs):
+
+        This dictionary can be used to support custom R classes. By default,
+        the dictionary used is :data:`DEFAULT_CLASS_MAP` which has support for
+        several common classes.
+    """
 
     def __init__(self,
                  constructor_dict: Mapping[
                      Union[str, bytes],
-                     Callable[[Any, Mapping], Any]]=None) -> None:
+                     Constructor]=None) -> None:
         self.references: MutableMapping[int, Any] = {}
 
         self.constructor_dict = (DEFAULT_CLASS_MAP
