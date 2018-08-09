@@ -257,7 +257,7 @@ def convert_array(r_array: RObject,
 
 
 def dataframe_constructor(obj, attrs):
-    return pandas.DataFrame(obj)
+    return pandas.DataFrame(obj, columns=obj)
 
 
 def factor_constructor(obj, attrs):
@@ -282,7 +282,7 @@ def factor_constructor(obj, attrs):
     factor.__eq__ = __eq__
     factor.__hash__ = __hash_
 
-    return [factor(attrs['levels'][i - 1]) for i in obj]
+    return [factor(attrs['levels'][i - 1]) if i >= 0 else None for i in obj]
 
 
 def ts_constructor(obj, attrs):
@@ -442,23 +442,32 @@ class SimpleConverter(Converter):
 
         if obj.info.object:
             classname = attrs["class"]
-            assert len(classname) == 1
-            classname = classname[0]
+            for i, c in enumerate(classname):
 
-            constructor = self.constructor_dict.get(classname, None)
+                constructor = self.constructor_dict.get(c, None)
 
-            if constructor:
-                new_value = constructor(value, attrs)
-            else:
-                new_value = NotImplemented
+                if constructor:
+                    new_value = constructor(value, attrs)
+                else:
+                    new_value = NotImplemented
 
-            if new_value is NotImplemented:
-                warnings.warn(f"Missing constructor for R class "
-                              f"\"{classname}\". "
-                              f"The underlying R object is returned instead",
-                              stacklevel=1)
-            else:
-                value = new_value
+                if new_value is NotImplemented:
+                    missing_msg = (f"Missing constructor for R class "
+                                   f"\"{c}\". ")
+
+                    if len(classname) > (i + 1):
+                        solution_msg = (f"The constructor for class "
+                                        f"\"{classname[i+1]}\" will be "
+                                        f"used instead."
+                                        )
+                    else:
+                        solution_msg = ("The underlying R object is "
+                                        "returned instead.")
+
+                    warnings.warn(missing_msg + solution_msg,
+                                  stacklevel=1)
+                else:
+                    value = new_value
 
         self.references[reference_id] = value
 
