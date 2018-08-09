@@ -3,6 +3,8 @@
 """
 Read R datasets from Python.
 
+This package parses .rda datasets used in R. It does not depend on the R
+language or its libraries, and thus it is released under a MIT license.
 """
 import os
 import sys
@@ -22,7 +24,7 @@ setup(name='rdata',
       version=version,
       description=DOCLINES[1],
       long_description="\n".join(DOCLINES[3:]),
-      # url='https://rdata.readthedocs.io',
+      url='https://github.com/vnmabus/rdata',
       author='Carlos Ramos Carreño',
       author_email='vnmabus@gmail.com',
       include_package_data=True,
