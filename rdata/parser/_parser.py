@@ -6,6 +6,7 @@ import lzma
 import os
 import pathlib
 from typing import Optional, NamedTuple, Any, Union, BinaryIO, cast
+import warnings
 import xdrlib
 
 import numpy as np
@@ -344,7 +345,8 @@ class Parser(abc.ABC):
             raise NotImplementedError(f"Type {info.type} not implemented")
 
         if info.tag and not tag_read:
-            raise NotImplementedError(f"Tag not implemented")
+            warnings.warn(f"Tag not implemented for type {info.type} "
+                          "and ignored")
         if info.attributes and not attributes_read:
             attributes = self.parse_R_object(reference_list)
 
