@@ -169,7 +169,9 @@ def convert_char(r_char: parser.RObject) -> Union[str, bytes]:
     elif r_char.info.gp & parser.CharFlags.BYTES:
         return r_char.value
     else:
-        raise NotImplementedError("Encoding not implemented")
+        # Assume ASCII if no encoding is marked
+        warnings.warn(f"Unknown encoding. Assumed ASCII.")
+        return r_char.value.decode("ascii")
 
 
 def convert_symbol(r_symbol: parser.RObject,
@@ -350,13 +352,24 @@ class SimpleConverter(Converter):
                  constructor_dict: Mapping[
                      Union[str, bytes],
                      Constructor]=None) -> None:
-        self.references: MutableMapping[int, Any] = {}
 
         self.constructor_dict = (DEFAULT_CLASS_MAP
                                  if constructor_dict is None
                                  else constructor_dict)
 
+        self._reset()
+
+    def _reset(self) -> None:
+        self.references: MutableMapping[int, Any] = {}
+
     def convert(self, data: Union[parser.RData, parser.RObject]) -> Any:
+        """
+        Convert a R object to a Python one.
+        """
+        self._reset()
+        return self._convert_next(data)
+
+    def _convert_next(self, data: Union[parser.RData, parser.RObject]) -> Any:
         """
         Convert a R object to a Python one.
         """
@@ -367,7 +380,7 @@ class SimpleConverter(Converter):
         else:
             obj = data
 
-        attrs = convert_attrs(obj, self.convert)
+        attrs = convert_attrs(obj, self._convert_next)
 
         reference_id = id(obj)
 
@@ -379,12 +392,12 @@ class SimpleConverter(Converter):
         if obj.info.type == parser.RObjectType.SYM:
 
             # Return the internal string
-            value = convert_symbol(obj, self.convert)
+            value = convert_symbol(obj, self._convert_next)
 
         elif obj.info.type == parser.RObjectType.LIST:
 
             # Expand the list and process the elements
-            value = convert_list(obj, self.convert)
+            value = convert_list(obj, self._convert_next)
 
         elif obj.info.type == parser.RObjectType.CHAR:
 
@@ -394,22 +407,22 @@ class SimpleConverter(Converter):
         elif obj.info.type == parser.RObjectType.INT:
 
             # Return the internal array
-            value = convert_array(obj, self.convert, attrs=attrs)
+            value = convert_array(obj, self._convert_next, attrs=attrs)
 
         elif obj.info.type == parser.RObjectType.REAL:
 
             # Return the internal array
-            value = convert_array(obj, self.convert, attrs=attrs)
+            value = convert_array(obj, self._convert_next, attrs=attrs)
 
         elif obj.info.type == parser.RObjectType.STR:
 
             # Convert the internal strings
-            value = [self.convert(o) for o in obj.value]
+            value = [self._convert_next(o) for o in obj.value]
 
         elif obj.info.type == parser.RObjectType.VEC:
 
             # Convert the internal objects
-            value = convert_vector(obj, self.convert, attrs=attrs)
+            value = convert_vector(obj, self._convert_next, attrs=attrs)
 
         elif obj.info.type == parser.RObjectType.REF:
 
@@ -418,7 +431,7 @@ class SimpleConverter(Converter):
             # value = self.references[id(obj.referenced_object)]
             if value is None:
                 reference_id = id(obj.referenced_object)
-                value = self.convert(obj.referenced_object)
+                value = self._convert_next(obj.referenced_object)
 
         elif obj.info.type == parser.RObjectType.NILVALUE:
 
