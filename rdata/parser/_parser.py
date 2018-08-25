@@ -207,6 +207,12 @@ class Parser(abc.ABC):
     Parser interface for a R file.
     """
 
+    def parse_bool(self) -> bool:
+        """
+        Parse a boolean.
+        """
+        return bool(self.parse_int())
+
     @abc.abstractmethod
     def parse_int(self) -> int:
         """
@@ -220,6 +226,12 @@ class Parser(abc.ABC):
         Parse a double.
         """
         pass
+
+    def parse_complex(self) -> complex:
+        """
+        Parse a complex number.
+        """
+        return complex(self.parse_double(), self.parse_double())
 
     @abc.abstractmethod
     def parse_string(self, length) -> bytes:
@@ -303,6 +315,14 @@ class Parser(abc.ABC):
                 raise NotImplementedError(
                     f"Length of CHAR can not be {length}")
 
+        elif info.type == RObjectType.LGL:
+            length = self.parse_int()
+
+            value = np.empty(length, dtype=np.bool_)
+
+            for i in range(length):
+                value[i] = self.parse_bool()
+
         elif info.type == RObjectType.INT:
             length = self.parse_int()
 
@@ -318,6 +338,14 @@ class Parser(abc.ABC):
 
             for i in range(length):
                 value[i] = self.parse_double()
+
+        elif info.type == RObjectType.CPLX:
+            length = self.parse_int()
+
+            value = np.empty(length, dtype=np.complex_)
+
+            for i in range(length):
+                value[i] = self.parse_complex()
 
         elif info.type == RObjectType.STR:
             length = self.parse_int()
