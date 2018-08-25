@@ -207,6 +207,12 @@ class Parser(abc.ABC):
     Parser interface for a R file.
     """
 
+    def parse_bool(self) -> bool:
+        """
+        Parse a boolean.
+        """
+        return bool(self.parse_int())
+
     @abc.abstractmethod
     def parse_int(self) -> int:
         """
@@ -302,6 +308,14 @@ class Parser(abc.ABC):
             else:
                 raise NotImplementedError(
                     f"Length of CHAR can not be {length}")
+
+        elif info.type == RObjectType.LGL:
+            length = self.parse_int()
+
+            value = np.empty(length, dtype=np.bool_)
+
+            for i in range(length):
+                value[i] = self.parse_bool()
 
         elif info.type == RObjectType.INT:
             length = self.parse_int()
