@@ -227,6 +227,12 @@ class Parser(abc.ABC):
         """
         pass
 
+    def parse_complex(self) -> complex:
+        """
+        Parse a complex number.
+        """
+        return complex(self.parse_double(), self.parse_double())
+
     @abc.abstractmethod
     def parse_string(self, length) -> bytes:
         """
@@ -332,6 +338,14 @@ class Parser(abc.ABC):
 
             for i in range(length):
                 value[i] = self.parse_double()
+
+        elif info.type == RObjectType.CPLX:
+            length = self.parse_int()
+
+            value = np.empty(length, dtype=np.complex_)
+
+            for i in range(length):
+                value[i] = self.parse_complex()
 
         elif info.type == RObjectType.STR:
             length = self.parse_int()

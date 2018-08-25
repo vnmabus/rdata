@@ -237,7 +237,8 @@ def convert_array(r_array: RObject,
 
     if r_array.info.type not in {parser.RObjectType.LGL,
                                  parser.RObjectType.INT,
-                                 parser.RObjectType.REAL}:
+                                 parser.RObjectType.REAL,
+                                 parser.RObjectType.CPLX}:
         raise TypeError("Must receive an array object")
 
     value = r_array.value
@@ -405,17 +406,10 @@ class SimpleConverter(Converter):
             # Return the internal string
             value = convert_char(obj)
 
-        elif obj.info.type == parser.RObjectType.LGL:
-
-            # Return the internal array
-            value = convert_array(obj, self._convert_next, attrs=attrs)
-
-        elif obj.info.type == parser.RObjectType.INT:
-
-            # Return the internal array
-            value = convert_array(obj, self._convert_next, attrs=attrs)
-
-        elif obj.info.type == parser.RObjectType.REAL:
+        elif obj.info.type in {parser.RObjectType.LGL,
+                               parser.RObjectType.INT,
+                               parser.RObjectType.REAL,
+                               parser.RObjectType.CPLX}:
 
             # Return the internal array
             value = convert_array(obj, self._convert_next, attrs=attrs)
