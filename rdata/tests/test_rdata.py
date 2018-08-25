@@ -26,6 +26,14 @@ class SimpleTests(unittest.TestCase):
 
         self.assertIsInstance(converted, dict)
 
+    def test_logical(self):
+        parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_logical.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        np.testing.assert_equal(converted, {
+            "test_logical": np.array([True, True, False, True, False])
+            })
+
     def test_vector(self):
         parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_vector.rda")
         converted = rdata.conversion.convert(parsed)
