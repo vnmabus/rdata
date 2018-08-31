@@ -262,29 +262,18 @@ def dataframe_constructor(obj, attrs):
     return pandas.DataFrame(obj, columns=obj)
 
 
+def _factor_constructor_internal(obj, attrs, ordered):
+    values = [attrs['levels'][i - 1] if i >= 0 else None for i in obj]
+
+    return pandas.Categorical(values, attrs['levels'], ordered=ordered)
+
+
 def factor_constructor(obj, attrs):
-    factor = enum.Enum('Factor', [(l, l) for l in attrs['levels']])
+    return _factor_constructor_internal(obj, attrs, ordered=False)
 
-    def __eq__(self, other):
-        if isinstance(other, type(self)):
-            return self is other
-        else:
-            if self.value == other:
-                return True
-            else:
-                value = getattr(other, "value", NotImplemented)
-                if value is not NotImplemented:
-                    return self.value == value
-                else:
-                    return False
 
-    def __hash_(self):
-        return hash(self.value)
-
-    factor.__eq__ = __eq__
-    factor.__hash__ = __hash_
-
-    return [factor(attrs['levels'][i - 1]) if i >= 0 else None for i in obj]
+def ordered_constructor(obj, attrs):
+    return _factor_constructor_internal(obj, attrs, ordered=True)
 
 
 def ts_constructor(obj, attrs):
@@ -308,6 +297,7 @@ def ts_constructor(obj, attrs):
 default_class_map_dict = {
     "data.frame": dataframe_constructor,
     "factor": factor_constructor,
+    "ordered": ordered_constructor,
     "ts": ts_constructor,
 }
 
@@ -468,6 +458,7 @@ class SimpleConverter(Converter):
                                   stacklevel=1)
                 else:
                     value = new_value
+                    break
 
         self.references[reference_id] = value
 
