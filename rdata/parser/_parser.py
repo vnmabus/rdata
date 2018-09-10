@@ -5,7 +5,7 @@ import gzip
 import lzma
 import os
 import pathlib
-from typing import Optional, NamedTuple, Any, Union, BinaryIO, cast
+from typing import Optional, NamedTuple, Any, Union, BinaryIO
 import warnings
 import xdrlib
 
@@ -292,7 +292,7 @@ class Parser(abc.ABC):
             # Symbols can be referenced
             add_reference = True
 
-        elif info.type == RObjectType.LIST:
+        elif info.type in [RObjectType.LIST, RObjectType.LANG]:
             tag = None
             if info.attributes:
                 raise NotImplementedError("Attributes not suported for LIST")
@@ -347,16 +347,10 @@ class Parser(abc.ABC):
             for i in range(length):
                 value[i] = self.parse_complex()
 
-        elif info.type == RObjectType.STR:
+        elif info.type in [RObjectType.STR,
+                           RObjectType.VEC, RObjectType.EXPR]:
             length = self.parse_int()
 
-            value = [None] * length
-
-            for i in range(length):
-                value[i] = self.parse_R_object(reference_list)
-
-        elif info.type == RObjectType.VEC:
-            length = self.parse_int()
             value = [None] * length
 
             for i in range(length):
