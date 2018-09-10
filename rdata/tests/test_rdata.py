@@ -64,13 +64,23 @@ class SimpleTests(unittest.TestCase):
                 ]
             })
 
+    def test_expression(self):
+        parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_expression.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        np.testing.assert_equal(converted, {
+            "test_expression": rdata.conversion.RExpression([
+                rdata.conversion.RLanguage(['^', 'base', 'exponent'])])
+            })
+
     def test_dataframe(self):
         parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_dataframe.rda")
         converted = rdata.conversion.convert(parsed)
 
         pd.testing.assert_frame_equal(converted["test_dataframe"],
                                       pd.DataFrame({
-                                          "class": ["a", "b", "b"],
+                                          "class": pd.Categorical(
+                                              ["a", "b", "b"]),
                                           "value": [1, 2, 3]
                                           }))
 

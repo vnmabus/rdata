@@ -2,7 +2,8 @@ import abc
 import enum
 from fractions import Fraction
 from types import MappingProxyType
-from typing import Callable, Any, List, Mapping, MutableMapping, Union
+from typing import (Callable, Any, List, Mapping, MutableMapping,
+                    NamedTuple, Union)
 import warnings
 
 import pandas
@@ -12,6 +13,20 @@ import numpy as np
 from rdata.parser._parser import RObject
 
 from .. import parser
+
+
+class RLanguage(NamedTuple):
+    """
+    R language construct.
+    """
+    elements: List[Any]
+
+
+class RExpression(NamedTuple):
+    """
+    R expression.
+    """
+    elements: List[RLanguage]
 
 
 def convert_list(r_list: parser.RObject,
@@ -41,19 +56,27 @@ def convert_list(r_list: parser.RObject,
     """
     if r_list.info.type is parser.RObjectType.NILVALUE:
         return {}
-    elif r_list.info.type is not parser.RObjectType.LIST:
-        raise TypeError("Must receive a LIST or NILVALUE object")
+    elif r_list.info.type not in [parser.RObjectType.LIST,
+                                  parser.RObjectType.LANG]:
+        raise TypeError("Must receive a LIST, LANG or NILVALUE object")
 
     if r_list.tag is None:
-        raise NotImplementedError("Lists are assumed to have tags")
+        tag = None
     else:
         tag = conversion_function(r_list.tag)
 
     cdr = conversion_function(r_list.value[1])
-    if cdr is None:
-        cdr = {}
 
-    return {tag: conversion_function(r_list.value[0]), **cdr}
+    if tag is not None:
+        if cdr is None:
+            cdr = {}
+
+        return {tag: conversion_function(r_list.value[0]), **cdr}
+    else:
+        if cdr is None:
+            cdr = []
+
+        return [conversion_function(r_list.value[0]), *cdr]
 
 
 def convert_attrs(r_obj: parser.RObject,
@@ -121,8 +144,9 @@ def convert_vector(r_vec: parser.RObject,
     if attrs is None:
         attrs = {}
 
-    if r_vec.info.type is not parser.RObjectType.VEC:
-        raise TypeError("Must receive a VEC object")
+    if r_vec.info.type not in [parser.RObjectType.VEC,
+                               parser.RObjectType.EXPR]:
+        raise TypeError("Must receive a VEC or EXPR object")
 
     value: Any = [conversion_function(o) for o in r_vec.value]
 
@@ -391,6 +415,12 @@ class SimpleConverter(Converter):
             # Expand the list and process the elements
             value = convert_list(obj, self._convert_next)
 
+        elif obj.info.type == parser.RObjectType.LANG:
+
+            # Expand the list and process the elements, returning a
+            # special object
+            value = RLanguage(convert_list(obj, self._convert_next))
+
         elif obj.info.type == parser.RObjectType.CHAR:
 
             # Return the internal string
@@ -413,6 +443,12 @@ class SimpleConverter(Converter):
 
             # Convert the internal objects
             value = convert_vector(obj, self._convert_next, attrs=attrs)
+
+        elif obj.info.type == parser.RObjectType.EXPR:
+
+            # Convert the internal objects returning a special object
+            value = RExpression(convert_vector(
+                obj, self._convert_next, attrs=attrs))
 
         elif obj.info.type == parser.RObjectType.REF:
 
