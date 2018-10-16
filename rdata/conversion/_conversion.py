@@ -269,7 +269,8 @@ def convert_array(r_array: RObject,
 
     shape = attrs.get('dim')
     if shape is not None:
-        value = np.reshape(value, shape)
+        # R matrix order is like FORTRAN
+        value = np.reshape(value, shape, order='F')
 
     dimnames = attrs.get('dimnames')
     if dimnames:

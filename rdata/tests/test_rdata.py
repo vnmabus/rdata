@@ -50,6 +50,15 @@ class SimpleTests(unittest.TestCase):
             "test_complex": np.array([1 + 2j, 2, 0, 1 + 3j, -1j])
             })
 
+    def test_matrix(self):
+        parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_matrix.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        np.testing.assert_equal(converted, {
+            "test_matrix": np.array([[1., 2., 3.],
+                                     [4., 5., 6.]])
+            })
+
     def test_list(self):
         parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_list.rda")
         converted = rdata.conversion.convert(parsed)
