@@ -31,7 +31,7 @@ class RExpression(NamedTuple):
 
 def convert_list(r_list: parser.RObject,
                  conversion_function: Callable=lambda x: x
-                 ) -> Mapping[Union[str, bytes], Any]:
+                 ) -> Union[Mapping[Union[str, bytes], Any], List[Any]]:
     """
     Expand a tagged R pairlist to a Python dictionary.
 
@@ -420,7 +420,10 @@ class SimpleConverter(Converter):
 
             # Expand the list and process the elements, returning a
             # special object
-            value = RLanguage(convert_list(obj, self._convert_next))
+            rlanguage_list = convert_list(obj, self._convert_next)
+            assert isinstance(rlanguage_list, list)
+
+            value = RLanguage(rlanguage_list)
 
         elif obj.info.type == parser.RObjectType.CHAR:
 
@@ -446,10 +449,12 @@ class SimpleConverter(Converter):
             value = convert_vector(obj, self._convert_next, attrs=attrs)
 
         elif obj.info.type == parser.RObjectType.EXPR:
+            rexpression_list = convert_vector(
+                obj, self._convert_next, attrs=attrs)
+            assert isinstance(rexpression_list, list)
 
             # Convert the internal objects returning a special object
-            value = RExpression(convert_vector(
-                obj, self._convert_next, attrs=attrs))
+            value = RExpression(rexpression_list)
 
         elif obj.info.type == parser.RObjectType.REF:
 
@@ -458,6 +463,7 @@ class SimpleConverter(Converter):
             # value = self.references[id(obj.referenced_object)]
             if value is None:
                 reference_id = id(obj.referenced_object)
+                assert obj.referenced_object is not None
                 value = self._convert_next(obj.referenced_object)
 
         elif obj.info.type == parser.RObjectType.NILVALUE:

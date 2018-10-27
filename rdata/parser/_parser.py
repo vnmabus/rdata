@@ -5,7 +5,7 @@ import gzip
 import lzma
 import os
 import pathlib
-from typing import Optional, NamedTuple, Any, Union, BinaryIO
+from typing import Optional, NamedTuple, Any, Union, BinaryIO, TextIO
 import warnings
 import xdrlib
 
@@ -413,7 +413,7 @@ class ParserXDR(Parser):
         return bytes(result)
 
 
-def parse_file(file_or_path: Union[BinaryIO, os.PathLike,
+def parse_file(file_or_path: Union[TextIO, BinaryIO, os.PathLike,
                                    str]) -> RData:
     """
     Parse a R file (.rda or .rdata).
