@@ -1,6 +1,7 @@
 import abc
 import enum
 from fractions import Fraction
+from rdata.parser._parser import RObject
 from types import MappingProxyType
 from typing import (Callable, Any, List, Mapping, MutableMapping,
                     NamedTuple, Union)
@@ -10,7 +11,6 @@ import pandas
 import xarray
 
 import numpy as np
-from rdata.parser._parser import RObject
 
 from .. import parser
 
@@ -330,7 +330,15 @@ DEFAULT_CLASS_MAP = MappingProxyType(default_class_map_dict)
 """
 Default mapping of constructor functions.
 
-It has support for converting several commonly used R classes.
+It has support for converting several commonly used R classes:
+
+- Converts R \"data.frame\" objects into Pandas :class:`DataFrame` objects.
+- Converts R \"factor\" objects into unordered Pandas :class:`Categorical`
+  objects.
+- Converts R \"ordered\" objects into ordered Pandas :class:`Categorical`
+  objects.
+- Converts R \"ts\" objects into Pandas :class:`Series` objects.
+
 """
 
 Constructor = Callable[[Any, Mapping], Any]
@@ -361,8 +369,10 @@ class SimpleConverter(Converter):
             def constructor(obj, attrs):
 
         This dictionary can be used to support custom R classes. By default,
-        the dictionary used is :data:`DEFAULT_CLASS_MAP` which has support for
-        several common classes.
+        the dictionary used is
+        :data:`~rdata.conversion._conversion.DEFAULT_CLASS_MAP`
+        which has support for several common classes.
+
     """
 
     def __init__(self,
@@ -504,7 +514,7 @@ class SimpleConverter(Converter):
 
 def convert(data, *args, **kwargs):
     """
-    Uses the default converter to convert the data.
+    Uses the default converter (:func:`SimpleConverter`) to convert the data.
 
     """
     return SimpleConverter(*args, **kwargs).convert(data)
