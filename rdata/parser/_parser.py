@@ -418,19 +418,75 @@ def parse_file(file_or_path: Union[BinaryIO, os.PathLike,
     """
     Parse a R file (.rda or .rdata).
 
-    Parameters
-    ----------
-    file_or_path: file-like, str, bytes or path-like
-        File in the R serialization format.
+    Parameters:
+        file_or_path (file-like, str, bytes or path-like): File
+            in the R serialization format.
 
-    Returns
-    -------
-    RData
-        Data contained in the file (versions and object).
+    Returns:
+        RData: Data contained in the file (versions and object).
 
-    See Also
-    --------
-    parse_data
+    See Also:
+        :func:`parse_data`: Similar function that receives the data directly.
+
+    Examples:
+
+        Parse one of the included examples, containing a vector
+
+        >>> import rdata
+        >>>
+        >>> parsed = rdata.parser.parse_file(
+        ...              rdata.TESTDATA_PATH / "test_vector.rda")
+        >>> parsed
+        RData(versions=RVersions(format=2,
+                                 serialized=196610,
+                                 minimum=131840),
+              object=RObject(info=RObjectInfo(type=<RObjectType.LIST: 2>,
+                             object=False,
+                             attributes=False,
+                             tag=True,
+                             gp=0,
+                             reference=0),
+              value=(RObject(info=RObjectInfo(type=<RObjectType.REAL: 14>,
+                                              object=False,
+                                              attributes=False,
+                                              tag=False,
+                                              gp=0,
+                                              reference=0),
+                             value=array([1., 2., 3.]),
+                             attributes=None,
+                             tag=None,
+                             referenced_object=None),
+                     RObject(info=RObjectInfo(type=<RObjectType.NILVALUE: 254>,
+                                              object=False,
+                                              attributes=False,
+                                              tag=False,
+                                              gp=False,
+                                              reference=0),
+                             value=None,
+                             attributes=None,
+                             tag=None,
+                             referenced_object=None)),
+                     attributes=None,
+                     tag=RObject(info=RObjectInfo(type=<RObjectType.SYM: 1>,
+                                                  object=False,
+                                                  attributes=False,
+                                                  tag=False,
+                                                  gp=0,
+                                                  reference=0),
+                                 value=RObject(info=RObjectInfo(type=<RObjectType.CHAR: 9>,
+                                                                object=False,
+                                                                attributes=False,
+                                                                tag=False,
+                                                                gp=64,
+                                                                reference=0),
+                                               value=b'test_vector',
+                                               attributes=None,
+                                               tag=None,
+                                               referenced_object=None),
+                                 attributes=None,
+                                 tag=None,
+                                 referenced_object=None),
+                     referenced_object=None))
 
     """
     if isinstance(file_or_path, (os.PathLike, str)):
@@ -449,19 +505,75 @@ def parse_data(data: bytes) -> RData:
     """
     Parse the data of a R file, received as a sequence of bytes.
 
-    Parameters
-    ----------
-    data: bytes
-        Data extracted of a R file.
+    Parameters:
+        data (bytes): Data extracted of a R file.
 
-    Returns
-    -------
-    RData
-        Data contained in the file (versions and object).
+    Returns:
+        RData: Data contained in the file (versions and object).
 
-    See Also
-    --------
-    parse_file
+    See Also:
+        :func:`parse_file`: Similar function that parses a file directly.
+
+    Examples:
+
+        Parse one of the included examples, containing a vector
+
+        >>> import rdata
+        >>>
+        >>> with open(rdata.TESTDATA_PATH / "test_vector.rda", "rb") as f:
+        ...     parsed = rdata.parser.parse_data(f.read())
+        >>>
+        >>> parsed
+        RData(versions=RVersions(format=2,
+                                 serialized=196610,
+                                 minimum=131840),
+              object=RObject(info=RObjectInfo(type=<RObjectType.LIST: 2>,
+                             object=False,
+                             attributes=False,
+                             tag=True,
+                             gp=0,
+                             reference=0),
+              value=(RObject(info=RObjectInfo(type=<RObjectType.REAL: 14>,
+                                              object=False,
+                                              attributes=False,
+                                              tag=False,
+                                              gp=0,
+                                              reference=0),
+                             value=array([1., 2., 3.]),
+                             attributes=None,
+                             tag=None,
+                             referenced_object=None),
+                     RObject(info=RObjectInfo(type=<RObjectType.NILVALUE: 254>,
+                                              object=False,
+                                              attributes=False,
+                                              tag=False,
+                                              gp=False,
+                                              reference=0),
+                             value=None,
+                             attributes=None,
+                             tag=None,
+                             referenced_object=None)),
+                     attributes=None,
+                     tag=RObject(info=RObjectInfo(type=<RObjectType.SYM: 1>,
+                                                  object=False,
+                                                  attributes=False,
+                                                  tag=False,
+                                                  gp=0,
+                                                  reference=0),
+                                 value=RObject(info=RObjectInfo(type=<RObjectType.CHAR: 9>,
+                                                                object=False,
+                                                                attributes=False,
+                                                                tag=False,
+                                                                gp=64,
+                                                                reference=0),
+                                               value=b'test_vector',
+                                               attributes=None,
+                                               tag=None,
+                                               referenced_object=None),
+                                 attributes=None,
+                                 tag=None,
+                                 referenced_object=None),
+                     referenced_object=None))
 
     """
     view = memoryview(data)
