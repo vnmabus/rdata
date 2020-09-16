@@ -351,6 +351,9 @@ class Converter(abc.ABC):
 
     @abc.abstractmethod
     def convert(self, data: Union[parser.RData, parser.RObject]) -> Any:
+        """
+        Convert a R object to a Python one.
+        """
         pass
 
 
@@ -390,9 +393,6 @@ class SimpleConverter(Converter):
         self.references: MutableMapping[int, Any] = {}
 
     def convert(self, data: Union[parser.RData, parser.RObject]) -> Any:
-        """
-        Convert a R object to a Python one.
-        """
         self._reset()
         return self._convert_next(data)
 
@@ -515,6 +515,31 @@ class SimpleConverter(Converter):
 def convert(data, *args, **kwargs):
     """
     Uses the default converter (:func:`SimpleConverter`) to convert the data.
+
+    Examples:
+
+    Parse one of the included examples, containing a vector
+
+    >>> import rdata
+    >>>
+    >>> parsed = rdata.parser.parse_file(
+    ...              rdata.TESTDATA_PATH / "test_vector.rda")
+    >>> converted = rdata.conversion.convert(parsed)
+    >>> converted
+    {'test_vector': array([1., 2., 3.])}
+
+    Parse another example, containing a dataframe
+
+    >>> import rdata
+    >>>
+    >>> parsed = rdata.parser.parse_file(
+    ...              rdata.TESTDATA_PATH / "test_dataframe.rda")
+    >>> converted = rdata.conversion.convert(parsed)
+    >>> converted
+    {'test_dataframe':   class  value
+    0     a      1
+    1     b      2
+    2     b      3}
 
     """
     return SimpleConverter(*args, **kwargs).convert(data)
