@@ -12,7 +12,7 @@ the contents of the file, without transforming it to more appropiate Python obje
 way of converting R objects to Python objects is needed, it can be done from this structure. 
 
 .. autosummary::
-   :toctree: functions
+   :toctree: modules
    
    rdata.parser.parse_file
    rdata.parser.parse_data
@@ -24,10 +24,9 @@ corresponding to a R object is chosen to preserve most original properties, but 
 future, if a more fitting Python object is found.
 
 .. autosummary::
-   :toctree: functions
+   :toctree: modules
    
    rdata.conversion.Converter
    rdata.conversion.SimpleConverter
    rdata.conversion.convert
-   rdata.conversion.DEFAULT_CLASS_MAP
 
