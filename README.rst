@@ -5,6 +5,8 @@ rdata
 
 Read R datasets from Python.
 
+.. include:: docs/simpleusage.rst
+
 .. |build-status| image:: https://api.travis-ci.org/vnmabus/rdata.svg?branch=master
     :alt: build status
     :scale: 100%

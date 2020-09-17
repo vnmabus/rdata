@@ -332,12 +332,13 @@ Default mapping of constructor functions.
 
 It has support for converting several commonly used R classes:
 
-- Converts R \"data.frame\" objects into Pandas :class:`DataFrame` objects.
-- Converts R \"factor\" objects into unordered Pandas :class:`Categorical`
+- Converts R \"data.frame\" objects into Pandas :class:`~pandas.DataFrame`
   objects.
-- Converts R \"ordered\" objects into ordered Pandas :class:`Categorical`
-  objects.
-- Converts R \"ts\" objects into Pandas :class:`Series` objects.
+- Converts R \"factor\" objects into unordered Pandas
+  :class:`~pandas.Categorical` objects.
+- Converts R \"ordered\" objects into ordered Pandas
+  :class:`~pandas.Categorical` objects.
+- Converts R \"ts\" objects into Pandas :class:`~pandas.Series` objects.
 
 """
 
@@ -518,28 +519,28 @@ def convert(data, *args, **kwargs):
 
     Examples:
 
-    Parse one of the included examples, containing a vector
+        Parse one of the included examples, containing a vector
 
-    >>> import rdata
-    >>>
-    >>> parsed = rdata.parser.parse_file(
-    ...              rdata.TESTDATA_PATH / "test_vector.rda")
-    >>> converted = rdata.conversion.convert(parsed)
-    >>> converted
-    {'test_vector': array([1., 2., 3.])}
+        >>> import rdata
+        >>>
+        >>> parsed = rdata.parser.parse_file(
+        ...              rdata.TESTDATA_PATH / "test_vector.rda")
+        >>> converted = rdata.conversion.convert(parsed)
+        >>> converted
+        {'test_vector': array([1., 2., 3.])}
 
-    Parse another example, containing a dataframe
+        Parse another example, containing a dataframe
 
-    >>> import rdata
-    >>>
-    >>> parsed = rdata.parser.parse_file(
-    ...              rdata.TESTDATA_PATH / "test_dataframe.rda")
-    >>> converted = rdata.conversion.convert(parsed)
-    >>> converted
-    {'test_dataframe':   class  value
-    0     a      1
-    1     b      2
-    2     b      3}
+        >>> import rdata
+        >>>
+        >>> parsed = rdata.parser.parse_file(
+        ...              rdata.TESTDATA_PATH / "test_dataframe.rda")
+        >>> converted = rdata.conversion.convert(parsed)
+        >>> converted
+        {'test_dataframe':   class  value
+        0     a      1
+        1     b      2
+        2     b      3}
 
     """
     return SimpleConverter(*args, **kwargs).convert(data)
