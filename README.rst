@@ -10,6 +10,21 @@ Read R datasets from Python.
 	we copy-paste instead. Also Github does not understand Sphinx directives.
 	.. include:: docs/simpleusage.rst
 	
+Installation
+============
+
+rdata is on PyPi and can be installed using :code:`pip`:
+
+.. code::
+
+   pip install rdata
+   
+Documentation
+=============
+
+The documentation of rdata is in
+`ReadTheDocs <https://rdata.readthedocs.io/en/latest/>`_.
+	
 Simple usage
 ============
 
