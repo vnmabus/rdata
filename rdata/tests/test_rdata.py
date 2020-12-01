@@ -1,12 +1,12 @@
-from fractions import Fraction
 import os
 import pathlib
-import rdata
 import unittest
+from fractions import Fraction
 
 import numpy as np
 import pandas as pd
 
+import rdata
 
 TESTDATA_PATH = rdata.TESTDATA_PATH
 
@@ -41,6 +41,14 @@ class SimpleTests(unittest.TestCase):
 
         np.testing.assert_equal(converted, {
             "test_vector": np.array([1., 2., 3.])
+        })
+
+    def test_empty_string(self):
+        parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_empty_str.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        np.testing.assert_equal(converted, {
+            "test_empty_str": [""]
         })
 
     def test_complex(self):

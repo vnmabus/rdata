@@ -5,9 +5,9 @@ import gzip
 import lzma
 import os
 import pathlib
-from typing import Optional, NamedTuple, Any, Union, BinaryIO, TextIO
 import warnings
 import xdrlib
+from typing import Any, BinaryIO, NamedTuple, Optional, TextIO, Union
 
 import numpy as np
 
@@ -30,7 +30,7 @@ magic_dict = {
 }
 
 
-def file_type(data: memoryview):
+def file_type(data: memoryview) -> Optional[FileTypes]:
     """
     Returns the type of the file.
     """
@@ -309,7 +309,7 @@ class Parser(abc.ABC):
             length = self.parse_int()
             if length > 0:
                 value = self.parse_string(length=length)
-            elif length == -1:
+            elif length == 0:
                 value = b""
             else:
                 raise NotImplementedError(
