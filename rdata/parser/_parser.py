@@ -313,7 +313,7 @@ class Parser(abc.ABC):
                 value = b""
             else:
                 raise NotImplementedError(
-                    f"Length of CHAR can not be {length}")
+                    f"Length of CHAR cannot be {length}")
 
         elif info.type == RObjectType.LGL:
             length = self.parse_int()
