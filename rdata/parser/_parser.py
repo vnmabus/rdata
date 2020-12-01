@@ -136,7 +136,7 @@ class RObject(NamedTuple):
     """
     info: RObjectInfo
     value: Any
-    attributes: 'RObject'
+    attributes: Optional['RObject']
     tag: Optional['RObject'] = None
     referenced_object: Optional['RObject'] = None
 
@@ -413,7 +413,7 @@ class ParserXDR(Parser):
         return bytes(result)
 
 
-def parse_file(file_or_path: Union[TextIO, BinaryIO, os.PathLike,
+def parse_file(file_or_path: Union[BinaryIO, os.PathLike,
                                    str]) -> RData:
     """
     Parse a R file (.rda or .rdata).
@@ -495,9 +495,11 @@ def parse_file(file_or_path: Union[TextIO, BinaryIO, os.PathLike,
     else:
         # file is a pre-opened file
         buffer: Optional[BinaryIO] = getattr(file_or_path, 'buffer', None)
-        if buffer is not None:
-            file_or_path = buffer
-        data = file_or_path.read()
+        if buffer is None:
+            binary_file: BinaryIO = file_or_path
+        else:
+            binary_file = buffer
+        data = binary_file.read()
     return parse_data(data)
 
 

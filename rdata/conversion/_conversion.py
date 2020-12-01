@@ -4,7 +4,7 @@ from fractions import Fraction
 from rdata.parser._parser import RObject
 from types import MappingProxyType
 from typing import (Callable, Any, List, Mapping, MutableMapping,
-                    NamedTuple, Union)
+                    NamedTuple, Union, Hashable)
 import warnings
 
 import pandas
@@ -275,8 +275,9 @@ def convert_array(r_array: RObject,
     dimnames = attrs.get('dimnames')
     if dimnames:
         dimension_names = ["dim_" + str(i) for i, _ in enumerate(dimnames)]
-        coords = {dimension_names[i]: d
-                  for i, d in enumerate(dimnames) if d is not None}
+        coords: Mapping[Hashable, Any] = {
+            dimension_names[i]: d
+            for i, d in enumerate(dimnames) if d is not None}
 
         value = xarray.DataArray(value, dims=dimension_names, coords=coords)
 
@@ -319,7 +320,9 @@ def ts_constructor(obj, attrs):
     return pandas.Series(obj, index=index)
 
 
-default_class_map_dict = {
+Constructor = Callable[[Any, Mapping], Any]
+
+default_class_map_dict: Mapping[Union[str, bytes], Constructor] = {
     "data.frame": dataframe_constructor,
     "factor": factor_constructor,
     "ordered": ordered_constructor,
@@ -341,8 +344,6 @@ It has support for converting several commonly used R classes:
 - Converts R \"ts\" objects into Pandas :class:`~pandas.Series` objects.
 
 """
-
-Constructor = Callable[[Any, Mapping], Any]
 
 
 class Converter(abc.ABC):
@@ -382,11 +383,9 @@ class SimpleConverter(Converter):
     def __init__(self,
                  constructor_dict: Mapping[
                      Union[str, bytes],
-                     Constructor]=None) -> None:
+                     Constructor]=DEFAULT_CLASS_MAP) -> None:
 
-        self.constructor_dict = (DEFAULT_CLASS_MAP
-                                 if constructor_dict is None
-                                 else constructor_dict)
+        self.constructor_dict = constructor_dict
 
         self._reset()
 
