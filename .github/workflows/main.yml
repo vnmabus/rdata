@@ -27,6 +27,6 @@ jobs:
     - name: Run tests
       run: |
         pip3 install .
-        coverage run --source=rdata/ setup.py;
+        coverage run --source=rdata/ rdata/tests setup.py;
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
