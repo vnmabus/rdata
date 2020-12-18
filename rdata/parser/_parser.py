@@ -7,7 +7,8 @@ import os
 import pathlib
 import warnings
 import xdrlib
-from typing import Any, BinaryIO, NamedTuple, Optional, TextIO, Union
+from typing import (Any, BinaryIO, List, NamedTuple, Optional, Set, TextIO,
+                    Union)
 
 import numpy as np
 
@@ -57,7 +58,7 @@ format_dict = {
 }
 
 
-def rdata_format(data: memoryview):
+def rdata_format(data: memoryview) -> Optional[RdataFormats]:
     """
     Returns the format of the data.
     """
@@ -140,7 +141,11 @@ class RObject(NamedTuple):
     tag: Optional['RObject'] = None
     referenced_object: Optional['RObject'] = None
 
-    def _str_internal(self, indent: int=0, used_references=None):
+    def _str_internal(
+        self,
+        indent: int=0,
+        used_references: Optional[Set[int]] = None
+    ) -> str:
 
         if used_references is None:
             used_references = set()
@@ -190,7 +195,7 @@ class RObject(NamedTuple):
 
         return string
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self._str_internal()
 
 
@@ -234,7 +239,7 @@ class Parser(abc.ABC):
         return complex(self.parse_double(), self.parse_double())
 
     @abc.abstractmethod
-    def parse_string(self, length) -> bytes:
+    def parse_string(self, length: int) -> bytes:
         """
         Parse a string.
         """
@@ -265,14 +270,17 @@ class Parser(abc.ABC):
 
         return RVersions(format_version, r_version, minimum_r_version)
 
-    def parse_R_object(self, reference_list=None):
+    def parse_R_object(
+        self,
+        reference_list: Optional[List[RObject]] = None
+    ) -> RObject:
         """
         Parse a R object.
         """
 
         if reference_list is None:
             # Index is 1-based, so we insert a dummy object
-            reference_list = [None]
+            reference_list = []
 
         info_int = self.parse_int()
 
@@ -285,6 +293,8 @@ class Parser(abc.ABC):
         tag_read = False
         attributes_read = False
         add_reference = False
+
+        value: Any
 
         if info.type == RObjectType.SYM:
             # Read Char
@@ -361,7 +371,8 @@ class Parser(abc.ABC):
 
         elif info.type == RObjectType.REF:
             value = None
-            referenced_object = reference_list[info.reference]
+            # Index is 1-based
+            referenced_object = reference_list[info.reference - 1]
 
         else:
             raise NotImplementedError(f"Type {info.type} not implemented")
@@ -388,32 +399,32 @@ class ParserXDR(Parser):
     Parser used when the integers and doubles are in XDR format.
     """
 
-    def __init__(self, data, position=0):
+    def __init__(self, data: memoryview, position: int = 0) -> None:
         self.data = data
         self.position = position
         self.xdr_parser = xdrlib.Unpacker(data)
 
-    def parse_int(self):
+    def parse_int(self) -> int:
         self.xdr_parser.set_position(self.position)
         result = self.xdr_parser.unpack_int()
         self.position = self.xdr_parser.get_position()
 
         return result
 
-    def parse_double(self):
+    def parse_double(self) -> float:
         self.xdr_parser.set_position(self.position)
         result = self.xdr_parser.unpack_double()
         self.position = self.xdr_parser.get_position()
 
         return result
 
-    def parse_string(self, length):
+    def parse_string(self, length: int) -> bytes:
         result = self.data[self.position:(self.position + length)]
         self.position += length
         return bytes(result)
 
 
-def parse_file(file_or_path: Union[BinaryIO, os.PathLike,
+def parse_file(file_or_path: Union[BinaryIO, 'os.PathLike[Any]',
                                    str]) -> RData:
     """
     Parse a R file (.rda or .rdata).
@@ -595,7 +606,7 @@ def parse_data(data: bytes) -> RData:
         raise NotImplementedError("Unknown file type")
 
 
-def parse_rdata_binary(data: memoryview):
+def parse_rdata_binary(data: memoryview) -> RData:
     """
     Select the appropiate parser and parse all the info.
     """
@@ -611,7 +622,7 @@ def parse_rdata_binary(data: memoryview):
         raise NotImplementedError("Unknown file format")
 
 
-def bits(data, start, stop):
+def bits(data: int, start: int, stop: int) -> int:
     """
     Read bits [start, stop) of an integer.
     """
@@ -622,7 +633,7 @@ def bits(data, start, stop):
     return bitvalue >> start
 
 
-def is_special_r_object_type(r_object_type: RObjectType):
+def is_special_r_object_type(r_object_type: RObjectType) -> bool:
     """
     Check if a R type has a different serialization than the usual one.
     """
@@ -642,7 +653,7 @@ def parse_r_object_info(info_int: int) -> RObjectInfo:
         object_flag = False
         attributes = False
         tag = False
-        gp = False
+        gp = 0
     else:
         object_flag = bool(bits(info_int, 8, 9))
         attributes = bool(bits(info_int, 9, 10))
