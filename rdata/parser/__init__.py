@@ -1,2 +1,2 @@
-from ._parser import (parse_file, parse_data, RData, RObject, RObjectInfo,
-                      RObjectType, CharFlags)
+from ._parser import (CharFlags, RData, RObject, RObjectInfo, RObjectType,
+                      parse_data, parse_file)
