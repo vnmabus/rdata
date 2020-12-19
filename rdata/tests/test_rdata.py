@@ -13,21 +13,21 @@ TESTDATA_PATH = rdata.TESTDATA_PATH
 
 class SimpleTests(unittest.TestCase):
 
-    def test_opened_file(self):
+    def test_opened_file(self) -> None:
         parsed = rdata.parser.parse_file(open(TESTDATA_PATH /
                                               "test_vector.rda"))
         converted = rdata.conversion.convert(parsed)
 
         self.assertIsInstance(converted, dict)
 
-    def test_opened_string(self):
+    def test_opened_string(self) -> None:
         parsed = rdata.parser.parse_file(str(TESTDATA_PATH /
                                              "test_vector.rda"))
         converted = rdata.conversion.convert(parsed)
 
         self.assertIsInstance(converted, dict)
 
-    def test_logical(self):
+    def test_logical(self) -> None:
         parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_logical.rda")
         converted = rdata.conversion.convert(parsed)
 
@@ -35,7 +35,7 @@ class SimpleTests(unittest.TestCase):
             "test_logical": np.array([True, True, False, True, False])
         })
 
-    def test_vector(self):
+    def test_vector(self) -> None:
         parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_vector.rda")
         converted = rdata.conversion.convert(parsed)
 
@@ -43,7 +43,7 @@ class SimpleTests(unittest.TestCase):
             "test_vector": np.array([1., 2., 3.])
         })
 
-    def test_empty_string(self):
+    def test_empty_string(self) -> None:
         parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_empty_str.rda")
         converted = rdata.conversion.convert(parsed)
 
@@ -51,7 +51,7 @@ class SimpleTests(unittest.TestCase):
             "test_empty_str": [""]
         })
 
-    def test_complex(self):
+    def test_complex(self) -> None:
         parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_complex.rda")
         converted = rdata.conversion.convert(parsed)
 
@@ -59,7 +59,7 @@ class SimpleTests(unittest.TestCase):
             "test_complex": np.array([1 + 2j, 2, 0, 1 + 3j, -1j])
         })
 
-    def test_matrix(self):
+    def test_matrix(self) -> None:
         parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_matrix.rda")
         converted = rdata.conversion.convert(parsed)
 
@@ -68,7 +68,7 @@ class SimpleTests(unittest.TestCase):
                                      [4., 5., 6.]])
         })
 
-    def test_list(self):
+    def test_list(self) -> None:
         parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_list.rda")
         converted = rdata.conversion.convert(parsed)
 
@@ -82,7 +82,7 @@ class SimpleTests(unittest.TestCase):
                 ]
         })
 
-    def test_expression(self):
+    def test_expression(self) -> None:
         parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_expression.rda")
         converted = rdata.conversion.convert(parsed)
 
@@ -91,7 +91,7 @@ class SimpleTests(unittest.TestCase):
                 rdata.conversion.RLanguage(['^', 'base', 'exponent'])])
         })
 
-    def test_dataframe(self):
+    def test_dataframe(self) -> None:
         parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_dataframe.rda")
         converted = rdata.conversion.convert(parsed)
 
@@ -102,7 +102,7 @@ class SimpleTests(unittest.TestCase):
                                           "value": [1, 2, 3]
                                       }))
 
-    def test_ts(self):
+    def test_ts(self) -> None:
         parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_ts.rda")
         converted = rdata.conversion.convert(parsed)
 

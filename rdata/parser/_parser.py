@@ -137,9 +137,9 @@ class RObject(NamedTuple):
     """
     info: RObjectInfo
     value: Any
-    attributes: Optional['RObject']
-    tag: Optional['RObject'] = None
-    referenced_object: Optional['RObject'] = None
+    attributes: Optional['RObject']  # type: ignore
+    tag: Optional['RObject'] = None  # type: ignore
+    referenced_object: Optional['RObject'] = None  # type: ignore
 
     def _str_internal(
         self,
@@ -424,7 +424,7 @@ class ParserXDR(Parser):
         return bytes(result)
 
 
-def parse_file(file_or_path: Union[BinaryIO, 'os.PathLike[Any]',
+def parse_file(file_or_path: Union[BinaryIO, TextIO, 'os.PathLike[Any]',
                                    str]) -> RData:
     """
     Parse a R file (.rda or .rdata).
@@ -507,6 +507,7 @@ def parse_file(file_or_path: Union[BinaryIO, 'os.PathLike[Any]',
         # file is a pre-opened file
         buffer: Optional[BinaryIO] = getattr(file_or_path, 'buffer', None)
         if buffer is None:
+            assert isinstance(file_or_path, BinaryIO)
             binary_file: BinaryIO = file_or_path
         else:
             binary_file = buffer
