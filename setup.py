@@ -9,7 +9,7 @@ language or its libraries, and thus it is released under a MIT license.
 import os
 import sys
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 needs_pytest = {'pytest', 'test', 'ptr'}.intersection(sys.argv)
 pytest_runner = ['pytest-runner'] if needs_pytest else []
@@ -41,8 +41,11 @@ setup(name='rdata',
           'Operating System :: OS Independent',
           'Programming Language :: Python :: 3',
           'Programming Language :: Python :: 3.6',
+          'Programming Language :: Python :: 3.7',
+          'Programming Language :: Python :: 3.8',
           'Topic :: Scientific/Engineering :: Mathematics',
           'Topic :: Software Development :: Libraries :: Python Modules',
+          'Typing :: Typed',
       ],
       keywords=['rdata', 'r', 'dataset'],
       install_requires=['numpy',

@@ -1,12 +1,11 @@
-from . import conversion
-from . import parser
+import os as _os
+import pathlib as _pathlib
+
+from . import conversion, parser
 
 
-def _get_test_data_path():
-    import os
-    import pathlib
-
-    return pathlib.Path(os.path.dirname(__file__)) / "tests" / "data"
+def _get_test_data_path() -> _pathlib.Path:
+    return _pathlib.Path(_os.path.dirname(__file__)) / "tests" / "data"
 
 
 TESTDATA_PATH = _get_test_data_path()

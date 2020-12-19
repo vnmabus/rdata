@@ -1,18 +1,16 @@
 import abc
-import enum
-from fractions import Fraction
-from rdata.parser._parser import RObject
-from types import MappingProxyType
-from typing import (Callable, Any, List, Mapping, MutableMapping,
-                    NamedTuple, Union, Hashable)
 import warnings
+from fractions import Fraction
+from types import MappingProxyType
+from typing import (Any, Callable, Hashable, List, Mapping, MutableMapping,
+                    NamedTuple, Optional, Union, cast)
 
+import numpy as np
 import pandas
 import xarray
 
-import numpy as np
-
 from .. import parser
+from ..parser import RObject
 
 
 class RLanguage(NamedTuple):
@@ -29,9 +27,12 @@ class RExpression(NamedTuple):
     elements: List[RLanguage]
 
 
-def convert_list(r_list: parser.RObject,
-                 conversion_function: Callable=lambda x: x
-                 ) -> Union[Mapping[Union[str, bytes], Any], List[Any]]:
+def convert_list(
+    r_list: parser.RObject,
+    conversion_function: Callable[
+        [Union[parser.RData, parser.RObject]
+         ], Any]=lambda x: x
+) -> Union[Mapping[Union[str, bytes], Any], List[Any]]:
     """
     Expand a tagged R pairlist to a Python dictionary.
 
@@ -79,9 +80,12 @@ def convert_list(r_list: parser.RObject,
         return [conversion_function(r_list.value[0]), *cdr]
 
 
-def convert_attrs(r_obj: parser.RObject,
-                  conversion_function: Callable=lambda x: x
-                  ) -> Mapping[Union[str, bytes], Any]:
+def convert_attrs(
+    r_obj: parser.RObject,
+        conversion_function: Callable[
+            [Union[parser.RData, parser.RObject]
+             ], Any]=lambda x: x
+) -> Mapping[Union[str, bytes], Any]:
     """
     Return the attributes of an object as a Python dictionary.
 
@@ -105,16 +109,21 @@ def convert_attrs(r_obj: parser.RObject,
 
     """
     if r_obj.attributes:
-        attrs = conversion_function(r_obj.attributes)
+        attrs = cast(
+            Mapping[Union[str, bytes], Any],
+            conversion_function(r_obj.attributes),
+        )
     else:
         attrs = {}
     return attrs
 
 
-def convert_vector(r_vec: parser.RObject,
-                   conversion_function: Callable=lambda x: x,
-                   attrs: Mapping[Union[str, bytes], Any]=None
-                   ) -> Union[List[Any], Mapping[Union[str, bytes], Any]]:
+def convert_vector(
+    r_vec: parser.RObject,
+    conversion_function: Callable[
+        [Union[parser.RData, parser.RObject]], Any]=lambda x: x,
+    attrs: Optional[Mapping[Union[str, bytes], Any]] = None,
+) -> Union[List[Any], Mapping[Union[str, bytes], Any]]:
     """
     Convert a R vector to a Python list or dictionary.
 
@@ -148,7 +157,9 @@ def convert_vector(r_vec: parser.RObject,
                                parser.RObjectType.EXPR]:
         raise TypeError("Must receive a VEC or EXPR object")
 
-    value: Any = [conversion_function(o) for o in r_vec.value]
+    value: Union[List[Any], Mapping[Union[str, bytes], Any]] = [
+        conversion_function(o) for o in r_vec.value
+    ]
 
     # If it has the name attribute, use a dict instead
     field_names = attrs.get('names')
@@ -184,6 +195,8 @@ def convert_char(r_char: parser.RObject) -> Union[str, bytes]:
     if r_char.info.type is not parser.RObjectType.CHAR:
         raise TypeError("Must receive a CHAR object")
 
+    assert isinstance(r_char.value, bytes)
+
     if r_char.info.gp & parser.CharFlags.UTF8:
         return r_char.value.decode("utf_8")
     elif r_char.info.gp & parser.CharFlags.LATIN1:
@@ -199,7 +212,9 @@ def convert_char(r_char: parser.RObject) -> Union[str, bytes]:
 
 
 def convert_symbol(r_symbol: parser.RObject,
-                   conversion_function: Callable=lambda x: x
+                   conversion_function: Callable[
+                       [Union[parser.RData, parser.RObject]],
+                       Any]=lambda x: x
                    ) -> Union[str, bytes]:
     """
     Decode a R symbol to a Python string or bytes.
@@ -223,15 +238,20 @@ def convert_symbol(r_symbol: parser.RObject,
 
     """
     if r_symbol.info.type is parser.RObjectType.SYM:
-        return conversion_function(r_symbol.value)
+        symbol = conversion_function(r_symbol.value)
+        assert isinstance(symbol, (str, bytes))
+        return symbol
     else:
         raise TypeError("Must receive a SYM object")
 
 
-def convert_array(r_array: RObject,
-                  conversion_function: Callable=lambda x: x,
-                  attrs: Mapping[Union[str, bytes], Any]=None
-                  ) -> Union[np.ndarray, xarray.DataArray]:
+def convert_array(
+    r_array: RObject,
+    conversion_function: Callable[
+        [Union[parser.RData, parser.RObject]
+         ], Any]=lambda x: x,
+    attrs: Optional[Mapping[Union[str, bytes], Any]] = None,
+) -> Union[np.ndarray, xarray.DataArray]:
     """
     Convert a R array to a Numpy ndarray or a Xarray DataArray.
 
@@ -284,25 +304,41 @@ def convert_array(r_array: RObject,
     return value
 
 
-def dataframe_constructor(obj, attrs):
+def dataframe_constructor(
+    obj: Any,
+    attrs: Mapping[Union[str, bytes], Any],
+) -> pandas.DataFrame:
     return pandas.DataFrame(obj, columns=obj)
 
 
-def _factor_constructor_internal(obj, attrs, ordered):
+def _factor_constructor_internal(
+    obj: Any,
+    attrs: Mapping[Union[str, bytes], Any],
+    ordered: bool,
+) -> pandas.Categorical:
     values = [attrs['levels'][i - 1] if i >= 0 else None for i in obj]
 
     return pandas.Categorical(values, attrs['levels'], ordered=ordered)
 
 
-def factor_constructor(obj, attrs):
+def factor_constructor(
+    obj: Any,
+    attrs: Mapping[Union[str, bytes], Any],
+) -> pandas.Categorical:
     return _factor_constructor_internal(obj, attrs, ordered=False)
 
 
-def ordered_constructor(obj, attrs):
+def ordered_constructor(
+    obj: Any,
+    attrs: Mapping[Union[str, bytes], Any],
+) -> pandas.Categorical:
     return _factor_constructor_internal(obj, attrs, ordered=True)
 
 
-def ts_constructor(obj, attrs):
+def ts_constructor(
+    obj: Any,
+    attrs: Mapping[Union[str, bytes], Any],
+) -> pandas.Series:
 
     start, end, frequency = attrs['tsp']
 
@@ -518,7 +554,11 @@ class SimpleConverter(Converter):
         return value
 
 
-def convert(data, *args, **kwargs):
+def convert(
+    data: Union[parser.RData, parser.RObject],
+    *args: Any,
+    **kwargs: Any,
+) -> Any:
     """
     Uses the default converter (:func:`SimpleConverter`) to convert the data.
 
