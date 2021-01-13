@@ -20,14 +20,16 @@ class FileTypes(enum.Enum):
     bzip2 = "bz2"
     gzip = "gzip"
     xz = "xz"
-    rdata_binary = "rdata (binary)"
+    rdata_binary_v2 = "rdata version 2 (binary)"
+    rdata_binary_v3 = "rdata version 3 (binary)"
 
 
 magic_dict = {
     FileTypes.bzip2: b"\x42\x5a\x68",
     FileTypes.gzip: b"\x1f\x8b",
     FileTypes.xz: b"\xFD7zXZ\x00",
-    FileTypes.rdata_binary: b"RDX2\n"
+    FileTypes.rdata_binary_v2: b"RDX2\n",
+    FileTypes.rdata_binary_v3: b"RDX3\n"
 }
 
 
@@ -119,6 +121,15 @@ class RVersions(NamedTuple):
     minimum: int
 
 
+class RExtraInfo(NamedTuple):
+    """
+    Extra information.
+
+    Contains the default encoding (only in version 3).
+    """
+    encoding: Optional[str] = None
+
+
 class RObjectInfo(NamedTuple):
     """
     Internal attributes of a R object.
@@ -204,6 +215,7 @@ class RData(NamedTuple):
     Data contained in a R file.
     """
     versions: RVersions
+    extra: RExtraInfo
     object: RObject
 
 
@@ -251,9 +263,10 @@ class Parser(abc.ABC):
         """
 
         versions = self.parse_versions()
+        extra_info = self.parse_extra_info(versions)
         obj = self.parse_R_object()
 
-        return RData(versions, obj)
+        return RData(versions, extra_info, obj)
 
     def parse_versions(self) -> RVersions:
         """
@@ -264,11 +277,27 @@ class Parser(abc.ABC):
         r_version = self.parse_int()
         minimum_r_version = self.parse_int()
 
-        if format_version != 2:
+        if format_version not in [2, 3]:
             raise NotImplementedError(
-                "Format version {format_version} unsupported")
+                f"Format version {format_version} unsupported",
+            )
 
         return RVersions(format_version, r_version, minimum_r_version)
+
+    def parse_extra_info(self, versions: RVersions) -> RExtraInfo:
+        """
+        Parse the versions header.
+        """
+
+        encoding = None
+
+        if versions.format >= 3:
+            encoding_len = self.parse_int()
+            encoding = self.parse_string(encoding_len).decode("ASCII")
+
+        extra_info = RExtraInfo(encoding)
+
+        return extra_info
 
     def parse_R_object(
         self,
@@ -451,6 +480,7 @@ def parse_file(file_or_path: Union[BinaryIO, TextIO, 'os.PathLike[Any]',
         RData(versions=RVersions(format=2,
                                  serialized=196610,
                                  minimum=131840),
+              extra=RExtraInfo(encoding=None),
               object=RObject(info=RObjectInfo(type=<RObjectType.LIST: 2>,
                              object=False,
                              attributes=False,
@@ -541,6 +571,7 @@ def parse_data(data: bytes) -> RData:
         RData(versions=RVersions(format=2,
                                  serialized=196610,
                                  minimum=131840),
+              extra=RExtraInfo(encoding=None),
               object=RObject(info=RObjectInfo(type=<RObjectType.LIST: 2>,
                              object=False,
                              attributes=False,
@@ -600,7 +631,7 @@ def parse_data(data: bytes) -> RData:
         return parse_data(gzip.decompress(data))
     elif filetype is FileTypes.xz:
         return parse_data(lzma.decompress(data))
-    elif filetype is FileTypes.rdata_binary:
+    elif filetype in {FileTypes.rdata_binary_v2, FileTypes.rdata_binary_v3}:
         view = view[len(magic_dict[filetype]):]
         return parse_rdata_binary(view)
     else:

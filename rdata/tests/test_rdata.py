@@ -92,15 +92,22 @@ class SimpleTests(unittest.TestCase):
         })
 
     def test_dataframe(self) -> None:
-        parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_dataframe.rda")
-        converted = rdata.conversion.convert(parsed)
 
-        pd.testing.assert_frame_equal(converted["test_dataframe"],
-                                      pd.DataFrame({
-                                          "class": pd.Categorical(
-                                              ["a", "b", "b"]),
-                                          "value": [1, 2, 3]
-                                      }))
+        for f in {"test_dataframe.rda", "test_dataframe_v3.rda"}:
+            with self.subTest(file=f):
+                parsed = rdata.parser.parse_file(
+                    TESTDATA_PATH / f,
+                )
+                converted = rdata.conversion.convert(parsed)
+
+                pd.testing.assert_frame_equal(
+                    converted["test_dataframe"],
+                    pd.DataFrame({
+                        "class": pd.Categorical(
+                            ["a", "b", "b"]),
+                        "value": [1, 2, 3],
+                    })
+                )
 
     def test_ts(self) -> None:
         parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_ts.rda")
