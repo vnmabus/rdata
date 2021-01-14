@@ -169,6 +169,19 @@ def convert_vector(
     return value
 
 
+def safe_decode(byte_str: bytes, encoding: str) -> Union[str, bytes]:
+    """
+    Decode a (possibly malformed) string.
+    """
+    try:
+        return byte_str.decode(encoding)
+    except UnicodeDecodeError as e:
+        warnings.warn(
+            f"Exception while decoding {byte_str!r}: {e}",
+        )
+        return byte_str
+
+
 def convert_char(
     r_char: parser.RObject,
     default_encoding: Optional[str] = None,
@@ -204,11 +217,11 @@ def convert_char(
     assert isinstance(r_char.value, bytes)
 
     if r_char.info.gp & parser.CharFlags.UTF8:
-        return r_char.value.decode("utf_8")
+        return safe_decode(r_char.value, "utf_8")
     elif r_char.info.gp & parser.CharFlags.LATIN1:
-        return r_char.value.decode("latin_1")
+        return safe_decode(r_char.value, "latin_1")
     elif r_char.info.gp & parser.CharFlags.ASCII:
-        return r_char.value.decode("ascii")
+        return safe_decode(r_char.value, "ascii")
     elif r_char.info.gp & parser.CharFlags.BYTES:
         return r_char.value
     else:
@@ -217,13 +230,7 @@ def convert_char(
         else:
             # Assume ASCII if no encoding is marked
             warnings.warn(f"Unknown encoding. Assumed ASCII.")
-            try:
-                return r_char.value.decode("ascii")
-            except UnicodeDecodeError as e:
-                warnings.warn(
-                    f"Exception while decoding {r_char.value!r}: {e}",
-                )
-                return r_char.value
+            return safe_decode(r_char.value, "ascii")
 
 
 def convert_symbol(r_symbol: parser.RObject,
