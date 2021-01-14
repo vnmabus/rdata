@@ -169,7 +169,10 @@ def convert_vector(
     return value
 
 
-def convert_char(r_char: parser.RObject) -> Union[str, bytes]:
+def convert_char(
+    r_char: parser.RObject,
+    default_encoding: Optional[str] = None,
+) -> Union[str, bytes]:
     """
     Decode a R character array to a Python string or bytes.
 
@@ -206,9 +209,18 @@ def convert_char(r_char: parser.RObject) -> Union[str, bytes]:
     elif r_char.info.gp & parser.CharFlags.BYTES:
         return r_char.value
     else:
-        # Assume ASCII if no encoding is marked
-        warnings.warn(f"Unknown encoding. Assumed ASCII.")
-        return r_char.value.decode("ascii")
+        if default_encoding:
+            return r_char.value.decode(default_encoding)
+        else:
+            # Assume ASCII if no encoding is marked
+            warnings.warn(f"Unknown encoding. Assumed ASCII.")
+            try:
+                return r_char.value.decode("ascii")
+            except UnicodeDecodeError as e:
+                warnings.warn(
+                    f"Exception while decoding {r_char.value!r}: {e}",
+                )
+                return r_char.value
 
 
 def convert_symbol(r_symbol: parser.RObject,
@@ -416,17 +428,23 @@ class SimpleConverter(Converter):
 
     """
 
-    def __init__(self,
-                 constructor_dict: Mapping[
-                     Union[str, bytes],
-                     Constructor]=DEFAULT_CLASS_MAP) -> None:
+    def __init__(
+        self,
+        constructor_dict: Mapping[
+            Union[str, bytes],
+            Constructor,
+        ] = DEFAULT_CLASS_MAP,
+        default_encoding: Optional[str] = None,
+    ) -> None:
 
         self.constructor_dict = constructor_dict
+        self.default_encoding = default_encoding
 
         self._reset()
 
     def _reset(self) -> None:
         self.references: MutableMapping[int, Any] = {}
+        self.default_encoding_used = self.default_encoding
 
     def convert(self, data: Union[parser.RData, parser.RObject]) -> Any:
         self._reset()
@@ -440,6 +458,8 @@ class SimpleConverter(Converter):
         obj: RObject
         if isinstance(data, parser.RData):
             obj = data.object
+            if self.default_encoding is None:
+                self.default_encoding_used = data.extra.encoding
         else:
             obj = data
 
@@ -474,7 +494,10 @@ class SimpleConverter(Converter):
         elif obj.info.type == parser.RObjectType.CHAR:
 
             # Return the internal string
-            value = convert_char(obj)
+            value = convert_char(
+                obj,
+                default_encoding=self.default_encoding_used,
+            )
 
         elif obj.info.type in {parser.RObjectType.LGL,
                                parser.RObjectType.INT,

@@ -91,6 +91,38 @@ class SimpleTests(unittest.TestCase):
                 rdata.conversion.RLanguage(['^', 'base', 'exponent'])])
         })
 
+    def test_encodings(self) -> None:
+
+        with self.assertWarns(
+            UserWarning,
+            msg="Unknown encoding. Assumed ASCII."
+        ):
+            parsed = rdata.parser.parse_file(
+                TESTDATA_PATH / "test_encodings.rda",
+            )
+            converted = rdata.conversion.convert(parsed)
+
+            np.testing.assert_equal(converted, {
+                "test_encoding_utf8": ["eĥoŝanĝo ĉiuĵaŭde"],
+                "test_encoding_latin1": ["cañón"],
+                "test_encoding_bytes": [b"reba\xf1o"],
+                "test_encoding_latin1_implicit": [b"\xcd\xf1igo"],
+            })
+
+    def test_encodings_v3(self) -> None:
+
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_encodings_v3.rda",
+        )
+        converted = rdata.conversion.convert(parsed)
+
+        np.testing.assert_equal(converted, {
+            "test_encoding_utf8": ["eĥoŝanĝo ĉiuĵaŭde"],
+            "test_encoding_latin1": ["cañón"],
+            "test_encoding_bytes": [b"reba\xf1o"],
+            "test_encoding_latin1_implicit": ["Íñigo"],
+        })
+
     def test_dataframe(self) -> None:
 
         for f in {"test_dataframe.rda", "test_dataframe_v3.rda"}:
