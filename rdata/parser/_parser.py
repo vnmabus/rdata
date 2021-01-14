@@ -348,8 +348,10 @@ class Parser(abc.ABC):
             length = self.parse_int()
             if length > 0:
                 value = self.parse_string(length=length)
-            elif length == 0 or length == -1:
+            elif length == 0:
                 value = b""
+            elif length == -1:
+                value = None
             else:
                 raise NotImplementedError(
                     f"Length of CHAR cannot be {length}")

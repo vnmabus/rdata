@@ -172,7 +172,7 @@ def convert_vector(
 def convert_char(
     r_char: parser.RObject,
     default_encoding: Optional[str] = None,
-) -> Union[str, bytes]:
+) -> Union[str, bytes, None]:
     """
     Decode a R character array to a Python string or bytes.
 
@@ -197,6 +197,9 @@ def convert_char(
     """
     if r_char.info.type is not parser.RObjectType.CHAR:
         raise TypeError("Must receive a CHAR object")
+
+    if r_char.value is None:
+        return None
 
     assert isinstance(r_char.value, bytes)
 

@@ -51,6 +51,15 @@ class SimpleTests(unittest.TestCase):
             "test_empty_str": [""]
         })
 
+    def test_na_string(self) -> None:
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_na_string.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        np.testing.assert_equal(converted, {
+            "test_na_string": [None]
+        })
+
     def test_complex(self) -> None:
         parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_complex.rda")
         converted = rdata.conversion.convert(parsed)
