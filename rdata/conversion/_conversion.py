@@ -226,7 +226,7 @@ def convert_char(
         return r_char.value
     else:
         if default_encoding:
-            return r_char.value.decode(default_encoding)
+            return safe_decode(r_char.value, default_encoding)
         else:
             # Assume ASCII if no encoding is marked
             warnings.warn(f"Unknown encoding. Assumed ASCII.")
