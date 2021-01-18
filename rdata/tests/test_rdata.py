@@ -51,6 +51,15 @@ class SimpleTests(unittest.TestCase):
             "test_empty_str": [""]
         })
 
+    def test_na_string(self) -> None:
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_na_string.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        np.testing.assert_equal(converted, {
+            "test_na_string": [None]
+        })
+
     def test_complex(self) -> None:
         parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_complex.rda")
         converted = rdata.conversion.convert(parsed)
@@ -91,16 +100,55 @@ class SimpleTests(unittest.TestCase):
                 rdata.conversion.RLanguage(['^', 'base', 'exponent'])])
         })
 
-    def test_dataframe(self) -> None:
-        parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_dataframe.rda")
+    def test_encodings(self) -> None:
+
+        with self.assertWarns(
+            UserWarning,
+            msg="Unknown encoding. Assumed ASCII."
+        ):
+            parsed = rdata.parser.parse_file(
+                TESTDATA_PATH / "test_encodings.rda",
+            )
+            converted = rdata.conversion.convert(parsed)
+
+            np.testing.assert_equal(converted, {
+                "test_encoding_utf8": ["eĥoŝanĝo ĉiuĵaŭde"],
+                "test_encoding_latin1": ["cañón"],
+                "test_encoding_bytes": [b"reba\xf1o"],
+                "test_encoding_latin1_implicit": [b"\xcd\xf1igo"],
+            })
+
+    def test_encodings_v3(self) -> None:
+
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_encodings_v3.rda",
+        )
         converted = rdata.conversion.convert(parsed)
 
-        pd.testing.assert_frame_equal(converted["test_dataframe"],
-                                      pd.DataFrame({
-                                          "class": pd.Categorical(
-                                              ["a", "b", "b"]),
-                                          "value": [1, 2, 3]
-                                      }))
+        np.testing.assert_equal(converted, {
+            "test_encoding_utf8": ["eĥoŝanĝo ĉiuĵaŭde"],
+            "test_encoding_latin1": ["cañón"],
+            "test_encoding_bytes": [b"reba\xf1o"],
+            "test_encoding_latin1_implicit": ["Íñigo"],
+        })
+
+    def test_dataframe(self) -> None:
+
+        for f in {"test_dataframe.rda", "test_dataframe_v3.rda"}:
+            with self.subTest(file=f):
+                parsed = rdata.parser.parse_file(
+                    TESTDATA_PATH / f,
+                )
+                converted = rdata.conversion.convert(parsed)
+
+                pd.testing.assert_frame_equal(
+                    converted["test_dataframe"],
+                    pd.DataFrame({
+                        "class": pd.Categorical(
+                            ["a", "b", "b"]),
+                        "value": [1, 2, 3],
+                    })
+                )
 
     def test_ts(self) -> None:
         parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_ts.rda")
