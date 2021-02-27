@@ -31,7 +31,7 @@ setup(name='rdata',
       platforms=['any'],
       license='MIT',
       packages=find_packages(),
-      python_requires='>=3.6, <4',
+      python_requires='>=3.7, <4',
       classifiers=[
           'Development Status :: 4 - Beta',
           'Intended Audience :: Developers',

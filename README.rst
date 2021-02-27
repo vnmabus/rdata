@@ -108,10 +108,10 @@ Pandas `Categorical` objects:
     2     b'b'      3}
 
 
-.. |build-status| image:: https://api.travis-ci.org/vnmabus/rdata.svg?branch=master
+.. |build-status| image:: https://github.com/vnmabus/rdata/actions/workflows/main.yml/badge.svg?branch=master
     :alt: build status
     :scale: 100%
-    :target: https://travis-ci.org/vnmabus/rdata
+    :target: https://github.com/vnmabus/rdata/actions/workflows/main.yml
 
 .. |docs| image:: https://readthedocs.org/projects/rdata/badge/?version=latest
     :alt: Documentation Status
