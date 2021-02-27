@@ -1,7 +1,7 @@
 import abc
 import warnings
 from fractions import Fraction
-from types import MappingProxyType
+from types import MappingProxyType, SimpleNamespace
 from typing import (Any, Callable, Hashable, List, Mapping, MutableMapping,
                     NamedTuple, Optional, Union, cast)
 
@@ -558,6 +558,9 @@ class SimpleConverter(Converter):
         elif obj.info.type == parser.RObjectType.NILVALUE:
 
             value = None
+
+        elif obj.info.type == parser.RObjectType.S4:
+            value = SimpleNamespace(**attrs)
 
         else:
             raise NotImplementedError(f"Type {obj.info.type} not implemented")

@@ -405,6 +405,9 @@ class Parser(abc.ABC):
             # Index is 1-based
             referenced_object = reference_list[info.reference - 1]
 
+        elif info.type == RObjectType.S4:
+            value = None
+
         else:
             raise NotImplementedError(f"Type {info.type} not implemented")
 

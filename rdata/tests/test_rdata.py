@@ -2,10 +2,10 @@ import os
 import pathlib
 import unittest
 from fractions import Fraction
+from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
-
 import rdata
 
 TESTDATA_PATH = rdata.TESTDATA_PATH
@@ -160,6 +160,18 @@ class SimpleTests(unittest.TestCase):
                                            2000 + Fraction(3, 12): 2.,
                                            2000 + Fraction(4, 12): 3.,
                                        }))
+
+    def test_s4(self) -> None:
+        parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_s4.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        np.testing.assert_equal(converted, {
+            "test_s4": SimpleNamespace(
+                age=np.array(28),
+                name=["Carlos"],
+                **{'class': ["Person"]}
+            )
+        })
 
 
 if __name__ == "__main__":
