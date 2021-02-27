@@ -378,6 +378,8 @@ class Parser(abc.ABC):
                 referenced_object=referenced_object,
             )
 
+            reference_list.append(result)
+
             locked = self.parse_bool()
             enclosure = self.parse_R_object(reference_list)
             frame = self.parse_R_object(reference_list)
