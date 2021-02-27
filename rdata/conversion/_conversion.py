@@ -481,10 +481,11 @@ class SimpleConverter(Converter):
         self.constructor_dict = constructor_dict
         self.default_encoding = default_encoding
         self.force_default_encoding = force_default_encoding
-        self.global_environment = (
+        self.global_environment = ChainMap(
             {} if global_environment is None
             else global_environment
         )
+        self.empty_environment = ChainMap({})
 
         self._reset()
 
@@ -579,6 +580,9 @@ class SimpleConverter(Converter):
 
         elif obj.info.type == parser.RObjectType.S4:
             value = SimpleNamespace(**attrs)
+
+        elif obj.info.type == parser.RObjectType.EMPTYENV:
+            value = self.empty_environment
 
         elif obj.info.type == parser.RObjectType.GLOBALENV:
             value = self.global_environment

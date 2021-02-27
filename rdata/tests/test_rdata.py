@@ -183,7 +183,7 @@ class SimpleTests(unittest.TestCase):
         empty_global_env: Dict[str, Any] = {}
 
         np.testing.assert_equal(converted, {
-            "test_environment": ChainMap(dict_env, empty_global_env)
+            "test_environment": ChainMap(dict_env, ChainMap(empty_global_env))
         })
 
         global_env = {"global": "test"}
@@ -194,7 +194,16 @@ class SimpleTests(unittest.TestCase):
         )
 
         np.testing.assert_equal(converted_global, {
-            "test_environment": ChainMap(dict_env, global_env)
+            "test_environment": ChainMap(dict_env, ChainMap(global_env))
+        })
+
+    def test_emptyenv(self) -> None:
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_emptyenv.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        np.testing.assert_equal(converted, {
+            "test_emptyenv": ChainMap({})
         })
 
 

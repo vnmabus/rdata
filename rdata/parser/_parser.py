@@ -101,6 +101,7 @@ class RObjectType(enum.Enum):
     WEAKREF = 23  # weak reference
     RAW = 24  # raw vector
     S4 = 25  # S4 classes not of simple type
+    EMPTYENV = 242  # Empty environment
     GLOBALENV = 253  # Global environment
     NILVALUE = 254  # NIL value
     REF = 255  # Reference
@@ -444,6 +445,9 @@ class Parser(abc.ABC):
                 value[i] = self.parse_R_object(reference_list)
 
         elif info.type == RObjectType.S4:
+            value = None
+
+        elif info.type == RObjectType.EMPTYENV:
             value = None
 
         elif info.type == RObjectType.GLOBALENV:
