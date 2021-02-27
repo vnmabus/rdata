@@ -1,7 +1,8 @@
-import os
-import pathlib
 import unittest
+from collections import ChainMap
 from fractions import Fraction
+from types import SimpleNamespace
+from typing import Any, Dict
 
 import numpy as np
 import pandas as pd
@@ -160,6 +161,50 @@ class SimpleTests(unittest.TestCase):
                                            2000 + Fraction(3, 12): 2.,
                                            2000 + Fraction(4, 12): 3.,
                                        }))
+
+    def test_s4(self) -> None:
+        parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_s4.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        np.testing.assert_equal(converted, {
+            "test_s4": SimpleNamespace(
+                age=np.array(28),
+                name=["Carlos"],
+                **{'class': ["Person"]}
+            )
+        })
+
+    def test_environment(self) -> None:
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_environment.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        dict_env = {'string': ['test']}
+        empty_global_env: Dict[str, Any] = {}
+
+        np.testing.assert_equal(converted, {
+            "test_environment": ChainMap(dict_env, ChainMap(empty_global_env))
+        })
+
+        global_env = {"global": "test"}
+
+        converted_global = rdata.conversion.convert(
+            parsed,
+            global_environment=global_env,
+        )
+
+        np.testing.assert_equal(converted_global, {
+            "test_environment": ChainMap(dict_env, ChainMap(global_env))
+        })
+
+    def test_emptyenv(self) -> None:
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_emptyenv.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        np.testing.assert_equal(converted, {
+            "test_emptyenv": ChainMap({})
+        })
 
 
 if __name__ == "__main__":
