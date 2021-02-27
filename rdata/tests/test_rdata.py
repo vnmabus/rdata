@@ -1,11 +1,12 @@
-import os
-import pathlib
 import unittest
+from collections import ChainMap
 from fractions import Fraction
 from types import SimpleNamespace
+from typing import Any, Dict
 
 import numpy as np
 import pandas as pd
+
 import rdata
 
 TESTDATA_PATH = rdata.TESTDATA_PATH
@@ -171,6 +172,29 @@ class SimpleTests(unittest.TestCase):
                 name=["Carlos"],
                 **{'class': ["Person"]}
             )
+        })
+
+    def test_environment(self) -> None:
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_environment.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        dict_env = {'string': ['test']}
+        empty_global_env: Dict[str, Any] = {}
+
+        np.testing.assert_equal(converted, {
+            "test_environment": ChainMap(dict_env, empty_global_env)
+        })
+
+        global_env = {"global": "test"}
+
+        converted_global = rdata.conversion.convert(
+            parsed,
+            global_environment=global_env,
+        )
+
+        np.testing.assert_equal(converted_global, {
+            "test_environment": ChainMap(dict_env, global_env)
         })
 
 
