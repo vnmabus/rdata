@@ -1,9 +1,9 @@
 import abc
 import warnings
 from fractions import Fraction
-from types import MappingProxyType
-from typing import (Any, Callable, Hashable, List, Mapping, MutableMapping,
-                    NamedTuple, Optional, Union, cast)
+from types import MappingProxyType, SimpleNamespace
+from typing import (Any, Callable, ChainMap, Hashable, List, Mapping,
+                    MutableMapping, NamedTuple, Optional, Union, cast)
 
 import numpy as np
 import pandas
@@ -78,6 +78,28 @@ def convert_list(
             cdr = []
 
         return [conversion_function(r_list.value[0]), *cdr]
+
+
+def convert_env(
+    r_env: parser.RObject,
+    conversion_function: Callable[
+        [Union[parser.RData, parser.RObject]
+         ], Any]=lambda x: x
+) -> ChainMap[Union[str, bytes], Any]:
+
+    if r_env.info.type is not parser.RObjectType.ENV:
+        raise TypeError("Must receive a ENV object")
+
+    frame = conversion_function(r_env.value.frame)
+    enclosure = conversion_function(r_env.value.enclosure)
+    hash_table = conversion_function(r_env.value.hash_table)
+
+    dictionary = {}
+    for d in hash_table:
+        if d is not None:
+            dictionary.update(d)
+
+    return ChainMap(dictionary, enclosure)
 
 
 def convert_attrs(
@@ -453,11 +475,17 @@ class SimpleConverter(Converter):
         ] = DEFAULT_CLASS_MAP,
         default_encoding: Optional[str] = None,
         force_default_encoding: bool = False,
+        global_environment: Optional[Mapping[Union[str, bytes], Any]] = None,
     ) -> None:
 
         self.constructor_dict = constructor_dict
         self.default_encoding = default_encoding
         self.force_default_encoding = force_default_encoding
+        self.global_environment = ChainMap(
+            {} if global_environment is None
+            else global_environment
+        )
+        self.empty_environment = ChainMap({})
 
         self._reset()
 
@@ -500,6 +528,11 @@ class SimpleConverter(Converter):
 
             # Expand the list and process the elements
             value = convert_list(obj, self._convert_next)
+
+        elif obj.info.type == parser.RObjectType.ENV:
+
+            # Return a ChainMap of the environments
+            value = convert_env(obj, self._convert_next)
 
         elif obj.info.type == parser.RObjectType.LANG:
 
@@ -544,6 +577,15 @@ class SimpleConverter(Converter):
 
             # Convert the internal objects returning a special object
             value = RExpression(rexpression_list)
+
+        elif obj.info.type == parser.RObjectType.S4:
+            value = SimpleNamespace(**attrs)
+
+        elif obj.info.type == parser.RObjectType.EMPTYENV:
+            value = self.empty_environment
+
+        elif obj.info.type == parser.RObjectType.GLOBALENV:
+            value = self.global_environment
 
         elif obj.info.type == parser.RObjectType.REF:
 

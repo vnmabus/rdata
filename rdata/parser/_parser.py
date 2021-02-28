@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import abc
 import bz2
 import enum
@@ -7,8 +9,8 @@ import os
 import pathlib
 import warnings
 import xdrlib
-from typing import (Any, BinaryIO, List, NamedTuple, Optional, Set, TextIO,
-                    Union)
+from dataclasses import dataclass
+from typing import Any, BinaryIO, List, Optional, Set, TextIO, Union
 
 import numpy as np
 
@@ -99,6 +101,8 @@ class RObjectType(enum.Enum):
     WEAKREF = 23  # weak reference
     RAW = 24  # raw vector
     S4 = 25  # S4 classes not of simple type
+    EMPTYENV = 242  # Empty environment
+    GLOBALENV = 253  # Global environment
     NILVALUE = 254  # NIL value
     REF = 255  # Reference
 
@@ -112,7 +116,8 @@ class CharFlags(enum.IntFlag):
     ASCII = 1 << 6
 
 
-class RVersions(NamedTuple):
+@dataclass
+class RVersions():
     """
     R versions.
     """
@@ -121,7 +126,8 @@ class RVersions(NamedTuple):
     minimum: int
 
 
-class RExtraInfo(NamedTuple):
+@dataclass
+class RExtraInfo():
     """
     Extra information.
 
@@ -130,7 +136,8 @@ class RExtraInfo(NamedTuple):
     encoding: Optional[str] = None
 
 
-class RObjectInfo(NamedTuple):
+@dataclass
+class RObjectInfo():
     """
     Internal attributes of a R object.
     """
@@ -142,15 +149,16 @@ class RObjectInfo(NamedTuple):
     reference: int
 
 
-class RObject(NamedTuple):
+@dataclass
+class RObject():
     """
     Representation of a R object.
     """
     info: RObjectInfo
     value: Any
-    attributes: Optional['RObject']  # type: ignore
-    tag: Optional['RObject'] = None  # type: ignore
-    referenced_object: Optional['RObject'] = None  # type: ignore
+    attributes: Optional[RObject]
+    tag: Optional[RObject] = None
+    referenced_object: Optional[RObject] = None
 
     def _str_internal(
         self,
@@ -210,13 +218,25 @@ class RObject(NamedTuple):
         return self._str_internal()
 
 
-class RData(NamedTuple):
+@dataclass
+class RData():
     """
     Data contained in a R file.
     """
     versions: RVersions
     extra: RExtraInfo
     object: RObject
+
+
+@dataclass
+class EnvironmentValue():
+    """
+    Value of an environment.
+    """
+    locked: bool
+    enclosure: RObject
+    frame: RObject
+    hash_table: RObject
 
 
 class Parser(abc.ABC):
@@ -323,9 +343,14 @@ class Parser(abc.ABC):
         attributes_read = False
         add_reference = False
 
+        result = None
+
         value: Any
 
-        if info.type == RObjectType.SYM:
+        if info.type == RObjectType.NIL:
+            value = None
+
+        elif info.type == RObjectType.SYM:
             # Read Char
             value = self.parse_R_object(reference_list)
             # Symbols can be referenced
@@ -343,6 +368,30 @@ class Parser(abc.ABC):
             car = self.parse_R_object(reference_list)
             cdr = self.parse_R_object(reference_list)
             value = (car, cdr)
+
+        elif info.type == RObjectType.ENV:
+            result = RObject(
+                info=info,
+                tag=tag,
+                attributes=attributes,
+                value=None,
+                referenced_object=referenced_object,
+            )
+
+            reference_list.append(result)
+
+            locked = self.parse_bool()
+            enclosure = self.parse_R_object(reference_list)
+            frame = self.parse_R_object(reference_list)
+            hash_table = self.parse_R_object(reference_list)
+            attributes = self.parse_R_object(reference_list)
+
+            value = EnvironmentValue(
+                locked=locked,
+                enclosure=enclosure,
+                frame=frame,
+                hash_table=hash_table,
+            )
 
         elif info.type == RObjectType.CHAR:
             length = self.parse_int()
@@ -397,6 +446,15 @@ class Parser(abc.ABC):
             for i in range(length):
                 value[i] = self.parse_R_object(reference_list)
 
+        elif info.type == RObjectType.S4:
+            value = None
+
+        elif info.type == RObjectType.EMPTYENV:
+            value = None
+
+        elif info.type == RObjectType.GLOBALENV:
+            value = None
+
         elif info.type == RObjectType.NILVALUE:
             value = None
 
@@ -414,10 +472,19 @@ class Parser(abc.ABC):
         if info.attributes and not attributes_read:
             attributes = self.parse_R_object(reference_list)
 
-        result = RObject(info=info, tag=tag,
-                         attributes=attributes,
-                         value=value,
-                         referenced_object=referenced_object)
+        if result is None:
+            result = RObject(
+                info=info,
+                tag=tag,
+                attributes=attributes,
+                value=value,
+                referenced_object=referenced_object,
+            )
+        else:
+            result.info = info
+            result.attributes = attributes
+            result.value = value
+            result.referenced_object = referenced_object
 
         if add_reference:
             reference_list.append(result)
