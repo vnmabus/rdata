@@ -24,9 +24,11 @@ jobs:
     - name: Install dependencies
       run: |
         pip3 install codecov pytest-cov || pip3 install --user codecov pytest-cov;
+        
     - name: Run tests
       run: |
         pip3 install .
-        coverage run --source=rdata/ setup.py test;
+        coverage run --source=rdata/ --omit=rdata/tests/ setup.py test;
+        
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
