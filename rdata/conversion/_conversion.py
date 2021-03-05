@@ -485,7 +485,7 @@ class SimpleConverter(Converter):
             {} if global_environment is None
             else global_environment
         )
-        self.empty_environment = ChainMap({})
+        self.empty_environment: Mapping[Union[str, bytes], Any] = ChainMap({})
 
         self._reset()
 
