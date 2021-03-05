@@ -359,7 +359,8 @@ class Parser(abc.ABC):
         elif info.type in [RObjectType.LIST, RObjectType.LANG]:
             tag = None
             if info.attributes:
-                raise NotImplementedError("Attributes not suported for LIST")
+                attributes = self.parse_R_object(reference_list)
+                attributes_read = True
             elif info.tag:
                 tag = self.parse_R_object(reference_list)
                 tag_read = True

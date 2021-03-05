@@ -206,6 +206,14 @@ class SimpleTests(unittest.TestCase):
             "test_emptyenv": ChainMap({})
         })
 
+    def test_list_attrs(self) -> None:
+        parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_list_attrs.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        np.testing.assert_equal(converted, {
+            "test_list_attrs": [['list'], [5]]
+        })
+
 
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.testName']
