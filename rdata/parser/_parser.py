@@ -358,10 +358,36 @@ def compact_realseq_constructor(
     return compact_seq_constructor(info, state, attr, is_int=False)
 
 
+def wrap_constructor(
+    info: RObject,
+    state: RObject,
+    attr: RObject,
+) -> Tuple[RObjectInfo, Any, RObject]:
+
+    new_info = RObjectInfo(
+        type=state.value[0].info.type,
+        object=False,
+        attributes=False,
+        tag=False,
+        gp=0,
+        reference=0,
+    )
+
+    value = state.value[0].value
+
+    return new_info, value, attr
+
+
 default_altrep_map_dict: Mapping[bytes, AltRepConstructor] = {
     b"deferred_string": deferred_string_constructor,
     b"compact_intseq": compact_intseq_constructor,
     b"compact_realseq": compact_realseq_constructor,
+    b"wrap_real": wrap_constructor,
+    b"wrap_string": wrap_constructor,
+    b"wrap_logical": wrap_constructor,
+    b"wrap_integer": wrap_constructor,
+    b"wrap_complex": wrap_constructor,
+    b"wrap_raw": wrap_constructor,
 }
 
 DEFAULT_ALTREP_MAP = MappingProxyType(default_altrep_map_dict)

@@ -237,7 +237,7 @@ class SimpleTests(unittest.TestCase):
         })
 
     def test_altrep_deferred_string(self) -> None:
-        """Test alternative representation of sequences of ints."""
+        """Test alternative representation of deferred strings."""
         parsed = rdata.parser.parse_file(
             TESTDATA_PATH / "test_altrep_deferred_string.rda",
         )
@@ -249,6 +249,39 @@ class SimpleTests(unittest.TestCase):
                 "1e+05", "-10000", "-1e+05",
                 "0.001", "1e-04", "1e-05",
             ],
+        })
+
+    def test_altrep_wrap_real(self) -> None:
+        """Test alternative representation of wrap_real."""
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_altrep_wrap_real.rda",
+        )
+        converted = rdata.conversion.convert(parsed)
+
+        np.testing.assert_equal(converted, {
+            "test_altrep_wrap_real": [3],
+        })
+
+    def test_altrep_wrap_string(self) -> None:
+        """Test alternative representation of wrap_string."""
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_altrep_wrap_string.rda",
+        )
+        converted = rdata.conversion.convert(parsed)
+
+        np.testing.assert_equal(converted, {
+            "test_altrep_wrap_string": ["Hello"],
+        })
+
+    def test_altrep_wrap_logical(self) -> None:
+        """Test alternative representation of wrap_logical."""
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_altrep_wrap_logical.rda",
+        )
+        converted = rdata.conversion.convert(parsed)
+
+        np.testing.assert_equal(converted, {
+            "test_altrep_wrap_logical": [True],
         })
 
 
