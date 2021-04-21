@@ -10,7 +10,19 @@ import pathlib
 import warnings
 import xdrlib
 from dataclasses import dataclass
-from typing import Any, BinaryIO, List, Optional, Set, TextIO, Union
+from types import MappingProxyType
+from typing import (
+    Any,
+    BinaryIO,
+    Callable,
+    List,
+    Mapping,
+    Optional,
+    Set,
+    TextIO,
+    Tuple,
+    Union,
+)
 
 import numpy as np
 
@@ -101,6 +113,7 @@ class RObjectType(enum.Enum):
     WEAKREF = 23  # weak reference
     RAW = 24  # raw vector
     S4 = 25  # S4 classes not of simple type
+    ALTREP = 238  # Alternative representations
     EMPTYENV = 242  # Empty environment
     GLOBALENV = 253  # Global environment
     NILVALUE = 254  # NIL value
@@ -162,7 +175,7 @@ class RObject():
 
     def _str_internal(
         self,
-        indent: int=0,
+        indent: int = 0,
         used_references: Optional[Set[int]] = None
     ) -> str:
 
@@ -239,10 +252,150 @@ class EnvironmentValue():
     hash_table: RObject
 
 
+AltRepConstructor = Callable[
+    [RObject],
+    Tuple[RObjectInfo, Any],
+]
+AltRepConstructorMap = Mapping[bytes, AltRepConstructor]
+
+
+def format_float_with_scipen(number: float, scipen: int) -> bytes:
+    fixed = np.format_float_positional(number, trim="-")
+    scientific = np.format_float_scientific(number, trim="-")
+
+    assert(isinstance(fixed, str))
+    assert(isinstance(scientific, str))
+
+    return (
+        scientific if len(fixed) - len(scientific) > scipen
+        else fixed
+    ).encode()
+
+
+def deferred_string_constructor(
+    state: RObject,
+) -> Tuple[RObjectInfo, Any]:
+
+    new_info = RObjectInfo(
+        type=RObjectType.STR,
+        object=False,
+        attributes=False,
+        tag=False,
+        gp=0,
+        reference=0,
+    )
+
+    object_to_format = state.value[0].value
+    scipen = state.value[1].value
+
+    value = [
+        RObject(
+            info=RObjectInfo(
+                type=RObjectType.CHAR,
+                object=False,
+                attributes=False,
+                tag=False,
+                gp=CharFlags.ASCII,
+                reference=0,
+            ),
+            value=format_float_with_scipen(num, scipen),
+            attributes=None,
+            tag=None,
+            referenced_object=None,
+        )
+        for num in object_to_format
+    ]
+
+    return new_info, value
+
+
+def compact_seq_constructor(
+    state: RObject,
+    *,
+    is_int: bool = False
+) -> Tuple[RObjectInfo, Any]:
+
+    new_info = RObjectInfo(
+        type=RObjectType.INT if is_int else RObjectType.REAL,
+        object=False,
+        attributes=False,
+        tag=False,
+        gp=0,
+        reference=0,
+    )
+
+    start = state.value[1]
+    stop = state.value[0]
+    step = state.value[2]
+
+    if is_int:
+        start = int(start)
+        stop = int(stop)
+        step = int(step)
+
+    value = np.arange(start, stop, step)
+
+    return new_info, value
+
+
+def compact_intseq_constructor(
+    state: RObject,
+) -> Tuple[RObjectInfo, Any]:
+    return compact_seq_constructor(state, is_int=True)
+
+
+def compact_realseq_constructor(
+    state: RObject,
+) -> Tuple[RObjectInfo, Any]:
+    return compact_seq_constructor(state, is_int=False)
+
+
+def wrap_constructor(
+    state: RObject,
+) -> Tuple[RObjectInfo, Any]:
+
+    new_info = RObjectInfo(
+        type=state.value[0].info.type,
+        object=False,
+        attributes=False,
+        tag=False,
+        gp=0,
+        reference=0,
+    )
+
+    value = state.value[0].value
+
+    return new_info, value
+
+
+default_altrep_map_dict: Mapping[bytes, AltRepConstructor] = {
+    b"deferred_string": deferred_string_constructor,
+    b"compact_intseq": compact_intseq_constructor,
+    b"compact_realseq": compact_realseq_constructor,
+    b"wrap_real": wrap_constructor,
+    b"wrap_string": wrap_constructor,
+    b"wrap_logical": wrap_constructor,
+    b"wrap_integer": wrap_constructor,
+    b"wrap_complex": wrap_constructor,
+    b"wrap_raw": wrap_constructor,
+}
+
+DEFAULT_ALTREP_MAP = MappingProxyType(default_altrep_map_dict)
+
+
 class Parser(abc.ABC):
     """
     Parser interface for a R file.
     """
+
+    def __init__(
+        self,
+        *,
+        expand_altrep: bool = True,
+        altrep_constructor_dict: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
+    ):
+        self.expand_altrep = expand_altrep
+        self.altrep_constructor_dict = altrep_constructor_dict
 
     def parse_bool(self) -> bool:
         """
@@ -318,6 +471,28 @@ class Parser(abc.ABC):
         extra_info = RExtraInfo(encoding)
 
         return extra_info
+
+    def expand_altrep_to_object(
+        self,
+        info: RObject,
+        state: RObject,
+    ) -> Tuple[RObjectInfo, Any]:
+        """Expand alternative representation to normal object."""
+
+        assert info.info.type == RObjectType.LIST
+
+        class_sym = info.value[0]
+        while class_sym.info.type == RObjectType.REF:
+            class_sym = class_sym.referenced_object
+
+        assert class_sym.info.type == RObjectType.SYM
+        assert class_sym.value.info.type == RObjectType.CHAR
+
+        altrep_name = class_sym.value.value
+        assert isinstance(altrep_name, bytes)
+
+        constructor = self.altrep_constructor_dict[altrep_name]
+        return constructor(state)
 
     def parse_R_object(
         self,
@@ -450,6 +625,20 @@ class Parser(abc.ABC):
         elif info.type == RObjectType.S4:
             value = None
 
+        elif info.type == RObjectType.ALTREP:
+            altrep_info = self.parse_R_object(reference_list)
+            altrep_state = self.parse_R_object(reference_list)
+            altrep_attr = self.parse_R_object(reference_list)
+
+            if self.expand_altrep:
+                info, value = self.expand_altrep_to_object(
+                    info=altrep_info,
+                    state=altrep_state,
+                )
+                attributes = altrep_attr
+            else:
+                value = (altrep_info, altrep_state, altrep_attr)
+
         elif info.type == RObjectType.EMPTYENV:
             value = None
 
@@ -498,7 +687,18 @@ class ParserXDR(Parser):
     Parser used when the integers and doubles are in XDR format.
     """
 
-    def __init__(self, data: memoryview, position: int = 0) -> None:
+    def __init__(
+        self,
+        data: memoryview,
+        position: int = 0,
+        *,
+        expand_altrep: bool = True,
+        altrep_constructor_dict: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
+    ) -> None:
+        super().__init__(
+            expand_altrep=expand_altrep,
+            altrep_constructor_dict=altrep_constructor_dict,
+        )
         self.data = data
         self.position = position
         self.xdr_parser = xdrlib.Unpacker(data)
@@ -523,14 +723,21 @@ class ParserXDR(Parser):
         return bytes(result)
 
 
-def parse_file(file_or_path: Union[BinaryIO, TextIO, 'os.PathLike[Any]',
-                                   str]) -> RData:
+def parse_file(
+    file_or_path: Union[BinaryIO, TextIO, 'os.PathLike[Any]', str],
+    *,
+    expand_altrep: bool = True,
+    altrep_constructor_dict: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
+) -> RData:
     """
     Parse a R file (.rda or .rdata).
 
     Parameters:
         file_or_path (file-like, str, bytes or path-like): File
             in the R serialization format.
+        expand_altrep (bool): Wether to translate ALTREPs to normal objects.
+        altrep_constructor_dict: Dictionary mapping each ALTREP to
+            its constructor.
 
     Returns:
         RData: Data contained in the file (versions and object).
@@ -612,15 +819,27 @@ def parse_file(file_or_path: Union[BinaryIO, TextIO, 'os.PathLike[Any]',
         else:
             binary_file = buffer
         data = binary_file.read()
-    return parse_data(data)
+    return parse_data(
+        data,
+        expand_altrep=expand_altrep,
+        altrep_constructor_dict=altrep_constructor_dict,
+    )
 
 
-def parse_data(data: bytes) -> RData:
+def parse_data(
+    data: bytes,
+    *,
+    expand_altrep: bool = True,
+    altrep_constructor_dict: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
+) -> RData:
     """
     Parse the data of a R file, received as a sequence of bytes.
 
     Parameters:
         data (bytes): Data extracted of a R file.
+        expand_altrep (bool): Wether to translate ALTREPs to normal objects.
+        altrep_constructor_dict: Dictionary mapping each ALTREP to
+            its constructor.
 
     Returns:
         RData: Data contained in the file (versions and object).
@@ -695,20 +914,38 @@ def parse_data(data: bytes) -> RData:
 
     filetype = file_type(view)
 
+    parse_function = (
+        parse_rdata_binary
+        if filetype in {
+            FileTypes.rdata_binary_v2,
+            FileTypes.rdata_binary_v3,
+        } else parse_data
+    )
+
     if filetype is FileTypes.bzip2:
-        return parse_data(bz2.decompress(data))
+        new_data = bz2.decompress(data)
     elif filetype is FileTypes.gzip:
-        return parse_data(gzip.decompress(data))
+        new_data = gzip.decompress(data)
     elif filetype is FileTypes.xz:
-        return parse_data(lzma.decompress(data))
+        new_data = lzma.decompress(data)
     elif filetype in {FileTypes.rdata_binary_v2, FileTypes.rdata_binary_v3}:
         view = view[len(magic_dict[filetype]):]
-        return parse_rdata_binary(view)
+        new_data = view
     else:
         raise NotImplementedError("Unknown file type")
 
+    return parse_function(
+        new_data,  # type: ignore
+        expand_altrep=expand_altrep,
+        altrep_constructor_dict=altrep_constructor_dict,
+    )
 
-def parse_rdata_binary(data: memoryview) -> RData:
+
+def parse_rdata_binary(
+    data: memoryview,
+    expand_altrep: bool = True,
+    altrep_constructor_dict: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
+) -> RData:
     """
     Select the appropiate parser and parse all the info.
     """
@@ -718,7 +955,11 @@ def parse_rdata_binary(data: memoryview) -> RData:
         data = data[len(format_dict[format_type]):]
 
     if format_type is RdataFormats.XDR:
-        parser = ParserXDR(data)
+        parser = ParserXDR(
+            data,
+            expand_altrep=expand_altrep,
+            altrep_constructor_dict=altrep_constructor_dict,
+        )
         return parser.parse_all()
     else:
         raise NotImplementedError("Unknown file format")
