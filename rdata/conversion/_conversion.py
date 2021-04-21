@@ -2,8 +2,19 @@ import abc
 import warnings
 from fractions import Fraction
 from types import MappingProxyType, SimpleNamespace
-from typing import (Any, Callable, ChainMap, Hashable, List, Mapping,
-                    MutableMapping, NamedTuple, Optional, Union, cast)
+from typing import (
+    Any,
+    Callable,
+    ChainMap,
+    Hashable,
+    List,
+    Mapping,
+    MutableMapping,
+    NamedTuple,
+    Optional,
+    Union,
+    cast,
+)
 
 import numpy as np
 import pandas
@@ -462,7 +473,7 @@ class SimpleConverter(Converter):
     default_encoding:
         Default encoding used for strings with unknown encoding. If `None`,
         the one stored in the file will be used, or ASCII as a fallback.
-    force_default_encoding;
+    force_default_encoding:
         Use the default encoding even if the strings specify other encoding.
 
     """
@@ -485,7 +496,7 @@ class SimpleConverter(Converter):
             {} if global_environment is None
             else global_environment
         )
-        self.empty_environment = ChainMap({})
+        self.empty_environment: Mapping[Union[str, bytes], Any] = ChainMap({})
 
         self._reset()
 
