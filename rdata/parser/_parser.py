@@ -480,10 +480,15 @@ class Parser(abc.ABC):
         """Expand alternative representation to normal object."""
 
         assert info.info.type == RObjectType.LIST
-        assert info.value[0].info.type == RObjectType.SYM
-        assert info.value[0].value.info.type == RObjectType.CHAR
 
-        altrep_name = info.value[0].value.value
+        class_sym = info.value[0]
+        while class_sym.info.type == RObjectType.REF:
+            class_sym = class_sym.referenced_object
+
+        assert class_sym.info.type == RObjectType.SYM
+        assert class_sym.value.info.type == RObjectType.CHAR
+
+        altrep_name = class_sym.value.value
         assert isinstance(altrep_name, bytes)
 
         constructor = self.altrep_constructor_dict[altrep_name]
