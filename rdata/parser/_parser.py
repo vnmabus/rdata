@@ -392,10 +392,10 @@ class Parser(abc.ABC):
         self,
         *,
         expand_altrep: bool = True,
-        altrep_constructors: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
+        altrep_constructor_dict: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
     ):
         self.expand_altrep = expand_altrep
-        self.altrep_constructors = altrep_constructors
+        self.altrep_constructor_dict = altrep_constructor_dict
 
     def parse_bool(self) -> bool:
         """
@@ -486,7 +486,7 @@ class Parser(abc.ABC):
         altrep_name = info.value[0].value.value
         assert isinstance(altrep_name, bytes)
 
-        constructor = self.altrep_constructors[altrep_name]
+        constructor = self.altrep_constructor_dict[altrep_name]
         return constructor(state)
 
     def parse_R_object(
@@ -688,11 +688,11 @@ class ParserXDR(Parser):
         position: int = 0,
         *,
         expand_altrep: bool = True,
-        altrep_constructors: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
+        altrep_constructor_dict: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
     ) -> None:
         super().__init__(
             expand_altrep=expand_altrep,
-            altrep_constructors=altrep_constructors,
+            altrep_constructor_dict=altrep_constructor_dict,
         )
         self.data = data
         self.position = position
@@ -718,14 +718,21 @@ class ParserXDR(Parser):
         return bytes(result)
 
 
-def parse_file(file_or_path: Union[BinaryIO, TextIO, 'os.PathLike[Any]',
-                                   str]) -> RData:
+def parse_file(
+    file_or_path: Union[BinaryIO, TextIO, 'os.PathLike[Any]', str],
+    *,
+    expand_altrep: bool = True,
+    altrep_constructor_dict: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
+) -> RData:
     """
     Parse a R file (.rda or .rdata).
 
     Parameters:
         file_or_path (file-like, str, bytes or path-like): File
             in the R serialization format.
+        expand_altrep (bool): Wether to translate ALTREPs to normal objects.
+        altrep_constructor_dict: Dictionary mapping each ALTREP to
+            its constructor.
 
     Returns:
         RData: Data contained in the file (versions and object).
@@ -807,15 +814,27 @@ def parse_file(file_or_path: Union[BinaryIO, TextIO, 'os.PathLike[Any]',
         else:
             binary_file = buffer
         data = binary_file.read()
-    return parse_data(data)
+    return parse_data(
+        data,
+        expand_altrep=expand_altrep,
+        altrep_constructor_dict=altrep_constructor_dict,
+    )
 
 
-def parse_data(data: bytes) -> RData:
+def parse_data(
+    data: bytes,
+    *,
+    expand_altrep: bool = True,
+    altrep_constructor_dict: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
+) -> RData:
     """
     Parse the data of a R file, received as a sequence of bytes.
 
     Parameters:
         data (bytes): Data extracted of a R file.
+        expand_altrep (bool): Wether to translate ALTREPs to normal objects.
+        altrep_constructor_dict: Dictionary mapping each ALTREP to
+            its constructor.
 
     Returns:
         RData: Data contained in the file (versions and object).
@@ -890,20 +909,38 @@ def parse_data(data: bytes) -> RData:
 
     filetype = file_type(view)
 
+    parse_function = (
+        parse_rdata_binary
+        if filetype in {
+            FileTypes.rdata_binary_v2,
+            FileTypes.rdata_binary_v3,
+        } else parse_data
+    )
+
     if filetype is FileTypes.bzip2:
-        return parse_data(bz2.decompress(data))
+        new_data = bz2.decompress(data)
     elif filetype is FileTypes.gzip:
-        return parse_data(gzip.decompress(data))
+        new_data = gzip.decompress(data)
     elif filetype is FileTypes.xz:
-        return parse_data(lzma.decompress(data))
+        new_data = lzma.decompress(data)
     elif filetype in {FileTypes.rdata_binary_v2, FileTypes.rdata_binary_v3}:
         view = view[len(magic_dict[filetype]):]
-        return parse_rdata_binary(view)
+        new_data = view
     else:
         raise NotImplementedError("Unknown file type")
 
+    return parse_function(
+        new_data,  # type: ignore
+        expand_altrep=expand_altrep,
+        altrep_constructor_dict=altrep_constructor_dict,
+    )
 
-def parse_rdata_binary(data: memoryview) -> RData:
+
+def parse_rdata_binary(
+    data: memoryview,
+    expand_altrep: bool = True,
+    altrep_constructor_dict: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
+) -> RData:
     """
     Select the appropiate parser and parse all the info.
     """
@@ -913,7 +950,11 @@ def parse_rdata_binary(data: memoryview) -> RData:
         data = data[len(format_dict[format_type]):]
 
     if format_type is RdataFormats.XDR:
-        parser = ParserXDR(data)
+        parser = ParserXDR(
+            data,
+            expand_altrep=expand_altrep,
+            altrep_constructor_dict=altrep_constructor_dict,
+        )
         return parser.parse_all()
     else:
         raise NotImplementedError("Unknown file format")
