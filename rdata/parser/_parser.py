@@ -10,7 +10,19 @@ import pathlib
 import warnings
 import xdrlib
 from dataclasses import dataclass
-from typing import Any, BinaryIO, List, Optional, Set, TextIO, Union
+from types import MappingProxyType
+from typing import (
+    Any,
+    BinaryIO,
+    Callable,
+    List,
+    Mapping,
+    Optional,
+    Set,
+    TextIO,
+    Tuple,
+    Union,
+)
 
 import numpy as np
 
@@ -101,6 +113,7 @@ class RObjectType(enum.Enum):
     WEAKREF = 23  # weak reference
     RAW = 24  # raw vector
     S4 = 25  # S4 classes not of simple type
+    ALTREP = 238  # Alternative representations
     EMPTYENV = 242  # Empty environment
     GLOBALENV = 253  # Global environment
     NILVALUE = 254  # NIL value
@@ -162,7 +175,7 @@ class RObject():
 
     def _str_internal(
         self,
-        indent: int=0,
+        indent: int = 0,
         used_references: Optional[Set[int]] = None
     ) -> str:
 
@@ -239,10 +252,81 @@ class EnvironmentValue():
     hash_table: RObject
 
 
+AltRepConstructor = Callable[
+    [RObject, RObject, RObject],
+    Tuple[RObjectInfo, Any, RObject],
+]
+AltRepConstructorMap = Mapping[bytes, AltRepConstructor]
+
+
+def compact_seq_constructor(
+    info: RObject,
+    state: RObject,
+    attr: RObject,
+    *,
+    is_int: bool = False
+) -> Tuple[RObjectInfo, Any, RObject]:
+
+    new_info = RObjectInfo(
+        type=RObjectType.INT if is_int else RObjectType.REAL,
+        object=False,
+        attributes=False,
+        tag=False,
+        gp=0,
+        reference=0,
+    )
+
+    start = state.value[1]
+    stop = state.value[0]
+    step = state.value[2]
+
+    if is_int:
+        start = int(start)
+        stop = int(stop)
+        step = int(step)
+
+    value = np.arange(start, stop, step)
+
+    return new_info, value, attr
+
+
+def compact_intseq_constructor(
+    info: RObject,
+    state: RObject,
+    attr: RObject,
+) -> Tuple[RObjectInfo, Any, RObject]:
+    return compact_seq_constructor(info, state, attr, is_int=True)
+
+
+def compact_realseq_constructor(
+    info: RObject,
+    state: RObject,
+    attr: RObject,
+) -> Tuple[RObjectInfo, Any, RObject]:
+    return compact_seq_constructor(info, state, attr, is_int=False)
+
+
+default_altrep_map_dict: Mapping[bytes, AltRepConstructor] = {
+    b"compact_intseq": compact_intseq_constructor,
+    b"compact_realseq": compact_realseq_constructor,
+}
+
+DEFAULT_ALTREP_MAP = MappingProxyType(default_altrep_map_dict)
+
+
 class Parser(abc.ABC):
     """
     Parser interface for a R file.
     """
+
+    def __init__(
+        self,
+        *,
+        expand_altrep: bool = True,
+        altrep_constructors: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
+    ):
+        self.expand_altrep = expand_altrep
+        self.altrep_constructors = altrep_constructors
 
     def parse_bool(self) -> bool:
         """
@@ -318,6 +402,24 @@ class Parser(abc.ABC):
         extra_info = RExtraInfo(encoding)
 
         return extra_info
+
+    def expand_altrep_to_object(
+        self,
+        info: RObject,
+        state: RObject,
+        attr: RObject,
+    ) -> Tuple[RObjectInfo, Any, RObject]:
+        """Expand alternative representation to normal object."""
+
+        assert info.info.type == RObjectType.LIST
+        assert info.value[0].info.type == RObjectType.SYM
+        assert info.value[0].value.info.type == RObjectType.CHAR
+
+        altrep_name = info.value[0].value.value
+        assert isinstance(altrep_name, bytes)
+
+        constructor = self.altrep_constructors[altrep_name]
+        return constructor(info, state, attr)
 
     def parse_R_object(
         self,
@@ -450,6 +552,20 @@ class Parser(abc.ABC):
         elif info.type == RObjectType.S4:
             value = None
 
+        elif info.type == RObjectType.ALTREP:
+            altrep_info = self.parse_R_object(reference_list)
+            altrep_state = self.parse_R_object(reference_list)
+            altrep_attr = self.parse_R_object(reference_list)
+
+            if self.expand_altrep:
+                info, value, attributes = self.expand_altrep_to_object(
+                    info=altrep_info,
+                    state=altrep_state,
+                    attr=altrep_attr,
+                )
+            else:
+                value = (altrep_info, altrep_state, altrep_attr)
+
         elif info.type == RObjectType.EMPTYENV:
             value = None
 
@@ -498,7 +614,18 @@ class ParserXDR(Parser):
     Parser used when the integers and doubles are in XDR format.
     """
 
-    def __init__(self, data: memoryview, position: int = 0) -> None:
+    def __init__(
+        self,
+        data: memoryview,
+        position: int = 0,
+        *,
+        expand_altrep: bool = True,
+        altrep_constructors: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
+    ) -> None:
+        super().__init__(
+            expand_altrep=expand_altrep,
+            altrep_constructors=altrep_constructors,
+        )
         self.data = data
         self.position = position
         self.xdr_parser = xdrlib.Unpacker(data)

@@ -214,6 +214,28 @@ class SimpleTests(unittest.TestCase):
             "test_list_attrs": [['list'], [5]]
         })
 
+    def test_altrep_compact_intseq(self) -> None:
+        """Test alternative representation of sequences of ints."""
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_altrep_compact_intseq.rda",
+        )
+        converted = rdata.conversion.convert(parsed)
+
+        np.testing.assert_equal(converted, {
+            "test_altrep_compact_intseq": np.arange(1000),
+        })
+
+    def test_altrep_compact_realseq(self) -> None:
+        """Test alternative representation of sequences of ints."""
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_altrep_compact_realseq.rda",
+        )
+        converted = rdata.conversion.convert(parsed)
+
+        np.testing.assert_equal(converted, {
+            "test_altrep_compact_realseq": np.arange(1000.0),
+        })
+
 
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.testName']
