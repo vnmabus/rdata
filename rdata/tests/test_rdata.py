@@ -236,6 +236,21 @@ class SimpleTests(unittest.TestCase):
             "test_altrep_compact_realseq": np.arange(1000.0),
         })
 
+    def test_altrep_deferred_string(self) -> None:
+        """Test alternative representation of sequences of ints."""
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_altrep_deferred_string.rda",
+        )
+        converted = rdata.conversion.convert(parsed)
+
+        np.testing.assert_equal(converted, {
+            "test_altrep_deferred_string": [
+                "1", "2.3", "10000",
+                "1e+05", "-10000", "-1e+05",
+                "0.001", "1e-04", "1e-05",
+            ],
+        })
+
 
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.testName']

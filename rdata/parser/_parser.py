@@ -259,6 +259,58 @@ AltRepConstructor = Callable[
 AltRepConstructorMap = Mapping[bytes, AltRepConstructor]
 
 
+def format_float_with_scipen(number: float, scipen: int) -> bytes:
+    fixed = np.format_float_positional(number, trim="-")
+    scientific = np.format_float_scientific(number, trim="-")
+
+    assert(isinstance(fixed, str))
+    assert(isinstance(scientific, str))
+
+    return (
+        scientific if len(fixed) - len(scientific) > scipen
+        else fixed
+    ).encode()
+
+
+def deferred_string_constructor(
+    info: RObject,
+    state: RObject,
+    attr: RObject,
+) -> Tuple[RObjectInfo, Any, RObject]:
+
+    new_info = RObjectInfo(
+        type=RObjectType.STR,
+        object=False,
+        attributes=False,
+        tag=False,
+        gp=0,
+        reference=0,
+    )
+
+    object_to_format = state.value[0].value
+    scipen = state.value[1].value
+
+    value = [
+        RObject(
+            info=RObjectInfo(
+                type=RObjectType.CHAR,
+                object=False,
+                attributes=False,
+                tag=False,
+                gp=CharFlags.ASCII,
+                reference=0,
+            ),
+            value=format_float_with_scipen(num, scipen),
+            attributes=None,
+            tag=None,
+            referenced_object=None,
+        )
+        for num in object_to_format
+    ]
+
+    return new_info, value, attr
+
+
 def compact_seq_constructor(
     info: RObject,
     state: RObject,
@@ -307,6 +359,7 @@ def compact_realseq_constructor(
 
 
 default_altrep_map_dict: Mapping[bytes, AltRepConstructor] = {
+    b"deferred_string": deferred_string_constructor,
     b"compact_intseq": compact_intseq_constructor,
     b"compact_realseq": compact_realseq_constructor,
 }
