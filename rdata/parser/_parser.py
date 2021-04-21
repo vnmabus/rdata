@@ -253,8 +253,8 @@ class EnvironmentValue():
 
 
 AltRepConstructor = Callable[
-    [RObject, RObject, RObject],
-    Tuple[RObjectInfo, Any, RObject],
+    [RObject],
+    Tuple[RObjectInfo, Any],
 ]
 AltRepConstructorMap = Mapping[bytes, AltRepConstructor]
 
@@ -273,10 +273,8 @@ def format_float_with_scipen(number: float, scipen: int) -> bytes:
 
 
 def deferred_string_constructor(
-    info: RObject,
     state: RObject,
-    attr: RObject,
-) -> Tuple[RObjectInfo, Any, RObject]:
+) -> Tuple[RObjectInfo, Any]:
 
     new_info = RObjectInfo(
         type=RObjectType.STR,
@@ -308,16 +306,14 @@ def deferred_string_constructor(
         for num in object_to_format
     ]
 
-    return new_info, value, attr
+    return new_info, value
 
 
 def compact_seq_constructor(
-    info: RObject,
     state: RObject,
-    attr: RObject,
     *,
     is_int: bool = False
-) -> Tuple[RObjectInfo, Any, RObject]:
+) -> Tuple[RObjectInfo, Any]:
 
     new_info = RObjectInfo(
         type=RObjectType.INT if is_int else RObjectType.REAL,
@@ -339,30 +335,24 @@ def compact_seq_constructor(
 
     value = np.arange(start, stop, step)
 
-    return new_info, value, attr
+    return new_info, value
 
 
 def compact_intseq_constructor(
-    info: RObject,
     state: RObject,
-    attr: RObject,
-) -> Tuple[RObjectInfo, Any, RObject]:
-    return compact_seq_constructor(info, state, attr, is_int=True)
+) -> Tuple[RObjectInfo, Any]:
+    return compact_seq_constructor(state, is_int=True)
 
 
 def compact_realseq_constructor(
-    info: RObject,
     state: RObject,
-    attr: RObject,
-) -> Tuple[RObjectInfo, Any, RObject]:
-    return compact_seq_constructor(info, state, attr, is_int=False)
+) -> Tuple[RObjectInfo, Any]:
+    return compact_seq_constructor(state, is_int=False)
 
 
 def wrap_constructor(
-    info: RObject,
     state: RObject,
-    attr: RObject,
-) -> Tuple[RObjectInfo, Any, RObject]:
+) -> Tuple[RObjectInfo, Any]:
 
     new_info = RObjectInfo(
         type=state.value[0].info.type,
@@ -375,7 +365,7 @@ def wrap_constructor(
 
     value = state.value[0].value
 
-    return new_info, value, attr
+    return new_info, value
 
 
 default_altrep_map_dict: Mapping[bytes, AltRepConstructor] = {
@@ -486,8 +476,7 @@ class Parser(abc.ABC):
         self,
         info: RObject,
         state: RObject,
-        attr: RObject,
-    ) -> Tuple[RObjectInfo, Any, RObject]:
+    ) -> Tuple[RObjectInfo, Any]:
         """Expand alternative representation to normal object."""
 
         assert info.info.type == RObjectType.LIST
@@ -498,7 +487,7 @@ class Parser(abc.ABC):
         assert isinstance(altrep_name, bytes)
 
         constructor = self.altrep_constructors[altrep_name]
-        return constructor(info, state, attr)
+        return constructor(state)
 
     def parse_R_object(
         self,
@@ -637,11 +626,11 @@ class Parser(abc.ABC):
             altrep_attr = self.parse_R_object(reference_list)
 
             if self.expand_altrep:
-                info, value, attributes = self.expand_altrep_to_object(
+                info, value = self.expand_altrep_to_object(
                     info=altrep_info,
                     state=altrep_state,
-                    attr=altrep_attr,
                 )
+                attributes = altrep_attr
             else:
                 value = (altrep_info, altrep_state, altrep_attr)
 
