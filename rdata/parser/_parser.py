@@ -28,9 +28,8 @@ import numpy as np
 
 
 class FileTypes(enum.Enum):
-    """
-    Type of file containing a R file.
-    """
+    """Type of file containing a R file."""
+
     bzip2 = "bz2"
     gzip = "gzip"
     xz = "xz"
@@ -43,15 +42,12 @@ magic_dict = {
     FileTypes.gzip: b"\x1f\x8b",
     FileTypes.xz: b"\xFD7zXZ\x00",
     FileTypes.rdata_binary_v2: b"RDX2\n",
-    FileTypes.rdata_binary_v3: b"RDX3\n"
+    FileTypes.rdata_binary_v3: b"RDX3\n",
 }
 
 
 def file_type(data: memoryview) -> Optional[FileTypes]:
-    """
-    Returns the type of the file.
-    """
-
+    """Return the type of the file."""
     for filetype, magic in magic_dict.items():
         if data[:len(magic)] == magic:
             return filetype
@@ -59,9 +55,8 @@ def file_type(data: memoryview) -> Optional[FileTypes]:
 
 
 class RdataFormats(enum.Enum):
-    """
-    Format of a R file.
-    """
+    """Format of a R file."""
+
     XDR = "XDR"
     ASCII = "ASCII"
     binary = "binary"
@@ -75,10 +70,7 @@ format_dict = {
 
 
 def rdata_format(data: memoryview) -> Optional[RdataFormats]:
-    """
-    Returns the format of the data.
-    """
-
+    """Return the format of the data."""
     for format_type, magic in format_dict.items():
         if data[:len(magic)] == magic:
             return format_type
@@ -86,9 +78,8 @@ def rdata_format(data: memoryview) -> Optional[RdataFormats]:
 
 
 class RObjectType(enum.Enum):
-    """
-    Type of a R object.
-    """
+    """Type of a R object."""
+
     NIL = 0  # NULL
     SYM = 1  # symbols
     LIST = 2  # pairlists
@@ -121,6 +112,8 @@ class RObjectType(enum.Enum):
 
 
 class CharFlags(enum.IntFlag):
+    """Flags for R objects of type char."""
+
     HAS_HASH = 1
     BYTES = 1 << 1
     LATIN1 = 1 << 2
@@ -131,10 +124,9 @@ class CharFlags(enum.IntFlag):
 
 @dataclass
 class RVersions():
-    """
-    R versions.
-    """
-    format: int
+    """R versions."""
+
+    format: int  # noqa: E701
     serialized: int
     minimum: int
 
@@ -145,15 +137,16 @@ class RExtraInfo():
     Extra information.
 
     Contains the default encoding (only in version 3).
+
     """
+
     encoding: Optional[str] = None
 
 
 @dataclass
 class RObjectInfo():
-    """
-    Internal attributes of a R object.
-    """
+    """Internal attributes of a R object."""
+
     type: RObjectType
     object: bool
     attributes: bool
@@ -164,9 +157,8 @@ class RObjectInfo():
 
 @dataclass
 class RObject():
-    """
-    Representation of a R object.
-    """
+    """Representation of a R object."""
+
     info: RObjectInfo
     value: Any
     attributes: Optional[RObject]
@@ -176,54 +168,73 @@ class RObject():
     def _str_internal(
         self,
         indent: int = 0,
-        used_references: Optional[Set[int]] = None
+        used_references: Optional[Set[int]] = None,
     ) -> str:
 
         if used_references is None:
             used_references = set()
 
+        small_indent = indent + 2
+        big_indent = indent + 4
+
+        indent_spaces = ' ' * indent
+        small_indent_spaces = ' ' * small_indent
+        big_indent_spaces = ' ' * big_indent
+
         string = ""
 
-        string += f"{' ' * indent}{self.info.type}\n"
+        string += f"{indent_spaces}{self.info.type}\n"
 
         if self.tag:
-            tag_string = self.tag._str_internal(indent + 4,
-                                                used_references.copy())
-            string += f"{' ' * (indent + 2)}tag:\n{tag_string}\n"
+            tag_string = self.tag._str_internal(
+                big_indent,
+                used_references.copy(),
+            )
+            string += f"{small_indent_spaces}tag:\n{tag_string}\n"
 
         if self.info.reference:
             assert self.referenced_object
-            reference_string = (f"{' ' * (indent + 4)}..."
-                                if self.info.reference in used_references
-                                else self.referenced_object._str_internal(
-                                    indent + 4, used_references.copy()))
-            string += (f"{' ' * (indent + 2)}reference: "
-                       f"{self.info.reference}\n{reference_string}\n")
+            reference_string = (
+                f"{big_indent_spaces}..."
+                if self.info.reference in used_references
+                else self.referenced_object._str_internal(
+                    indent + 4, used_references.copy())
+            )
+            string += (
+                f"{small_indent_spaces}reference: "
+                f"{self.info.reference}\n{reference_string}\n"
+            )
 
-        string += f"{' ' * (indent + 2)}value:\n"
+        string += f"{small_indent_spaces}value:\n"
 
         if isinstance(self.value, RObject):
-            string += self.value._str_internal(indent + 4,
-                                               used_references.copy())
-        elif isinstance(self.value, tuple) or isinstance(self.value, list):
+            string += self.value._str_internal(
+                big_indent,
+                used_references.copy(),
+            )
+        elif isinstance(self.value, (tuple, list)):
             for elem in self.value:
-                string += elem._str_internal(indent + 4,
-                                             used_references.copy())
+                string += elem._str_internal(
+                    big_indent,
+                    used_references.copy(),
+                )
         elif isinstance(self.value, np.ndarray):
-            string += " " * (indent + 4)
+            string += big_indent_spaces
             if len(self.value) > 4:
-                string += (f"[{self.value[0]}, {self.value[1]} ... "
-                           f"{self.value[-2]}, {self.value[-1]}]\n")
+                string += (
+                    f"[{self.value[0]}, {self.value[1]} ... "
+                    f"{self.value[-2]}, {self.value[-1]}]\n"
+                )
             else:
                 string += f"{self.value}\n"
         else:
-            string += f"{' ' * (indent + 4)}{self.value}\n"
+            string += f"{big_indent_spaces}{self.value}\n"
 
-        if(self.attributes):
+        if self.attributes:
             attr_string = self.attributes._str_internal(
-                indent + 4,
+                big_indent,
                 used_references.copy())
-            string += f"{' ' * (indent + 2)}attributes:\n{attr_string}\n"
+            string += f"{small_indent_spaces}attributes:\n{attr_string}\n"
 
         return string
 
@@ -233,9 +244,8 @@ class RObject():
 
 @dataclass
 class RData():
-    """
-    Data contained in a R file.
-    """
+    """Data contained in a R file."""
+
     versions: RVersions
     extra: RExtraInfo
     object: RObject
@@ -243,9 +253,8 @@ class RData():
 
 @dataclass
 class EnvironmentValue():
-    """
-    Value of an environment.
-    """
+    """Value of an environment."""
+
     locked: bool
     enclosure: RObject
     frame: RObject
@@ -260,11 +269,12 @@ AltRepConstructorMap = Mapping[bytes, AltRepConstructor]
 
 
 def format_float_with_scipen(number: float, scipen: int) -> bytes:
+    """Format a floating point value as in R."""
     fixed = np.format_float_positional(number, trim="-")
     scientific = np.format_float_scientific(number, trim="-")
 
-    assert(isinstance(fixed, str))
-    assert(isinstance(scientific, str))
+    assert isinstance(fixed, str)
+    assert isinstance(scientific, str)
 
     return (
         scientific if len(fixed) - len(scientific) > scipen
@@ -275,7 +285,7 @@ def format_float_with_scipen(number: float, scipen: int) -> bytes:
 def deferred_string_constructor(
     state: RObject,
 ) -> Tuple[RObjectInfo, Any]:
-
+    """Expand a deferred string ALTREP."""
     new_info = RObjectInfo(
         type=RObjectType.STR,
         object=False,
@@ -312,9 +322,9 @@ def deferred_string_constructor(
 def compact_seq_constructor(
     state: RObject,
     *,
-    is_int: bool = False
+    is_int: bool = False,
 ) -> Tuple[RObjectInfo, Any]:
-
+    """Expand a compact_seq ALTREP."""
     new_info = RObjectInfo(
         type=RObjectType.INT if is_int else RObjectType.REAL,
         object=False,
@@ -341,19 +351,21 @@ def compact_seq_constructor(
 def compact_intseq_constructor(
     state: RObject,
 ) -> Tuple[RObjectInfo, Any]:
+    """Expand a compact_intseq ALTREP."""
     return compact_seq_constructor(state, is_int=True)
 
 
 def compact_realseq_constructor(
     state: RObject,
 ) -> Tuple[RObjectInfo, Any]:
+    """Expand a compact_realseq ALTREP."""
     return compact_seq_constructor(state, is_int=False)
 
 
 def wrap_constructor(
     state: RObject,
 ) -> Tuple[RObjectInfo, Any]:
-
+    """Expand any wrap_* ALTREP."""
     new_info = RObjectInfo(
         type=state.value[0].info.type,
         object=False,
@@ -384,9 +396,7 @@ DEFAULT_ALTREP_MAP = MappingProxyType(default_altrep_map_dict)
 
 
 class Parser(abc.ABC):
-    """
-    Parser interface for a R file.
-    """
+    """Parser interface for a R file."""
 
     def __init__(
         self,
@@ -398,43 +408,30 @@ class Parser(abc.ABC):
         self.altrep_constructor_dict = altrep_constructor_dict
 
     def parse_bool(self) -> bool:
-        """
-        Parse a boolean.
-        """
+        """Parse a boolean."""
         return bool(self.parse_int())
 
     @abc.abstractmethod
     def parse_int(self) -> int:
-        """
-        Parse an integer.
-        """
+        """Parse an integer."""
         pass
 
     @abc.abstractmethod
     def parse_double(self) -> float:
-        """
-        Parse a double.
-        """
+        """Parse a double."""
         pass
 
     def parse_complex(self) -> complex:
-        """
-        Parse a complex number.
-        """
+        """Parse a complex number."""
         return complex(self.parse_double(), self.parse_double())
 
     @abc.abstractmethod
     def parse_string(self, length: int) -> bytes:
-        """
-        Parse a string.
-        """
+        """Parse a string."""
         pass
 
     def parse_all(self) -> RData:
-        """
-        Parse all the file.
-        """
-
+        """Parse all the file."""
         versions = self.parse_versions()
         extra_info = self.parse_extra_info(versions)
         obj = self.parse_R_object()
@@ -442,15 +439,12 @@ class Parser(abc.ABC):
         return RData(versions, extra_info, obj)
 
     def parse_versions(self) -> RVersions:
-        """
-        Parse the versions header.
-        """
-
+        """Parse the versions header."""
         format_version = self.parse_int()
         r_version = self.parse_int()
         minimum_r_version = self.parse_int()
 
-        if format_version not in [2, 3]:
+        if format_version not in {2, 3}:
             raise NotImplementedError(
                 f"Format version {format_version} unsupported",
             )
@@ -459,18 +453,18 @@ class Parser(abc.ABC):
 
     def parse_extra_info(self, versions: RVersions) -> RExtraInfo:
         """
-        Parse the versions header.
-        """
+        Parse the extra info.
 
+        Parses de encoding in version 3 format.
+
+        """
         encoding = None
 
         if versions.format >= 3:
             encoding_len = self.parse_int()
             encoding = self.parse_string(encoding_len).decode("ASCII")
 
-        extra_info = RExtraInfo(encoding)
-
-        return extra_info
+        return RExtraInfo(encoding)
 
     def expand_altrep_to_object(
         self,
@@ -478,7 +472,6 @@ class Parser(abc.ABC):
         state: RObject,
     ) -> Tuple[RObjectInfo, Any]:
         """Expand alternative representation to normal object."""
-
         assert info.info.type == RObjectType.LIST
 
         class_sym = info.value[0]
@@ -496,12 +489,9 @@ class Parser(abc.ABC):
 
     def parse_R_object(
         self,
-        reference_list: Optional[List[RObject]] = None
+        reference_list: Optional[List[RObject]] = None,
     ) -> RObject:
-        """
-        Parse a R object.
-        """
-
+        """Parse a R object."""
         if reference_list is None:
             # Index is 1-based, so we insert a dummy object
             reference_list = []
@@ -531,7 +521,7 @@ class Parser(abc.ABC):
             # Symbols can be referenced
             add_reference = True
 
-        elif info.type in [RObjectType.LIST, RObjectType.LANG]:
+        elif info.type in {RObjectType.LIST, RObjectType.LANG}:
             tag = None
             if info.attributes:
                 attributes = self.parse_R_object(reference_list)
@@ -579,7 +569,8 @@ class Parser(abc.ABC):
                 value = None
             else:
                 raise NotImplementedError(
-                    f"Length of CHAR cannot be {length}")
+                    f"Length of CHAR cannot be {length}",
+                )
 
         elif info.type == RObjectType.LGL:
             length = self.parse_int()
@@ -613,8 +604,11 @@ class Parser(abc.ABC):
             for i in range(length):
                 value[i] = self.parse_complex()
 
-        elif info.type in [RObjectType.STR,
-                           RObjectType.VEC, RObjectType.EXPR]:
+        elif info.type in {
+            RObjectType.STR,
+            RObjectType.VEC,
+            RObjectType.EXPR,
+        }:
             length = self.parse_int()
 
             value = [None] * length
@@ -657,8 +651,10 @@ class Parser(abc.ABC):
             raise NotImplementedError(f"Type {info.type} not implemented")
 
         if info.tag and not tag_read:
-            warnings.warn(f"Tag not implemented for type {info.type} "
-                          "and ignored")
+            warnings.warn(
+                f"Tag not implemented for type {info.type} "
+                "and ignored",
+            )
         if info.attributes and not attributes_read:
             attributes = self.parse_R_object(reference_list)
 
@@ -683,9 +679,7 @@ class Parser(abc.ABC):
 
 
 class ParserXDR(Parser):
-    """
-    Parser used when the integers and doubles are in XDR format.
-    """
+    """Parser used when the integers and doubles are in XDR format."""
 
     def __init__(
         self,
@@ -703,21 +697,21 @@ class ParserXDR(Parser):
         self.position = position
         self.xdr_parser = xdrlib.Unpacker(data)
 
-    def parse_int(self) -> int:
+    def parse_int(self) -> int:  # noqa: D102
         self.xdr_parser.set_position(self.position)
         result = self.xdr_parser.unpack_int()
         self.position = self.xdr_parser.get_position()
 
         return result
 
-    def parse_double(self) -> float:
+    def parse_double(self) -> float:  # noqa: D102
         self.xdr_parser.set_position(self.position)
         result = self.xdr_parser.unpack_double()
         self.position = self.xdr_parser.get_position()
 
         return result
 
-    def parse_string(self, length: int) -> bytes:
+    def parse_string(self, length: int) -> bytes:  # noqa: D102
         result = self.data[self.position:(self.position + length)]
         self.position += length
         return bytes(result)
@@ -746,7 +740,6 @@ def parse_file(
         :func:`parse_data`: Similar function that receives the data directly.
 
     Examples:
-
         Parse one of the included examples, containing a vector
 
         >>> import rdata
@@ -848,7 +841,6 @@ def parse_data(
         :func:`parse_file`: Similar function that parses a file directly.
 
     Examples:
-
         Parse one of the included examples, containing a vector
 
         >>> import rdata
@@ -946,9 +938,7 @@ def parse_rdata_binary(
     expand_altrep: bool = True,
     altrep_constructor_dict: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
 ) -> RData:
-    """
-    Select the appropiate parser and parse all the info.
-    """
+    """Select the appropiate parser and parse all the info."""
     format_type = rdata_format(data)
 
     if format_type:
@@ -961,14 +951,12 @@ def parse_rdata_binary(
             altrep_constructor_dict=altrep_constructor_dict,
         )
         return parser.parse_all()
-    else:
-        raise NotImplementedError("Unknown file format")
+
+    raise NotImplementedError("Unknown file format")
 
 
 def bits(data: int, start: int, stop: int) -> int:
-    """
-    Read bits [start, stop) of an integer.
-    """
+    """Read bits [start, stop) of an integer."""
     count = stop - start
     mask = ((1 << count) - 1) << start
 
@@ -977,17 +965,15 @@ def bits(data: int, start: int, stop: int) -> int:
 
 
 def is_special_r_object_type(r_object_type: RObjectType) -> bool:
-    """
-    Check if a R type has a different serialization than the usual one.
-    """
-    return (r_object_type is RObjectType.NILVALUE
-            or r_object_type is RObjectType.REF)
+    """Check if a R type has a different serialization than the usual one."""
+    return (
+        r_object_type is RObjectType.NILVALUE
+        or r_object_type is RObjectType.REF
+    )
 
 
 def parse_r_object_info(info_int: int) -> RObjectInfo:
-    """
-    Parse the internal information of an object.
-    """
+    """Parse the internal information of an object."""
     type_exp = RObjectType(bits(info_int, 0, 8))
 
     reference = 0
@@ -1000,11 +986,11 @@ def parse_r_object_info(info_int: int) -> RObjectInfo:
     else:
         object_flag = bool(bits(info_int, 8, 9))
         attributes = bool(bits(info_int, 9, 10))
-        tag = bool(bits(info_int, 10, 11))
-        gp = bits(info_int, 12, 28)
+        tag = bool(bits(info_int, 10, 11))  # noqa: WPS432
+        gp = bits(info_int, 12, 28)  # noqa: WPS432
 
     if type_exp == RObjectType.REF:
-        reference = bits(info_int, 8, 32)
+        reference = bits(info_int, 8, 32)  # noqa: WPS432
 
     return RObjectInfo(
         type=type_exp,
@@ -1012,5 +998,5 @@ def parse_r_object_info(info_int: int) -> RObjectInfo:
         attributes=attributes,
         tag=tag,
         gp=gp,
-        reference=reference
+        reference=reference,
     )

@@ -23,27 +23,26 @@ import xarray
 from .. import parser
 from ..parser import RObject
 
+ConversionFunction = Callable[[Union[parser.RData, parser.RObject]], Any]
+StrMap = Mapping[Union[str, bytes], Any]
+
 
 class RLanguage(NamedTuple):
-    """
-    R language construct.
-    """
+    """R language construct."""
+
     elements: List[Any]
 
 
 class RExpression(NamedTuple):
-    """
-    R expression.
-    """
+    """R expression."""
+
     elements: List[RLanguage]
 
 
 def convert_list(
     r_list: parser.RObject,
-    conversion_function: Callable[
-        [Union[parser.RData, parser.RObject]
-         ], Any]=lambda x: x
-) -> Union[Mapping[Union[str, bytes], Any], List[Any]]:
+    conversion_function: ConversionFunction,
+) -> Union[StrMap, List[Any]]:
     """
     Expand a tagged R pairlist to a Python dictionary.
 
@@ -68,8 +67,10 @@ def convert_list(
     """
     if r_list.info.type is parser.RObjectType.NILVALUE:
         return {}
-    elif r_list.info.type not in [parser.RObjectType.LIST,
-                                  parser.RObjectType.LANG]:
+    elif r_list.info.type not in {
+        parser.RObjectType.LIST,
+        parser.RObjectType.LANG,
+    }:
         raise TypeError("Must receive a LIST, LANG or NILVALUE object")
 
     if r_list.tag is None:
@@ -84,20 +85,18 @@ def convert_list(
             cdr = {}
 
         return {tag: conversion_function(r_list.value[0]), **cdr}
-    else:
-        if cdr is None:
-            cdr = []
 
-        return [conversion_function(r_list.value[0]), *cdr]
+    if cdr is None:
+        cdr = []
+
+    return [conversion_function(r_list.value[0]), *cdr]
 
 
 def convert_env(
     r_env: parser.RObject,
-    conversion_function: Callable[
-        [Union[parser.RData, parser.RObject]
-         ], Any]=lambda x: x
+    conversion_function: ConversionFunction,
 ) -> ChainMap[Union[str, bytes], Any]:
-
+    """Convert environment objects."""
     if r_env.info.type is not parser.RObjectType.ENV:
         raise TypeError("Must receive a ENV object")
 
@@ -115,10 +114,8 @@ def convert_env(
 
 def convert_attrs(
     r_obj: parser.RObject,
-        conversion_function: Callable[
-            [Union[parser.RData, parser.RObject]
-             ], Any]=lambda x: x
-) -> Mapping[Union[str, bytes], Any]:
+        conversion_function: ConversionFunction,
+) -> StrMap:
     """
     Return the attributes of an object as a Python dictionary.
 
@@ -143,7 +140,7 @@ def convert_attrs(
     """
     if r_obj.attributes:
         attrs = cast(
-            Mapping[Union[str, bytes], Any],
+            StrMap,
             conversion_function(r_obj.attributes),
         )
     else:
@@ -153,10 +150,9 @@ def convert_attrs(
 
 def convert_vector(
     r_vec: parser.RObject,
-    conversion_function: Callable[
-        [Union[parser.RData, parser.RObject]], Any]=lambda x: x,
-    attrs: Optional[Mapping[Union[str, bytes], Any]] = None,
-) -> Union[List[Any], Mapping[Union[str, bytes], Any]]:
+    conversion_function: ConversionFunction,
+    attrs: Optional[StrMap] = None,
+) -> Union[List[Any], StrMap]:
     """
     Convert a R vector to a Python list or dictionary.
 
@@ -186,11 +182,13 @@ def convert_vector(
     if attrs is None:
         attrs = {}
 
-    if r_vec.info.type not in [parser.RObjectType.VEC,
-                               parser.RObjectType.EXPR]:
+    if r_vec.info.type not in {
+        parser.RObjectType.VEC,
+        parser.RObjectType.EXPR,
+    }:
         raise TypeError("Must receive a VEC or EXPR object")
 
-    value: Union[List[Any], Mapping[Union[str, bytes], Any]] = [
+    value: Union[List[Any], StrMap] = [
         conversion_function(o) for o in r_vec.value
     ]
 
@@ -203,9 +201,7 @@ def convert_vector(
 
 
 def safe_decode(byte_str: bytes, encoding: str) -> Union[str, bytes]:
-    """
-    Decode a (possibly malformed) string.
-    """
+    """Decode a (possibly malformed) string."""
     try:
         return byte_str.decode(encoding)
     except UnicodeDecodeError as e:
@@ -250,29 +246,37 @@ def convert_char(
 
     assert isinstance(r_char.value, bytes)
 
+    encoding = None
+
     if not force_default_encoding:
         if r_char.info.gp & parser.CharFlags.UTF8:
-            return safe_decode(r_char.value, "utf_8")
+            encoding = "utf_8"
         elif r_char.info.gp & parser.CharFlags.LATIN1:
-            return safe_decode(r_char.value, "latin_1")
+            encoding = "latin_1"
         elif r_char.info.gp & parser.CharFlags.ASCII:
-            return safe_decode(r_char.value, "ascii")
+            encoding = "ascii"
         elif r_char.info.gp & parser.CharFlags.BYTES:
-            return r_char.value
+            encoding = "bytes"
 
-    if default_encoding:
-        return safe_decode(r_char.value, default_encoding)
-    else:
-        # Assume ASCII if no encoding is marked
-        warnings.warn(f"Unknown encoding. Assumed ASCII.")
-        return safe_decode(r_char.value, "ascii")
+    if encoding is None:
+        if default_encoding:
+            encoding = default_encoding
+        else:
+            # Assume ASCII if no encoding is marked
+            warnings.warn("Unknown encoding. Assumed ASCII.")
+            encoding = "ascii"
+
+    return (
+        r_char.value
+        if encoding == "bytes"
+        else safe_decode(r_char.value, encoding)
+    )
 
 
-def convert_symbol(r_symbol: parser.RObject,
-                   conversion_function: Callable[
-                       [Union[parser.RData, parser.RObject]],
-                       Any]=lambda x: x
-                   ) -> Union[str, bytes]:
+def convert_symbol(
+    r_symbol: parser.RObject,
+    conversion_function: ConversionFunction,
+) -> Union[str, bytes]:
     """
     Decode a R symbol to a Python string or bytes.
 
@@ -298,16 +302,14 @@ def convert_symbol(r_symbol: parser.RObject,
         symbol = conversion_function(r_symbol.value)
         assert isinstance(symbol, (str, bytes))
         return symbol
-    else:
-        raise TypeError("Must receive a SYM object")
+
+    raise TypeError("Must receive a SYM object")
 
 
 def convert_array(
     r_array: RObject,
-    conversion_function: Callable[
-        [Union[parser.RData, parser.RObject]
-         ], Any]=lambda x: x,
-    attrs: Optional[Mapping[Union[str, bytes], Any]] = None,
+    conversion_function: ConversionFunction,
+    attrs: Optional[StrMap] = None,
 ) -> Union[np.ndarray, xarray.DataArray]:
     """
     Convert a R array to a Numpy ndarray or a Xarray DataArray.
@@ -336,10 +338,12 @@ def convert_array(
     if attrs is None:
         attrs = {}
 
-    if r_array.info.type not in {parser.RObjectType.LGL,
-                                 parser.RObjectType.INT,
-                                 parser.RObjectType.REAL,
-                                 parser.RObjectType.CPLX}:
+    if r_array.info.type not in {
+        parser.RObjectType.LGL,
+        parser.RObjectType.INT,
+        parser.RObjectType.REAL,
+        parser.RObjectType.CPLX,
+    }:
         raise TypeError("Must receive an array object")
 
     value = r_array.value
@@ -354,7 +358,9 @@ def convert_array(
         dimension_names = ["dim_" + str(i) for i, _ in enumerate(dimnames)]
         coords: Mapping[Hashable, Any] = {
             dimension_names[i]: d
-            for i, d in enumerate(dimnames) if d is not None}
+            for i, d in enumerate(dimnames)
+            if d is not None
+        }
 
         value = xarray.DataArray(value, dims=dimension_names, coords=coords)
 
@@ -363,14 +369,14 @@ def convert_array(
 
 def dataframe_constructor(
     obj: Any,
-    attrs: Mapping[Union[str, bytes], Any],
+    attrs: StrMap,
 ) -> pandas.DataFrame:
     return pandas.DataFrame(obj, columns=obj)
 
 
 def _factor_constructor_internal(
     obj: Any,
-    attrs: Mapping[Union[str, bytes], Any],
+    attrs: StrMap,
     ordered: bool,
 ) -> pandas.Categorical:
     values = [attrs['levels'][i - 1] if i >= 0 else None for i in obj]
@@ -380,23 +386,25 @@ def _factor_constructor_internal(
 
 def factor_constructor(
     obj: Any,
-    attrs: Mapping[Union[str, bytes], Any],
+    attrs: StrMap,
 ) -> pandas.Categorical:
+    """Construct a factor objects."""
     return _factor_constructor_internal(obj, attrs, ordered=False)
 
 
 def ordered_constructor(
     obj: Any,
-    attrs: Mapping[Union[str, bytes], Any],
+    attrs: StrMap,
 ) -> pandas.Categorical:
+    """Contruct an ordered factor."""
     return _factor_constructor_internal(obj, attrs, ordered=True)
 
 
 def ts_constructor(
     obj: Any,
-    attrs: Mapping[Union[str, bytes], Any],
+    attrs: StrMap,
 ) -> pandas.Series:
-
+    """Construct a time series object."""
     start, end, frequency = attrs['tsp']
 
     frequency = int(frequency)
@@ -404,8 +412,11 @@ def ts_constructor(
     real_start = Fraction(int(round(start * frequency)), frequency)
     real_end = Fraction(int(round(end * frequency)), frequency)
 
-    index = np.arange(real_start, real_end + Fraction(1, frequency),
-                      Fraction(1, frequency))
+    index = np.arange(
+        real_start,
+        real_end + Fraction(1, frequency),
+        Fraction(1, frequency),
+    )
 
     if frequency == 1:
         index = index.astype(int)
@@ -414,6 +425,10 @@ def ts_constructor(
 
 
 Constructor = Callable[[Any, Mapping], Any]
+ConstructorDict = Mapping[
+    Union[str, bytes],
+    Constructor,
+]
 
 default_class_map_dict: Mapping[Union[str, bytes], Constructor] = {
     "data.frame": dataframe_constructor,
@@ -440,15 +455,11 @@ It has support for converting several commonly used R classes:
 
 
 class Converter(abc.ABC):
-    """
-    Interface of a class converting R objects in Python objects.
-    """
+    """Interface of a class converting R objects in Python objects."""
 
     @abc.abstractmethod
     def convert(self, data: Union[parser.RData, parser.RObject]) -> Any:
-        """
-        Convert a R object to a Python one.
-        """
+        """Convert a R object to a Python one."""
         pass
 
 
@@ -480,13 +491,10 @@ class SimpleConverter(Converter):
 
     def __init__(
         self,
-        constructor_dict: Mapping[
-            Union[str, bytes],
-            Constructor,
-        ] = DEFAULT_CLASS_MAP,
+        constructor_dict: ConstructorDict = DEFAULT_CLASS_MAP,
         default_encoding: Optional[str] = None,
         force_default_encoding: bool = False,
-        global_environment: Optional[Mapping[Union[str, bytes], Any]] = None,
+        global_environment: Optional[StrMap] = None,
     ) -> None:
 
         self.constructor_dict = constructor_dict
@@ -494,9 +502,9 @@ class SimpleConverter(Converter):
         self.force_default_encoding = force_default_encoding
         self.global_environment = ChainMap(
             {} if global_environment is None
-            else global_environment
+            else global_environment,
         )
-        self.empty_environment: Mapping[Union[str, bytes], Any] = ChainMap({})
+        self.empty_environment: StrMap = ChainMap({})
 
         self._reset()
 
@@ -504,15 +512,15 @@ class SimpleConverter(Converter):
         self.references: MutableMapping[int, Any] = {}
         self.default_encoding_used = self.default_encoding
 
-    def convert(self, data: Union[parser.RData, parser.RObject]) -> Any:
+    def convert(  # noqa: D102
+        self,
+        data: Union[parser.RData, parser.RObject],
+    ) -> Any:
         self._reset()
         return self._convert_next(data)
 
     def _convert_next(self, data: Union[parser.RData, parser.RObject]) -> Any:
-        """
-        Convert a R object to a Python one.
-        """
-
+        """Convert a R object to a Python one."""
         obj: RObject
         if isinstance(data, parser.RData):
             obj = data.object
@@ -563,10 +571,12 @@ class SimpleConverter(Converter):
                 force_default_encoding=self.force_default_encoding,
             )
 
-        elif obj.info.type in {parser.RObjectType.LGL,
-                               parser.RObjectType.INT,
-                               parser.RObjectType.REAL,
-                               parser.RObjectType.CPLX}:
+        elif obj.info.type in {
+            parser.RObjectType.LGL,
+            parser.RObjectType.INT,
+            parser.RObjectType.REAL,
+            parser.RObjectType.CPLX,
+        }:
 
             # Return the internal array
             value = convert_array(obj, self._convert_next, attrs=attrs)
@@ -583,7 +593,10 @@ class SimpleConverter(Converter):
 
         elif obj.info.type == parser.RObjectType.EXPR:
             rexpression_list = convert_vector(
-                obj, self._convert_next, attrs=attrs)
+                obj,
+                self._convert_next,
+                attrs=attrs,
+            )
             assert isinstance(rexpression_list, list)
 
             # Convert the internal objects returning a special object
@@ -602,7 +615,6 @@ class SimpleConverter(Converter):
 
             # Return the referenced value
             value = self.references.get(id(obj.referenced_object))
-            # value = self.references[id(obj.referenced_object)]
             if value is None:
                 reference_id = id(obj.referenced_object)
                 assert obj.referenced_object is not None
@@ -627,20 +639,26 @@ class SimpleConverter(Converter):
                     new_value = NotImplemented
 
                 if new_value is NotImplemented:
-                    missing_msg = (f"Missing constructor for R class "
-                                   f"\"{c}\". ")
+                    missing_msg = (
+                        f"Missing constructor for R class \"{c}\". "
+                    )
 
                     if len(classname) > (i + 1):
-                        solution_msg = (f"The constructor for class "
-                                        f"\"{classname[i+1]}\" will be "
-                                        f"used instead."
-                                        )
+                        solution_msg = (
+                            f"The constructor for class "
+                            f"\"{classname[i+1]}\" will be "
+                            f"used instead."
+                        )
                     else:
-                        solution_msg = ("The underlying R object is "
-                                        "returned instead.")
+                        solution_msg = (
+                            "The underlying R object is "
+                            "returned instead."
+                        )
 
-                    warnings.warn(missing_msg + solution_msg,
-                                  stacklevel=1)
+                    warnings.warn(
+                        missing_msg + solution_msg,
+                        stacklevel=1,
+                    )
                 else:
                     value = new_value
                     break
@@ -656,10 +674,9 @@ def convert(
     **kwargs: Any,
 ) -> Any:
     """
-    Uses the default converter (:func:`SimpleConverter`) to convert the data.
+    Use the default converter (:func:`SimpleConverter`) to convert the data.
 
     Examples:
-
         Parse one of the included examples, containing a vector
 
         >>> import rdata

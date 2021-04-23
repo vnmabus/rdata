@@ -1,3 +1,5 @@
+"""Utilities for parsing a rdata file."""
+
 from ._parser import (
     DEFAULT_ALTREP_MAP,
     CharFlags,
