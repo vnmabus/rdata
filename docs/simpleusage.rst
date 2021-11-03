@@ -70,6 +70,6 @@ Pandas :class:`~pandas.Categorical` objects:
 >>> converted = rdata.conversion.convert(parsed, new_dict)
 >>> converted
 {'test_dataframe':   class  value
-    0     b'a'      1
-    1     b'b'      2
-    2     b'b'      3}
+    1     b'a'      1
+    2     b'b'      2
+    3     b'b'      3}
