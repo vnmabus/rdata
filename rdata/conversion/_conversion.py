@@ -707,9 +707,9 @@ def convert(
         >>> converted = rdata.conversion.convert(parsed)
         >>> converted
         {'test_dataframe':   class  value
-        0     a      1
-        1     b      2
-        2     b      3}
+        1     a      1
+        2     b      2
+        3     b      3}
 
     """
     return SimpleConverter(*args, **kwargs).convert(data)

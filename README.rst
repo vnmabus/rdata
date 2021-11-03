@@ -103,9 +103,9 @@ Pandas `Categorical` objects:
 >>> converted = rdata.conversion.convert(parsed, new_dict)
 >>> converted
 {'test_dataframe':   class  value
-    0     b'a'      1
-    1     b'b'      2
-    2     b'b'      3}
+    1     b'a'      1
+    2     b'b'      2
+    3     b'b'      3}
 
 
 .. |build-status| image:: https://github.com/vnmabus/rdata/actions/workflows/main.yml/badge.svg?branch=master
