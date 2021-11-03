@@ -162,13 +162,36 @@ class SimpleTests(unittest.TestCase):
 
                 pd.testing.assert_frame_equal(
                     converted["test_dataframe"],
-                    pd.DataFrame({
-                        "class": pd.Categorical(
-                            ["a", "b", "b"],
-                        ),
-                        "value": [1, 2, 3],
-                    }),
+                    pd.DataFrame(
+                        {
+                            "class": pd.Categorical(
+                                ["a", "b", "b"],
+                            ),
+                            "value": [1, 2, 3],
+                        },
+                        index=pd.RangeIndex(start=1, stop=4),
+                    ),
                 )
+
+    def test_dataframe_rownames(self) -> None:
+        """Test dataframe conversion."""
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_dataframe_rownames.rda",
+        )
+        converted = rdata.conversion.convert(parsed)
+
+        pd.testing.assert_frame_equal(
+            converted["test_dataframe_rownames"],
+            pd.DataFrame(
+                {
+                    "class": pd.Categorical(
+                        ["a", "b", "b"],
+                    ),
+                    "value": [1, 2, 3],
+                },
+                index=('Madrid', 'Frankfurt', 'Herzberg am Harz'),
+            ),
+        )
 
     def test_ts(self) -> None:
         """Test time series conversion."""
@@ -229,7 +252,7 @@ class SimpleTests(unittest.TestCase):
         )
         converted = rdata.conversion.convert(parsed)
 
-        np.testing.assert_equal(converted, {
+        self.assertEqual(converted, {
             "test_emptyenv": ChainMap({}),
         })
 
