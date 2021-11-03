@@ -371,7 +371,18 @@ def dataframe_constructor(
     obj: Any,
     attrs: StrMap,
 ) -> pandas.DataFrame:
-    return pandas.DataFrame(obj, columns=obj)
+
+    row_names = attrs["row.names"]
+
+    # Default row names are stored as [INT_MIN, -len]
+    INT_MIN = -2**31  # noqa: WPS432
+    index = (
+        pandas.RangeIndex(1, abs(row_names[1]) + 1)
+        if len(row_names) == 2 and row_names[0] == INT_MIN
+        else tuple(row_names)
+    )
+
+    return pandas.DataFrame(obj, columns=obj, index=index)
 
 
 def _factor_constructor_internal(
@@ -696,9 +707,9 @@ def convert(
         >>> converted = rdata.conversion.convert(parsed)
         >>> converted
         {'test_dataframe':   class  value
-        0     a      1
-        1     b      2
-        2     b      3}
+        1     a      1
+        2     b      2
+        3     b      3}
 
     """
     return SimpleConverter(*args, **kwargs).convert(data)
