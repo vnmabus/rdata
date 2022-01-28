@@ -6,7 +6,6 @@ from typing import (
     Any,
     Callable,
     ChainMap,
-    Hashable,
     List,
     Mapping,
     MutableMapping,
@@ -355,12 +354,16 @@ def convert_array(
 
     dimnames = attrs.get('dimnames')
     if dimnames:
-        dimension_names = ["dim_" + str(i) for i, _ in enumerate(dimnames)]
-        coords: Mapping[Hashable, Any] = {
-            dimension_names[i]: d
-            for i, d in enumerate(dimnames)
-            if d is not None
-        }
+        if isinstance(dimnames, Mapping):
+            dimension_names = list(dimnames.keys())
+            coords = dimnames
+        else:
+            dimension_names = [f"dim_{i}" for i, _ in enumerate(dimnames)]
+            coords = {
+                dimension_names[i]: d
+                for i, d in enumerate(dimnames)
+                if d is not None
+            }
 
         value = xarray.DataArray(value, dims=dimension_names, coords=coords)
 

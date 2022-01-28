@@ -8,8 +8,8 @@ from typing import Any, Dict
 
 import numpy as np
 import pandas as pd
-
 import rdata
+import xarray
 
 TESTDATA_PATH = rdata.TESTDATA_PATH
 
@@ -92,6 +92,74 @@ class SimpleTests(unittest.TestCase):
                 [4.0, 5.0, 6.0],
             ]),
         })
+
+    def test_named_matrix(self) -> None:
+        """Test that a named matrix can be parsed."""
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_named_matrix.rda",
+        )
+        converted = rdata.conversion.convert(parsed)
+        reference = xarray.DataArray(
+            [
+                [1.0, 2.0, 3.0],
+                [4.0, 5.0, 6.0],
+            ],
+            dims=["dim_0", "dim_1"],
+            coords={
+                "dim_0": ["dim0_0", "dim0_1"],
+                "dim_1": ["dim1_0", "dim1_1", "dim1_2"],
+            },
+        )
+
+        xarray.testing.assert_identical(
+            converted["test_named_matrix"],
+            reference,
+        )
+
+    def test_half_named_matrix(self) -> None:
+        """Test that a named matrix with no name for a dim can be parsed."""
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_half_named_matrix.rda",
+        )
+        converted = rdata.conversion.convert(parsed)
+        reference = xarray.DataArray(
+            [
+                [1.0, 2.0, 3.0],
+                [4.0, 5.0, 6.0],
+            ],
+            dims=["dim_0", "dim_1"],
+            coords={
+                "dim_0": ["dim0_0", "dim0_1"],
+            },
+        )
+
+        xarray.testing.assert_identical(
+            converted["test_half_named_matrix"],
+            reference,
+        )
+
+    def test_full_named_matrix(self) -> None:
+        """Test that a named matrix with dim names can be parsed."""
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_full_named_matrix.rda",
+        )
+        converted = rdata.conversion.convert(parsed)
+        reference = xarray.DataArray(
+            [
+                [1.0, 2.0, 3.0],
+                [4.0, 5.0, 6.0],
+            ],
+            dims=["my_dim_0", "my_dim_1"],
+            coords={
+                "my_dim_0": ["dim0_0", "dim0_1"],
+                "my_dim_1": ["dim1_0", "dim1_1", "dim1_2"],
+            },
+        )
+
+        xarray.testing.assert_identical(
+            converted["test_full_named_matrix"],
+            reference,
+        )
 
     def test_list(self) -> None:
         """Test that list can be parsed."""
