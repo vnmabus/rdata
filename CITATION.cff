@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: "Ramos-Carreño"
+    given-names: "Carlos"
+    orcid: "https://orcid.org/0000-0003-2566-7058"
+    affiliation: "Universidad Autónoma de Madrid"
+    email: vnmabus@gmail.com
+title: "rdata: Read R datasets from Python"
+date-released: 2022-03-24
+url: "https://github.com/vnmabus/rdata"
+license: MIT
+keywords:
+  - rdata
+  - Python
+  - R
+  - parser
+  - conversion
