@@ -20,5 +20,7 @@ keywords:
 identifiers:
   - description: "This is the collection of archived snapshots of all versions of rdata"
     type: doi
-    value: 10.5281/zenodo.6382238
+    value: 10.5281/zenodo.6382237
   - description: "This is the archived snapshot of version 0.7 of rdata"
+    type: doi
+    value: 10.5281/zenodo.6382238
