@@ -8,6 +8,7 @@ authors:
     email: vnmabus@gmail.com
 title: "rdata: Read R datasets from Python"
 date-released: 2022-03-24
+doi: 10.5281/zenodo.6382237
 url: "https://github.com/vnmabus/rdata"
 license: MIT
 keywords:
@@ -16,3 +17,8 @@ keywords:
   - R
   - parser
   - conversion
+identifiers:
+  - description: "This is the collection of archived snapshots of all versions of rdata"
+    type: doi
+    value: 10.5281/zenodo.6382238
+  - description: "This is the archived snapshot of version 0.7 of rdata"
