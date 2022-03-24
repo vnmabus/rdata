@@ -135,4 +135,4 @@ Pandas `Categorical` objects:
 .. |zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.6382237.svg
     :alt: Zenodo DOI
     :scale: 100%
-    :target: :target: https://doi.org/10.5281/zenodo.6382237
+    :target: https://doi.org/10.5281/zenodo.6382237
