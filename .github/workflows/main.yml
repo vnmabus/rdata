@@ -30,5 +30,9 @@ jobs:
         pip3 install .
         coverage run --source=rdata/ --omit=rdata/tests/ setup.py test;
         
+    - name: Generate coverage XML
+      run: |
+        coverage xml
+        
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v2
