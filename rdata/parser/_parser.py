@@ -911,6 +911,7 @@ def parse_data(
         if filetype in {
             FileTypes.rdata_binary_v2,
             FileTypes.rdata_binary_v3,
+            None,
         } else parse_data
     )
 
@@ -924,7 +925,8 @@ def parse_data(
         view = view[len(magic_dict[filetype]):]
         new_data = view
     else:
-        raise NotImplementedError("Unknown file type")
+        new_data = view
+        warnings.warn("Unknown file type: assumed RDS")
 
     return parse_function(
         new_data,  # type: ignore
