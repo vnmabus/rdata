@@ -265,6 +265,28 @@ class SimpleTests(unittest.TestCase):
                     ),
                 )
 
+    def test_dataframe_rds(self) -> None:
+        """Test dataframe conversion."""
+        for f in ("test_dataframe.rds", "test_dataframe_v3.rds"):
+            with self.subTest(file=f):
+                parsed = rdata.parser.parse_file(
+                    TESTDATA_PATH / f,
+                )
+                converted = rdata.conversion.convert(parsed)
+
+                pd.testing.assert_frame_equal(
+                    converted,
+                    pd.DataFrame(
+                        {
+                            "class": pd.Categorical(
+                                ["a", "b", "b"],
+                            ),
+                            "value": [1, 2, 3],
+                        },
+                        index=pd.RangeIndex(start=1, stop=4),
+                    ),
+                )
+
     def test_dataframe_rownames(self) -> None:
         """Test dataframe conversion."""
         parsed = rdata.parser.parse_file(
