@@ -22,7 +22,9 @@
 # sys.path.insert(0, '/home/carlos/git/rdata/rdata')
 
 import sys
+
 import pkg_resources
+
 try:
     release = pkg_resources.get_distribution('rdata').version
 except pkg_resources.DistributionNotFound:
@@ -208,3 +210,6 @@ epub_exclude_files = ['search.html']
 
 intersphinx_mapping = {'python': ('https://docs.python.org/3', None),
                        'pandas': ('http://pandas.pydata.org/pandas-docs/dev', None)}
+
+autodoc_preserve_defaults = True
+autodoc_typehints = "description"
