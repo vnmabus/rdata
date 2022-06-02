@@ -929,6 +929,11 @@ def parse_data(
     elif filetype is FileTypes.xz:
         new_data = lzma.decompress(data)
     elif filetype in {FileTypes.rdata_binary_v2, FileTypes.rdata_binary_v3}:
+        if extension == ".rds":
+            warnings.warn(
+                f"Wrong extension {extension} for file in RDATA format",
+            )
+
         view = view[len(magic_dict[filetype]):]
         new_data = view
     else:
