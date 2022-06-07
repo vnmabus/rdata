@@ -8,8 +8,9 @@ from typing import Any, Dict
 
 import numpy as np
 import pandas as pd
-import rdata
 import xarray
+
+import rdata
 
 TESTDATA_PATH = rdata.TESTDATA_PATH
 
@@ -161,6 +162,29 @@ class SimpleTests(unittest.TestCase):
             reference,
         )
 
+    def test_full_named_matrix_rds(self) -> None:
+        """Test that a named matrix with dim names can be parsed."""
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_full_named_matrix.rds",
+        )
+        converted = rdata.conversion.convert(parsed)
+        reference = xarray.DataArray(
+            [
+                [1.0, 2.0, 3.0],
+                [4.0, 5.0, 6.0],
+            ],
+            dims=["my_dim_0", "my_dim_1"],
+            coords={
+                "my_dim_0": ["dim0_0", "dim0_1"],
+                "my_dim_1": ["dim1_0", "dim1_1", "dim1_2"],
+            },
+        )
+
+        xarray.testing.assert_identical(
+            converted,
+            reference,
+        )
+
     def test_list(self) -> None:
         """Test that list can be parsed."""
         parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_list.rda")
@@ -230,6 +254,28 @@ class SimpleTests(unittest.TestCase):
 
                 pd.testing.assert_frame_equal(
                     converted["test_dataframe"],
+                    pd.DataFrame(
+                        {
+                            "class": pd.Categorical(
+                                ["a", "b", "b"],
+                            ),
+                            "value": [1, 2, 3],
+                        },
+                        index=pd.RangeIndex(start=1, stop=4),
+                    ),
+                )
+
+    def test_dataframe_rds(self) -> None:
+        """Test dataframe conversion."""
+        for f in ("test_dataframe.rds", "test_dataframe_v3.rds"):
+            with self.subTest(file=f):
+                parsed = rdata.parser.parse_file(
+                    TESTDATA_PATH / f,
+                )
+                converted = rdata.conversion.convert(parsed)
+
+                pd.testing.assert_frame_equal(
+                    converted,
                     pd.DataFrame(
                         {
                             "class": pd.Categorical(

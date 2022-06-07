@@ -1,7 +1,7 @@
 rdata
 =====
 
-|build-status| |docs| |coverage| |landscape| |pypi|
+|build-status| |docs| |coverage| |landscape| |pypi| |zenodo|
 
 Read R datasets from Python.
 
@@ -131,3 +131,8 @@ Pandas `Categorical` objects:
     :alt: Pypi version
     :scale: 100%
     :target: https://pypi.python.org/pypi/rdata/
+    
+.. |zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.6382237.svg
+    :alt: Zenodo DOI
+    :scale: 100%
+    :target: https://doi.org/10.5281/zenodo.6382237

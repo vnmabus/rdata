@@ -12,6 +12,7 @@ import xdrlib
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import (
+    TYPE_CHECKING,
     Any,
     BinaryIO,
     Callable,
@@ -722,19 +723,20 @@ def parse_file(
     *,
     expand_altrep: bool = True,
     altrep_constructor_dict: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
+    extension: str | None = None,
 ) -> RData:
     """
     Parse a R file (.rda or .rdata).
 
     Parameters:
-        file_or_path (file-like, str, bytes or path-like): File
-            in the R serialization format.
-        expand_altrep (bool): Wether to translate ALTREPs to normal objects.
+        file_or_path: File in the R serialization format.
+        expand_altrep: Wether to translate ALTREPs to normal objects.
         altrep_constructor_dict: Dictionary mapping each ALTREP to
             its constructor.
+        extension: Extension of the file.
 
     Returns:
-        RData: Data contained in the file (versions and object).
+        Data contained in the file (versions and object).
 
     See Also:
         :func:`parse_data`: Similar function that receives the data directly.
@@ -802,6 +804,8 @@ def parse_file(
     """
     if isinstance(file_or_path, (os.PathLike, str)):
         path = pathlib.Path(file_or_path)
+        if extension is None:
+            extension = path.suffix
         data = path.read_bytes()
     else:
         # file is a pre-opened file
@@ -816,6 +820,7 @@ def parse_file(
         data,
         expand_altrep=expand_altrep,
         altrep_constructor_dict=altrep_constructor_dict,
+        extension=extension,
     )
 
 
@@ -824,18 +829,20 @@ def parse_data(
     *,
     expand_altrep: bool = True,
     altrep_constructor_dict: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
+    extension: str | None = None,
 ) -> RData:
     """
     Parse the data of a R file, received as a sequence of bytes.
 
     Parameters:
-        data (bytes): Data extracted of a R file.
-        expand_altrep (bool): Wether to translate ALTREPs to normal objects.
+        data: Data extracted of a R file.
+        expand_altrep: Wether to translate ALTREPs to normal objects.
         altrep_constructor_dict: Dictionary mapping each ALTREP to
             its constructor.
+        extension: Extension of the file.
 
     Returns:
-        RData: Data contained in the file (versions and object).
+        Data contained in the file (versions and object).
 
     See Also:
         :func:`parse_file`: Similar function that parses a file directly.
@@ -911,6 +918,7 @@ def parse_data(
         if filetype in {
             FileTypes.rdata_binary_v2,
             FileTypes.rdata_binary_v3,
+            None,
         } else parse_data
     )
 
@@ -921,15 +929,23 @@ def parse_data(
     elif filetype is FileTypes.xz:
         new_data = lzma.decompress(data)
     elif filetype in {FileTypes.rdata_binary_v2, FileTypes.rdata_binary_v3}:
+        if extension == ".rds":
+            warnings.warn(
+                f"Wrong extension {extension} for file in RDATA format",
+            )
+
         view = view[len(magic_dict[filetype]):]
         new_data = view
     else:
-        raise NotImplementedError("Unknown file type")
+        new_data = view
+        if extension != ".rds":
+            warnings.warn("Unknown file type: assumed RDS")
 
     return parse_function(
         new_data,  # type: ignore
         expand_altrep=expand_altrep,
         altrep_constructor_dict=altrep_constructor_dict,
+        extension=extension,
     )
 
 
@@ -937,6 +953,7 @@ def parse_rdata_binary(
     data: memoryview,
     expand_altrep: bool = True,
     altrep_constructor_dict: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
+    extension: str | None = None,
 ) -> RData:
     """Select the appropiate parser and parse all the info."""
     format_type = rdata_format(data)
