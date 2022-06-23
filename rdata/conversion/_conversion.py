@@ -1,5 +1,6 @@
 import abc
 import warnings
+from dataclasses import dataclass
 from fractions import Fraction
 from types import MappingProxyType, SimpleNamespace
 from typing import (
@@ -36,6 +37,13 @@ class RExpression(NamedTuple):
     """R expression."""
 
     elements: List[RLanguage]
+
+
+@dataclass
+class RBuiltin():
+    """R builtin."""
+
+    name: str
 
 
 def convert_list(
@@ -575,6 +583,10 @@ class SimpleConverter(Converter):
             assert isinstance(rlanguage_list, list)
 
             value = RLanguage(rlanguage_list)
+
+        elif obj.info.type in {parser.RObjectType.SPECIAL, parser.RObjectType.BUILTIN}:
+
+            value = RBuiltin(name=obj.value.decode("ascii"))
 
         elif obj.info.type == parser.RObjectType.CHAR:
 

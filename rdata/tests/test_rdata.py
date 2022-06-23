@@ -211,6 +211,63 @@ class SimpleTests(unittest.TestCase):
             ]),
         })
 
+    def test_builtin(self) -> None:
+        """Test that builtin functions can be parsed."""
+        parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_builtin.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        np.testing.assert_equal(converted, {
+            "test_builtin": rdata.conversion.RBuiltin(name="abs"),
+        })
+
+    def test_empty_function_uncompiled(self) -> None:
+        """Test that a simple function can be parsed."""
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_empty_function_uncompiled.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        np.testing.assert_equal(converted, {
+            "test_empty_function": rdata.conversion.RExpression([
+                rdata.conversion.RLanguage(['^', 'base', 'exponent']),
+            ]),
+        })
+
+    def test_empty_function(self) -> None:
+        """Test that a simple function (compiled) can be parsed."""
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_empty_function.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        np.testing.assert_equal(converted, {
+            "test_empty_function": rdata.conversion.RExpression([
+                rdata.conversion.RLanguage(['^', 'base', 'exponent']),
+            ]),
+        })
+
+    def test_function(self) -> None:
+        """Test that functions can be parsed."""
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_function.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        np.testing.assert_equal(converted, {
+            "test_function": rdata.conversion.RExpression([
+                rdata.conversion.RLanguage(['^', 'base', 'exponent']),
+            ]),
+        })
+
+    def test_function_arg(self) -> None:
+        """Test that functions can be parsed."""
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_function_arg.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        np.testing.assert_equal(converted, {
+            "test_function_arg": rdata.conversion.RExpression([
+                rdata.conversion.RLanguage(['^', 'base', 'exponent']),
+            ]),
+        })
+
     def test_encodings(self) -> None:
         """Test of differents encodings."""
         with self.assertWarns(

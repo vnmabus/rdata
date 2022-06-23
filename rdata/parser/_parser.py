@@ -19,6 +19,7 @@ from typing import (
     List,
     Mapping,
     Optional,
+    Sequence,
     Set,
     TextIO,
     Tuple,
@@ -106,7 +107,12 @@ class RObjectType(enum.Enum):
     RAW = 24  # raw vector
     S4 = 25  # S4 classes not of simple type
     ALTREP = 238  # Alternative representations
+    ATTRLIST = 239  # Bytecode attribute
+    ATTRLANG = 240  # Bytecode attribute
     EMPTYENV = 242  # Empty environment
+    BCREPREF = 243  # Bytecode repetition reference
+    BCREPDEF = 244  # Bytecode repetition definition
+    MISSINGARG = 251  # Missinf argument
     GLOBALENV = 253  # Global environment
     NILVALUE = 254  # NIL value
     REF = 255  # Reference
@@ -488,9 +494,28 @@ class Parser(abc.ABC):
         constructor = self.altrep_constructor_dict[altrep_name]
         return constructor(state)
 
+    def _parse_bytecode(
+        self,
+        reference_list: Optional[List[RObject]],
+        bytecode_rep_list: List[RObject | None] | None = None,
+    ) -> Tuple[RObject, Sequence[RObject]]:
+        """Parse R bytecode."""
+        n_repeated = self.parse_int()
+
+        code = self.parse_R_object(reference_list, bytecode_rep_list)
+
+        n_constants = self.parse_int()
+        constants = [
+            self.parse_R_object(reference_list, [None] * n_repeated)
+            for _ in range(n_constants)
+        ]
+
+        return (code, constants)
+
     def parse_R_object(
         self,
-        reference_list: Optional[List[RObject]] = None,
+        reference_list: List[RObject] | None = None,
+        bytecode_rep_list: List[RObject | None] | None = None,
     ) -> RObject:
         """Parse a R object."""
         if reference_list is None:
@@ -505,6 +530,7 @@ class Parser(abc.ABC):
         attributes = None
         referenced_object = None
 
+        bytecode_rep_position = -1
         tag_read = False
         attributes_read = False
         add_reference = False
@@ -513,27 +539,47 @@ class Parser(abc.ABC):
 
         value: Any
 
+        if info.type == RObjectType.BCREPDEF:
+            assert bytecode_rep_list
+            bytecode_rep_position = self.parse_int()
+            info.type = RObjectType(self.parse_int())
+
         if info.type == RObjectType.NIL:
             value = None
 
         elif info.type == RObjectType.SYM:
             # Read Char
-            value = self.parse_R_object(reference_list)
+            value = self.parse_R_object(reference_list, bytecode_rep_list)
             # Symbols can be referenced
             add_reference = True
 
-        elif info.type in {RObjectType.LIST, RObjectType.LANG}:
+        elif info.type in {
+            RObjectType.LIST,
+            RObjectType.LANG,
+            RObjectType.CLO,
+            RObjectType.PROM,
+            RObjectType.DOT,
+            RObjectType.ATTRLANG,
+        }:
+            if info.type is RObjectType.ATTRLANG:
+                info.type = RObjectType.LANG
+                info.attributes = True
+
             tag = None
             if info.attributes:
-                attributes = self.parse_R_object(reference_list)
+                attributes = self.parse_R_object(
+                    reference_list,
+                    bytecode_rep_list,
+                )
                 attributes_read = True
-            elif info.tag:
-                tag = self.parse_R_object(reference_list)
+
+            if info.tag:
+                tag = self.parse_R_object(reference_list, bytecode_rep_list)
                 tag_read = True
 
             # Read CAR and CDR
-            car = self.parse_R_object(reference_list)
-            cdr = self.parse_R_object(reference_list)
+            car = self.parse_R_object(reference_list, bytecode_rep_list)
+            cdr = self.parse_R_object(reference_list, bytecode_rep_list)
             value = (car, cdr)
 
         elif info.type == RObjectType.ENV:
@@ -548,10 +594,10 @@ class Parser(abc.ABC):
             reference_list.append(result)
 
             locked = self.parse_bool()
-            enclosure = self.parse_R_object(reference_list)
-            frame = self.parse_R_object(reference_list)
-            hash_table = self.parse_R_object(reference_list)
-            attributes = self.parse_R_object(reference_list)
+            enclosure = self.parse_R_object(reference_list, bytecode_rep_list)
+            frame = self.parse_R_object(reference_list, bytecode_rep_list)
+            hash_table = self.parse_R_object(reference_list, bytecode_rep_list)
+            attributes = self.parse_R_object(reference_list, bytecode_rep_list)
 
             value = EnvironmentValue(
                 locked=locked,
@@ -559,6 +605,11 @@ class Parser(abc.ABC):
                 frame=frame,
                 hash_table=hash_table,
             )
+
+        elif info.type in {RObjectType.SPECIAL, RObjectType.BUILTIN}:
+            length = self.parse_int()
+            if length > 0:
+                value = self.parse_string(length=length)
 
         elif info.type == RObjectType.CHAR:
             length = self.parse_int()
@@ -615,15 +666,28 @@ class Parser(abc.ABC):
             value = [None] * length
 
             for i in range(length):
-                value[i] = self.parse_R_object(reference_list)
+                value[i] = self.parse_R_object(
+                    reference_list, bytecode_rep_list)
+
+        elif info.type == RObjectType.BCODE:
+            value = self._parse_bytecode(reference_list, bytecode_rep_list)
 
         elif info.type == RObjectType.S4:
             value = None
 
         elif info.type == RObjectType.ALTREP:
-            altrep_info = self.parse_R_object(reference_list)
-            altrep_state = self.parse_R_object(reference_list)
-            altrep_attr = self.parse_R_object(reference_list)
+            altrep_info = self.parse_R_object(
+                reference_list,
+                bytecode_rep_list,
+            )
+            altrep_state = self.parse_R_object(
+                reference_list,
+                bytecode_rep_list,
+            )
+            altrep_attr = self.parse_R_object(
+                reference_list,
+                bytecode_rep_list,
+            )
 
             if self.expand_altrep:
                 info, value = self.expand_altrep_to_object(
@@ -635,6 +699,16 @@ class Parser(abc.ABC):
                 value = (altrep_info, altrep_state, altrep_attr)
 
         elif info.type == RObjectType.EMPTYENV:
+            value = None
+
+        elif info.type == RObjectType.BCREPREF:
+            assert bytecode_rep_list
+            position = self.parse_int()
+            result = bytecode_rep_list[position]
+            assert result
+            return result
+
+        elif info.type == RObjectType.MISSINGARG:
             value = None
 
         elif info.type == RObjectType.GLOBALENV:
@@ -657,7 +731,7 @@ class Parser(abc.ABC):
                 "and ignored",
             )
         if info.attributes and not attributes_read:
-            attributes = self.parse_R_object(reference_list)
+            attributes = self.parse_R_object(reference_list, bytecode_rep_list)
 
         if result is None:
             result = RObject(
@@ -675,6 +749,10 @@ class Parser(abc.ABC):
 
         if add_reference:
             reference_list.append(result)
+
+        if bytecode_rep_position >= 0:
+            assert bytecode_rep_list
+            bytecode_rep_list[bytecode_rep_position] = result
 
         return result
 
@@ -716,6 +794,11 @@ class ParserXDR(Parser):
         result = self.data[self.position:(self.position + length)]
         self.position += length
         return bytes(result)
+
+    def parse_all(self) -> RData:
+        rdata = super().parse_all()
+        assert self.position == len(self.data)
+        return rdata
 
 
 def parse_file(
