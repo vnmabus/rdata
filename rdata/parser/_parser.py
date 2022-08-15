@@ -118,6 +118,15 @@ class RObjectType(enum.Enum):
     REF = 255  # Reference
 
 
+BYTECODE_SPECIAL_SET = {
+    RObjectType.BCREPDEF,
+    RObjectType.LANG,
+    RObjectType.LIST,
+    RObjectType.ATTRLANG,
+    RObjectType.ATTRLIST,
+}
+
+
 class CharFlags(enum.IntFlag):
     """Flags for R objects of type char."""
 
@@ -256,6 +265,15 @@ class RData():
     versions: RVersions
     extra: RExtraInfo
     object: RObject
+
+    def __str__(self) -> str:
+        return (
+            "RData(\n"
+            f"  versions: {self.versions}\n"
+            f"  extra: {self.extra}\n"
+            f"  object: \n{self.object._str_internal(indent=4)}\n"
+            ")\n"
+        )
 
 
 @dataclass
@@ -494,6 +512,20 @@ class Parser(abc.ABC):
         constructor = self.altrep_constructor_dict[altrep_name]
         return constructor(state)
 
+    def _parse_bytecode_constant(
+        self,
+        reference_list: Optional[List[RObject]],
+        bytecode_rep_list: List[RObject | None] | None = None,
+    ) -> RObject:
+
+        obj_type = self.parse_int()
+
+        return self.parse_R_object(
+            reference_list,
+            bytecode_rep_list,
+            info_int=obj_type,
+        )
+
     def _parse_bytecode(
         self,
         reference_list: Optional[List[RObject]],
@@ -506,7 +538,10 @@ class Parser(abc.ABC):
 
         n_constants = self.parse_int()
         constants = [
-            self.parse_R_object(reference_list, [None] * n_repeated)
+            self._parse_bytecode_constant(
+                reference_list,
+                [None] * n_repeated,
+            )
             for _ in range(n_constants)
         ]
 
@@ -516,15 +551,23 @@ class Parser(abc.ABC):
         self,
         reference_list: List[RObject] | None = None,
         bytecode_rep_list: List[RObject | None] | None = None,
+        info_int: int | None = None,
     ) -> RObject:
         """Parse a R object."""
         if reference_list is None:
             # Index is 1-based, so we insert a dummy object
             reference_list = []
 
-        info_int = self.parse_int()
-
-        info = parse_r_object_info(info_int)
+        original_info_int = info_int
+        if (
+            info_int is not None
+            and RObjectType(info_int) in BYTECODE_SPECIAL_SET
+        ):
+            info = parse_r_object_info(info_int)
+            info.tag = True
+        else:
+            info_int = self.parse_int()
+            info = parse_r_object_info(info_int)
 
         tag = None
         attributes = None
@@ -563,7 +606,6 @@ class Parser(abc.ABC):
         }:
             if info.type is RObjectType.ATTRLANG:
                 info.type = RObjectType.LANG
-                info.attributes = True
 
             tag = None
             if info.attributes:
@@ -578,8 +620,22 @@ class Parser(abc.ABC):
                 tag_read = True
 
             # Read CAR and CDR
-            car = self.parse_R_object(reference_list, bytecode_rep_list)
-            cdr = self.parse_R_object(reference_list, bytecode_rep_list)
+            car = self.parse_R_object(
+                reference_list,
+                bytecode_rep_list,
+                info_int=(
+                    None if original_info_int is None
+                    else self.parse_int()
+                ),
+            )
+            cdr = self.parse_R_object(
+                reference_list,
+                bytecode_rep_list,
+                info_int=(
+                    None if original_info_int is None
+                    else self.parse_int()
+                ),
+            )
             value = (car, cdr)
 
         elif info.type == RObjectType.ENV:
@@ -671,6 +727,7 @@ class Parser(abc.ABC):
 
         elif info.type == RObjectType.BCODE:
             value = self._parse_bytecode(reference_list, bytecode_rep_list)
+            tag_read = True
 
         elif info.type == RObjectType.S4:
             value = None

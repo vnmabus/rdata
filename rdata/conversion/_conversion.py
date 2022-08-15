@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import abc
 import warnings
 from dataclasses import dataclass
@@ -31,6 +33,7 @@ class RLanguage(NamedTuple):
     """R language construct."""
 
     elements: List[Any]
+    attributes: Mapping[str, Any]
 
 
 class RExpression(NamedTuple):
@@ -40,10 +43,40 @@ class RExpression(NamedTuple):
 
 
 @dataclass
-class RBuiltin():
+class RBuiltin:
     """R builtin."""
 
     name: str
+
+
+@dataclass
+class RFunction:
+    """R function."""
+
+    environment: Mapping[str, Any]
+    formals: Optional[Mapping[str, Any]]
+    body: RLanguage
+    attributes: StrMap
+
+
+@dataclass
+class RBytecode:
+    """R bytecode."""
+
+    code: xarray.DataArray
+    attributes: StrMap
+
+
+class REnvironment(ChainMap[Union[str, bytes], Any]):
+    """R environment."""
+
+    def __init__(
+        self,
+        *maps: MutableMapping[str | bytes, Any],
+        frame: StrMap | None = None,
+    ) -> None:
+        super().__init__(*maps)
+        self.frame = frame
 
 
 def convert_list(
@@ -102,7 +135,7 @@ def convert_list(
 def convert_env(
     r_env: parser.RObject,
     conversion_function: ConversionFunction,
-) -> ChainMap[Union[str, bytes], Any]:
+) -> REnvironment:
     """Convert environment objects."""
     if r_env.info.type is not parser.RObjectType.ENV:
         raise TypeError("Must receive a ENV object")
@@ -112,11 +145,12 @@ def convert_env(
     hash_table = conversion_function(r_env.value.hash_table)
 
     dictionary = {}
-    for d in hash_table:
-        if d is not None:
-            dictionary.update(d)
+    if hash_table is not None:
+        for d in hash_table:
+            if d is not None:
+                dictionary.update(d)
 
-    return ChainMap(dictionary, enclosure)
+    return REnvironment(dictionary, enclosure, frame=frame)
 
 
 def convert_attrs(
@@ -516,17 +550,17 @@ class SimpleConverter(Converter):
         constructor_dict: ConstructorDict = DEFAULT_CLASS_MAP,
         default_encoding: Optional[str] = None,
         force_default_encoding: bool = False,
-        global_environment: Optional[StrMap] = None,
+        global_environment: MutableMapping[str | bytes, Any] | None = None,
     ) -> None:
 
         self.constructor_dict = constructor_dict
         self.default_encoding = default_encoding
         self.force_default_encoding = force_default_encoding
-        self.global_environment = ChainMap(
+        self.global_environment = REnvironment(
             {} if global_environment is None
             else global_environment,
         )
-        self.empty_environment: StrMap = ChainMap({})
+        self.empty_environment: StrMap = REnvironment({})
 
         self._reset()
 
@@ -570,6 +604,20 @@ class SimpleConverter(Converter):
             # Expand the list and process the elements
             value = convert_list(obj, self._convert_next)
 
+        elif obj.info.type == parser.RObjectType.CLO:
+            assert obj.tag is not None
+            environment = self._convert_next(obj.tag)
+            formals = self._convert_next(obj.value[0])
+            body = self._convert_next(obj.value[1])
+            attributes = self._convert_next(obj.attributes)
+
+            value = RFunction(
+                environment=environment,
+                formals=formals,
+                body=body,
+                attributes=attributes,
+            )
+
         elif obj.info.type == parser.RObjectType.ENV:
 
             # Return a ChainMap of the environments
@@ -581,8 +629,10 @@ class SimpleConverter(Converter):
             # special object
             rlanguage_list = convert_list(obj, self._convert_next)
             assert isinstance(rlanguage_list, list)
+            assert obj.attributes
+            attributes = self._convert_next(obj.attributes)
 
-            value = RLanguage(rlanguage_list)
+            value = RLanguage(rlanguage_list, attributes)
 
         elif obj.info.type in {parser.RObjectType.SPECIAL, parser.RObjectType.BUILTIN}:
 
@@ -627,6 +677,13 @@ class SimpleConverter(Converter):
 
             # Convert the internal objects returning a special object
             value = RExpression(rexpression_list)
+
+        elif obj.info.type == parser.RObjectType.BCODE:
+
+            value = RBytecode(
+                code=self._convert_next(obj.value[0]),
+                attributes=attrs,
+            )
 
         elif obj.info.type == parser.RObjectType.S4:
             value = SimpleNamespace(**attrs)
