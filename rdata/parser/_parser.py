@@ -171,6 +171,98 @@ class RObjectInfo():
     reference: int
 
 
+def _str_internal(
+    obj: RObject | Sequence[RObject],
+    indent: int = 0,
+    used_references: Optional[Set[int]] = None,
+) -> str:
+
+    if used_references is None:
+        used_references = set()
+
+    small_indent = indent + 2
+    big_indent = indent + 4
+
+    indent_spaces = ' ' * indent
+    small_indent_spaces = ' ' * small_indent
+    big_indent_spaces = ' ' * big_indent
+
+    string = ""
+
+    if isinstance(obj, Sequence):
+        string += f"{indent_spaces}[\n"
+        for elem in obj:
+            string += _str_internal(
+                elem,
+                big_indent,
+                used_references.copy(),
+            )
+        string += f"{indent_spaces}]\n"
+
+        return string
+
+    string += f"{indent_spaces}{obj.info.type}\n"
+
+    if obj.tag:
+        tag_string = _str_internal(
+            obj.tag,
+            big_indent,
+            used_references.copy(),
+        )
+        string += f"{small_indent_spaces}tag:\n{tag_string}\n"
+
+    if obj.info.reference:
+        assert obj.referenced_object
+        reference_string = (
+            f"{big_indent_spaces}..."
+            if obj.info.reference in used_references
+            else _str_internal(
+                obj.referenced_object,
+                indent + 4, used_references.copy())
+        )
+        string += (
+            f"{small_indent_spaces}reference: "
+            f"{obj.info.reference}\n{reference_string}\n"
+        )
+
+    string += f"{small_indent_spaces}value:\n"
+
+    if isinstance(obj.value, RObject):
+        string += _str_internal(
+            obj.value,
+            big_indent,
+            used_references.copy(),
+        )
+    elif isinstance(obj.value, (tuple, list)):
+        for elem in obj.value:
+            string += _str_internal(
+                elem,
+                big_indent,
+                used_references.copy(),
+            )
+    elif isinstance(obj.value, np.ndarray):
+        string += big_indent_spaces
+        if len(obj.value) > 4:
+            string += (
+                f"[{obj.value[0]}, {obj.value[1]} ... "
+                f"{obj.value[-2]}, {obj.value[-1]}]\n"
+            )
+        else:
+            string += f"{obj.value}\n"
+    else:
+        string += f"{big_indent_spaces}{obj.value}\n"
+
+    if obj.attributes:
+        attr_string = _str_internal(
+            obj.attributes,
+            big_indent,
+            used_references.copy(),
+        )
+        string += f"{small_indent_spaces}attributes:\n{attr_string}\n"
+
+    return string
+
+
 @dataclass
 class RObject():
     """Representation of a R object."""
@@ -181,81 +273,8 @@ class RObject():
     tag: Optional[RObject] = None
     referenced_object: Optional[RObject] = None
 
-    def _str_internal(
-        self,
-        indent: int = 0,
-        used_references: Optional[Set[int]] = None,
-    ) -> str:
-
-        if used_references is None:
-            used_references = set()
-
-        small_indent = indent + 2
-        big_indent = indent + 4
-
-        indent_spaces = ' ' * indent
-        small_indent_spaces = ' ' * small_indent
-        big_indent_spaces = ' ' * big_indent
-
-        string = ""
-
-        string += f"{indent_spaces}{self.info.type}\n"
-
-        if self.tag:
-            tag_string = self.tag._str_internal(
-                big_indent,
-                used_references.copy(),
-            )
-            string += f"{small_indent_spaces}tag:\n{tag_string}\n"
-
-        if self.info.reference:
-            assert self.referenced_object
-            reference_string = (
-                f"{big_indent_spaces}..."
-                if self.info.reference in used_references
-                else self.referenced_object._str_internal(
-                    indent + 4, used_references.copy())
-            )
-            string += (
-                f"{small_indent_spaces}reference: "
-                f"{self.info.reference}\n{reference_string}\n"
-            )
-
-        string += f"{small_indent_spaces}value:\n"
-
-        if isinstance(self.value, RObject):
-            string += self.value._str_internal(
-                big_indent,
-                used_references.copy(),
-            )
-        elif isinstance(self.value, (tuple, list)):
-            for elem in self.value:
-                string += elem._str_internal(
-                    big_indent,
-                    used_references.copy(),
-                )
-        elif isinstance(self.value, np.ndarray):
-            string += big_indent_spaces
-            if len(self.value) > 4:
-                string += (
-                    f"[{self.value[0]}, {self.value[1]} ... "
-                    f"{self.value[-2]}, {self.value[-1]}]\n"
-                )
-            else:
-                string += f"{self.value}\n"
-        else:
-            string += f"{big_indent_spaces}{self.value}\n"
-
-        if self.attributes:
-            attr_string = self.attributes._str_internal(
-                big_indent,
-                used_references.copy())
-            string += f"{small_indent_spaces}attributes:\n{attr_string}\n"
-
-        return string
-
     def __str__(self) -> str:
-        return self._str_internal()
+        return _str_internal(self)
 
 
 @dataclass
@@ -271,7 +290,7 @@ class RData():
             "RData(\n"
             f"  versions: {self.versions}\n"
             f"  extra: {self.extra}\n"
-            f"  object: \n{self.object._str_internal(indent=4)}\n"
+            f"  object: \n{_str_internal(self.object, indent=4)}\n"
             ")\n"
         )
 
@@ -606,6 +625,7 @@ class Parser(abc.ABC):
         }:
             if info.type is RObjectType.ATTRLANG:
                 info.type = RObjectType.LANG
+                info.attributes = True
 
             tag = None
             if info.attributes:
@@ -639,6 +659,8 @@ class Parser(abc.ABC):
             value = (car, cdr)
 
         elif info.type == RObjectType.ENV:
+            info.object = True
+
             result = RObject(
                 info=info,
                 tag=tag,

@@ -58,6 +58,10 @@ class RFunction:
     body: RLanguage
     attributes: StrMap
 
+    @property
+    def source(self) -> str:
+        return self.attributes["srcref"].srcfile.lines
+
 
 @dataclass
 class RBytecode:
@@ -394,6 +398,9 @@ def convert_array(
         # R matrix order is like FORTRAN
         value = np.reshape(value, shape, order='F')
 
+    dimension_names = None
+    coords = None
+
     dimnames = attrs.get('dimnames')
     if dimnames:
         if isinstance(dimnames, Mapping):
@@ -407,7 +414,11 @@ def convert_array(
                 if d is not None
             }
 
-        value = xarray.DataArray(value, dims=dimension_names, coords=coords)
+        value = xarray.DataArray(
+            value,
+            dims=dimension_names,
+            coords=coords,
+        )
 
     return value
 
@@ -480,6 +491,72 @@ def ts_constructor(
     return pandas.Series(obj, index=index)
 
 
+@dataclass
+class SrcRef:
+    first_line: int
+    first_byte: int
+    last_line: int
+    last_byte: int
+    first_column: int
+    last_column: int
+    first_parsed: int
+    last_parsed: int
+    srcfile: SrcFile
+
+
+def srcref_constructor(
+    obj: Any,
+    attrs: StrMap,
+) -> SrcRef:
+    return SrcRef(*obj, srcfile=attrs["srcfile"])
+
+
+@dataclass
+class SrcFile:
+    filename: str
+    file_encoding: str | None
+    string_encoding: str | None
+
+
+def srcfile_constructor(
+    obj: Any,
+    attrs: StrMap,
+) -> SrcFile:
+
+    filename = obj.frame["filename"][0]
+    file_encoding = obj.frame.get("encoding")
+    string_encoding = obj.frame.get("Enc")
+
+    return SrcFile(
+        filename=filename,
+        file_encoding=file_encoding,
+        string_encoding=string_encoding,
+    )
+
+
+@dataclass
+class SrcFileCopy(SrcFile):
+    lines: str
+
+
+def srcfilecopy_constructor(
+    obj: Any,
+    attrs: StrMap,
+) -> SrcFile:
+
+    filename = obj.frame["filename"][0]
+    file_encoding = obj.frame.get("encoding", (None,))[0]
+    string_encoding = obj.frame.get("Enc", (None,))[0]
+    lines = obj.frame["lines"][0]
+
+    return SrcFileCopy(
+        filename=filename,
+        file_encoding=file_encoding,
+        string_encoding=string_encoding,
+        lines=lines,
+    )
+
+
 Constructor = Callable[[Any, Mapping], Any]
 ConstructorDict = Mapping[
     Union[str, bytes],
@@ -491,6 +568,9 @@ default_class_map_dict: Mapping[Union[str, bytes], Constructor] = {
     "factor": factor_constructor,
     "ordered": ordered_constructor,
     "ts": ts_constructor,
+    "srcref": srcref_constructor,
+    "srcfile": srcfile_constructor,
+    "srcfilecopy": srcfilecopy_constructor,
 }
 
 DEFAULT_CLASS_MAP = MappingProxyType(default_class_map_dict)
@@ -629,8 +709,9 @@ class SimpleConverter(Converter):
             # special object
             rlanguage_list = convert_list(obj, self._convert_next)
             assert isinstance(rlanguage_list, list)
-            assert obj.attributes
-            attributes = self._convert_next(obj.attributes)
+            attributes = self._convert_next(
+                obj.attributes,
+            ) if obj.attributes else {}
 
             value = RLanguage(rlanguage_list, attributes)
 
@@ -710,8 +791,8 @@ class SimpleConverter(Converter):
         else:
             raise NotImplementedError(f"Type {obj.info.type} not implemented")
 
-        if obj.info.object:
-            classname = attrs["class"]
+        if obj.info.object and attrs is not None:
+            classname = attrs.get("class", ())
             for i, c in enumerate(classname):
 
                 constructor = self.constructor_dict.get(c, None)
