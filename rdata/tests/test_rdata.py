@@ -375,7 +375,7 @@ class SimpleTests(unittest.TestCase):
         )
 
         np.testing.assert_equal(converted_fun.environment, ChainMap({}))
-        np.testing.assert_equal(converted_fun.formals, None)
+        np.testing.assert_equal(converted_fun.formals, {"a": NotImplemented})
 
         converted_body = converted_fun.body
 
@@ -384,12 +384,15 @@ class SimpleTests(unittest.TestCase):
             rdata.conversion.RBytecode,
         )
 
-        np.testing.assert_equal(converted_body.code, np.array([12, 17, 1]))
+        np.testing.assert_equal(
+            converted_body.code,
+            np.array([12, 23, 1, 29, 4, 38, 2, 1]),
+        )
         np.testing.assert_equal(converted_body.attributes, {})
 
         np.testing.assert_equal(
             converted_fun.source,
-            "test_function <- function() {}\n",
+            "test_function_arg <- function(a) {print(a)}\n",
         )
 
     def test_encodings(self) -> None:

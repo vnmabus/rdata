@@ -119,6 +119,8 @@ class RObjectType(enum.Enum):
 
 
 BYTECODE_SPECIAL_SET = {
+    RObjectType.BCODE,
+    RObjectType.BCREPREF,
     RObjectType.BCREPDEF,
     RObjectType.LANG,
     RObjectType.LIST,
@@ -551,15 +553,19 @@ class Parser(abc.ABC):
         bytecode_rep_list: List[RObject | None] | None = None,
     ) -> Tuple[RObject, Sequence[RObject]]:
         """Parse R bytecode."""
-        n_repeated = self.parse_int()
+        if bytecode_rep_list is None:
+            n_repeated = self.parse_int()
 
         code = self.parse_R_object(reference_list, bytecode_rep_list)
+
+        if bytecode_rep_list is None:
+            bytecode_rep_list = [None] * n_repeated
 
         n_constants = self.parse_int()
         constants = [
             self._parse_bytecode_constant(
                 reference_list,
-                [None] * n_repeated,
+                bytecode_rep_list,
             )
             for _ in range(n_constants)
         ]
@@ -583,7 +589,10 @@ class Parser(abc.ABC):
             and RObjectType(info_int) in BYTECODE_SPECIAL_SET
         ):
             info = parse_r_object_info(info_int)
-            info.tag = True
+            info.tag = info.type not in {
+                RObjectType.BCREPREF,
+                RObjectType.BCODE,
+            }
         else:
             info_int = self.parse_int()
             info = parse_r_object_info(info_int)

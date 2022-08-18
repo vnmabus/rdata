@@ -772,6 +772,9 @@ class SimpleConverter(Converter):
         elif obj.info.type == parser.RObjectType.EMPTYENV:
             value = self.empty_environment
 
+        elif obj.info.type == parser.RObjectType.MISSINGARG:
+            value = NotImplemented
+
         elif obj.info.type == parser.RObjectType.GLOBALENV:
             value = self.global_environment
 
