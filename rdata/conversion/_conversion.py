@@ -14,6 +14,7 @@ from typing import (
     MutableMapping,
     NamedTuple,
     Optional,
+    Sequence,
     Union,
     cast,
 )
@@ -68,6 +69,7 @@ class RBytecode:
     """R bytecode."""
 
     code: xarray.DataArray
+    constants: Sequence[Any]
     attributes: StrMap
 
 
@@ -763,6 +765,7 @@ class SimpleConverter(Converter):
 
             value = RBytecode(
                 code=self._convert_next(obj.value[0]),
+                constants=[self._convert_next(c) for c in obj.value[1]],
                 attributes=attrs,
             )
 
