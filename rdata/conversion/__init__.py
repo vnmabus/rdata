@@ -1,7 +1,10 @@
 from ._conversion import (
     DEFAULT_CLASS_MAP,
     Converter,
+    RBuiltin,
+    RBytecode,
     RExpression,
+    RFunction,
     RLanguage,
     SimpleConverter,
     convert,
