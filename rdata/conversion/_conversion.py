@@ -61,7 +61,7 @@ class RFunction:
 
     @property
     def source(self) -> str:
-        return self.attributes["srcref"].srcfile.lines
+        return "\n".join(self.attributes["srcref"].srcfile.lines)
 
 
 @dataclass
@@ -538,7 +538,7 @@ def srcfile_constructor(
 
 @dataclass
 class SrcFileCopy(SrcFile):
-    lines: str
+    lines: Sequence[str]
 
 
 def srcfilecopy_constructor(
@@ -549,7 +549,7 @@ def srcfilecopy_constructor(
     filename = obj.frame["filename"][0]
     file_encoding = obj.frame.get("encoding", (None,))[0]
     string_encoding = obj.frame.get("Enc", (None,))[0]
-    lines = obj.frame["lines"][0]
+    lines = obj.frame["lines"]
 
     return SrcFileCopy(
         filename=filename,
