@@ -206,13 +206,7 @@ class SimpleTests(unittest.TestCase):
         converted = rdata.conversion.convert(parsed)
 
         np.testing.assert_equal(converted, {
-            "test_file":
-                [
-                    np.array([1.0]),
-                    ['a', 'b', 'c'],
-                    np.array([2.0, 3.0]),
-                    ['hi'],
-                ],
+            "test_file": [5],
         })
 
     def test_expression(self) -> None:
