@@ -200,6 +200,21 @@ class SimpleTests(unittest.TestCase):
                 ],
         })
 
+    def test_file(self) -> None:
+        """Test that external pointers can be parsed."""
+        parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_file.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        np.testing.assert_equal(converted, {
+            "test_file":
+                [
+                    np.array([1.0]),
+                    ['a', 'b', 'c'],
+                    np.array([2.0, 3.0]),
+                    ['hi'],
+                ],
+        })
+
     def test_expression(self) -> None:
         """Test that expressions can be parsed."""
         parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_expression.rda")

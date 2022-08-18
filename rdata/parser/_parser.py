@@ -760,6 +760,28 @@ class Parser(abc.ABC):
             value = self._parse_bytecode(reference_list, bytecode_rep_list)
             tag_read = True
 
+        elif info.type == RObjectType.EXTPTR:
+
+            result = RObject(
+                info=info,
+                tag=tag,
+                attributes=attributes,
+                value=None,
+                referenced_object=referenced_object,
+            )
+
+            reference_list.append(result)
+            protected = self.parse_R_object(
+                reference_list,
+                bytecode_rep_list,
+            )
+            extptr_tag = self.parse_R_object(
+                reference_list,
+                bytecode_rep_list,
+            )
+
+            value = (protected, extptr_tag)
+
         elif info.type == RObjectType.S4:
             value = None
 
