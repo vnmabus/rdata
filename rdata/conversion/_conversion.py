@@ -65,6 +65,14 @@ class RFunction:
 
 
 @dataclass
+class RExternalPointer:
+    """R bytecode."""
+
+    protected: Any
+    tag: Any
+
+
+@dataclass
 class RBytecode:
     """R bytecode."""
 
@@ -767,6 +775,13 @@ class SimpleConverter(Converter):
                 code=self._convert_next(obj.value[0]),
                 constants=[self._convert_next(c) for c in obj.value[1]],
                 attributes=attrs,
+            )
+
+        elif obj.info.type == parser.RObjectType.EXTPTR:
+
+            value = RExternalPointer(
+                protected=self._convert_next(obj.value[0]),
+                tag=self._convert_next(obj.value[1]),
             )
 
         elif obj.info.type == parser.RObjectType.S4:
