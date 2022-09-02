@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import abc
 import warnings
+from dataclasses import dataclass
 from fractions import Fraction
 from types import MappingProxyType, SimpleNamespace
 from typing import (
@@ -11,6 +14,7 @@ from typing import (
     MutableMapping,
     NamedTuple,
     Optional,
+    Sequence,
     Union,
     cast,
 )
@@ -30,12 +34,63 @@ class RLanguage(NamedTuple):
     """R language construct."""
 
     elements: List[Any]
+    attributes: Mapping[str, Any]
 
 
 class RExpression(NamedTuple):
     """R expression."""
 
     elements: List[RLanguage]
+
+
+@dataclass
+class RBuiltin:
+    """R builtin."""
+
+    name: str
+
+
+@dataclass
+class RFunction:
+    """R function."""
+
+    environment: Mapping[str, Any]
+    formals: Optional[Mapping[str, Any]]
+    body: RLanguage
+    attributes: StrMap
+
+    @property
+    def source(self) -> str:
+        return "\n".join(self.attributes["srcref"].srcfile.lines)
+
+
+@dataclass
+class RExternalPointer:
+    """R bytecode."""
+
+    protected: Any
+    tag: Any
+
+
+@dataclass
+class RBytecode:
+    """R bytecode."""
+
+    code: xarray.DataArray
+    constants: Sequence[Any]
+    attributes: StrMap
+
+
+class REnvironment(ChainMap[Union[str, bytes], Any]):
+    """R environment."""
+
+    def __init__(
+        self,
+        *maps: MutableMapping[str | bytes, Any],
+        frame: StrMap | None = None,
+    ) -> None:
+        super().__init__(*maps)
+        self.frame = frame
 
 
 def convert_list(
@@ -94,7 +149,7 @@ def convert_list(
 def convert_env(
     r_env: parser.RObject,
     conversion_function: ConversionFunction,
-) -> ChainMap[Union[str, bytes], Any]:
+) -> REnvironment:
     """Convert environment objects."""
     if r_env.info.type is not parser.RObjectType.ENV:
         raise TypeError("Must receive a ENV object")
@@ -104,11 +159,12 @@ def convert_env(
     hash_table = conversion_function(r_env.value.hash_table)
 
     dictionary = {}
-    for d in hash_table:
-        if d is not None:
-            dictionary.update(d)
+    if hash_table is not None:
+        for d in hash_table:
+            if d is not None:
+                dictionary.update(d)
 
-    return ChainMap(dictionary, enclosure)
+    return REnvironment(dictionary, enclosure, frame=frame)
 
 
 def convert_attrs(
@@ -352,6 +408,9 @@ def convert_array(
         # R matrix order is like FORTRAN
         value = np.reshape(value, shape, order='F')
 
+    dimension_names = None
+    coords = None
+
     dimnames = attrs.get('dimnames')
     if dimnames:
         if isinstance(dimnames, Mapping):
@@ -365,7 +424,11 @@ def convert_array(
                 if d is not None
             }
 
-        value = xarray.DataArray(value, dims=dimension_names, coords=coords)
+        value = xarray.DataArray(
+            value,
+            dims=dimension_names,
+            coords=coords,
+        )
 
     return value
 
@@ -438,6 +501,72 @@ def ts_constructor(
     return pandas.Series(obj, index=index)
 
 
+@dataclass
+class SrcRef:
+    first_line: int
+    first_byte: int
+    last_line: int
+    last_byte: int
+    first_column: int
+    last_column: int
+    first_parsed: int
+    last_parsed: int
+    srcfile: SrcFile
+
+
+def srcref_constructor(
+    obj: Any,
+    attrs: StrMap,
+) -> SrcRef:
+    return SrcRef(*obj, srcfile=attrs["srcfile"])
+
+
+@dataclass
+class SrcFile:
+    filename: str
+    file_encoding: str | None
+    string_encoding: str | None
+
+
+def srcfile_constructor(
+    obj: Any,
+    attrs: StrMap,
+) -> SrcFile:
+
+    filename = obj.frame["filename"][0]
+    file_encoding = obj.frame.get("encoding")
+    string_encoding = obj.frame.get("Enc")
+
+    return SrcFile(
+        filename=filename,
+        file_encoding=file_encoding,
+        string_encoding=string_encoding,
+    )
+
+
+@dataclass
+class SrcFileCopy(SrcFile):
+    lines: Sequence[str]
+
+
+def srcfilecopy_constructor(
+    obj: Any,
+    attrs: StrMap,
+) -> SrcFile:
+
+    filename = obj.frame["filename"][0]
+    file_encoding = obj.frame.get("encoding", (None,))[0]
+    string_encoding = obj.frame.get("Enc", (None,))[0]
+    lines = obj.frame["lines"]
+
+    return SrcFileCopy(
+        filename=filename,
+        file_encoding=file_encoding,
+        string_encoding=string_encoding,
+        lines=lines,
+    )
+
+
 Constructor = Callable[[Any, Mapping], Any]
 ConstructorDict = Mapping[
     Union[str, bytes],
@@ -449,6 +578,9 @@ default_class_map_dict: Mapping[Union[str, bytes], Constructor] = {
     "factor": factor_constructor,
     "ordered": ordered_constructor,
     "ts": ts_constructor,
+    "srcref": srcref_constructor,
+    "srcfile": srcfile_constructor,
+    "srcfilecopy": srcfilecopy_constructor,
 }
 
 DEFAULT_CLASS_MAP = MappingProxyType(default_class_map_dict)
@@ -508,17 +640,17 @@ class SimpleConverter(Converter):
         constructor_dict: ConstructorDict = DEFAULT_CLASS_MAP,
         default_encoding: Optional[str] = None,
         force_default_encoding: bool = False,
-        global_environment: Optional[StrMap] = None,
+        global_environment: MutableMapping[str | bytes, Any] | None = None,
     ) -> None:
 
         self.constructor_dict = constructor_dict
         self.default_encoding = default_encoding
         self.force_default_encoding = force_default_encoding
-        self.global_environment = ChainMap(
+        self.global_environment = REnvironment(
             {} if global_environment is None
             else global_environment,
         )
-        self.empty_environment: StrMap = ChainMap({})
+        self.empty_environment: StrMap = REnvironment({})
 
         self._reset()
 
@@ -562,6 +694,20 @@ class SimpleConverter(Converter):
             # Expand the list and process the elements
             value = convert_list(obj, self._convert_next)
 
+        elif obj.info.type == parser.RObjectType.CLO:
+            assert obj.tag is not None
+            environment = self._convert_next(obj.tag)
+            formals = self._convert_next(obj.value[0])
+            body = self._convert_next(obj.value[1])
+            attributes = self._convert_next(obj.attributes)
+
+            value = RFunction(
+                environment=environment,
+                formals=formals,
+                body=body,
+                attributes=attributes,
+            )
+
         elif obj.info.type == parser.RObjectType.ENV:
 
             # Return a ChainMap of the environments
@@ -573,8 +719,15 @@ class SimpleConverter(Converter):
             # special object
             rlanguage_list = convert_list(obj, self._convert_next)
             assert isinstance(rlanguage_list, list)
+            attributes = self._convert_next(
+                obj.attributes,
+            ) if obj.attributes else {}
 
-            value = RLanguage(rlanguage_list)
+            value = RLanguage(rlanguage_list, attributes)
+
+        elif obj.info.type in {parser.RObjectType.SPECIAL, parser.RObjectType.BUILTIN}:
+
+            value = RBuiltin(name=obj.value.decode("ascii"))
 
         elif obj.info.type == parser.RObjectType.CHAR:
 
@@ -616,11 +769,29 @@ class SimpleConverter(Converter):
             # Convert the internal objects returning a special object
             value = RExpression(rexpression_list)
 
+        elif obj.info.type == parser.RObjectType.BCODE:
+
+            value = RBytecode(
+                code=self._convert_next(obj.value[0]),
+                constants=[self._convert_next(c) for c in obj.value[1]],
+                attributes=attrs,
+            )
+
+        elif obj.info.type == parser.RObjectType.EXTPTR:
+
+            value = RExternalPointer(
+                protected=self._convert_next(obj.value[0]),
+                tag=self._convert_next(obj.value[1]),
+            )
+
         elif obj.info.type == parser.RObjectType.S4:
             value = SimpleNamespace(**attrs)
 
         elif obj.info.type == parser.RObjectType.EMPTYENV:
             value = self.empty_environment
+
+        elif obj.info.type == parser.RObjectType.MISSINGARG:
+            value = NotImplemented
 
         elif obj.info.type == parser.RObjectType.GLOBALENV:
             value = self.global_environment
@@ -641,8 +812,8 @@ class SimpleConverter(Converter):
         else:
             raise NotImplementedError(f"Type {obj.info.type} not implemented")
 
-        if obj.info.object:
-            classname = attrs["class"]
+        if obj.info.object and attrs is not None:
+            classname = attrs.get("class", ())
             for i, c in enumerate(classname):
 
                 constructor = self.constructor_dict.get(c, None)

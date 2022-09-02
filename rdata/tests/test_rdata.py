@@ -200,6 +200,15 @@ class SimpleTests(unittest.TestCase):
                 ],
         })
 
+    def test_file(self) -> None:
+        """Test that external pointers can be parsed."""
+        parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_file.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        np.testing.assert_equal(converted, {
+            "test_file": [5],
+        })
+
     def test_expression(self) -> None:
         """Test that expressions can be parsed."""
         parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_expression.rda")
@@ -207,9 +216,193 @@ class SimpleTests(unittest.TestCase):
 
         np.testing.assert_equal(converted, {
             "test_expression": rdata.conversion.RExpression([
-                rdata.conversion.RLanguage(['^', 'base', 'exponent']),
+                rdata.conversion.RLanguage(
+                    ['^', 'base', 'exponent'],
+                    attributes={},
+                ),
             ]),
         })
+
+    def test_builtin(self) -> None:
+        """Test that builtin functions can be parsed."""
+        parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_builtin.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        np.testing.assert_equal(converted, {
+            "test_builtin": rdata.conversion.RBuiltin(name="abs"),
+        })
+
+    def test_minimal_function_uncompiled(self) -> None:
+        """Test that a minimal function can be parsed."""
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_minimal_function_uncompiled.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        converted_fun = converted["test_minimal_function_uncompiled"]
+
+        self.assertIsInstance(
+            converted_fun,
+            rdata.conversion.RFunction,
+        )
+
+        np.testing.assert_equal(converted_fun.environment, ChainMap({}))
+        np.testing.assert_equal(converted_fun.formals, None)
+        np.testing.assert_equal(converted_fun.body, None)
+        np.testing.assert_equal(
+            converted_fun.source,
+            "test_minimal_function_uncompiled <- function() NULL\n",
+        )
+
+    def test_minimal_function(self) -> None:
+        """Test that a minimal function (compiled) can be parsed."""
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_minimal_function.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        converted_fun = converted["test_minimal_function"]
+
+        self.assertIsInstance(
+            converted_fun,
+            rdata.conversion.RFunction,
+        )
+
+        np.testing.assert_equal(converted_fun.environment, ChainMap({}))
+        np.testing.assert_equal(converted_fun.formals, None)
+
+        converted_body = converted_fun.body
+
+        self.assertIsInstance(
+            converted_body,
+            rdata.conversion.RBytecode,
+        )
+
+        np.testing.assert_equal(converted_body.code, np.array([12, 17, 1]))
+        np.testing.assert_equal(converted_body.attributes, {})
+
+        np.testing.assert_equal(
+            converted_fun.source,
+            "test_minimal_function <- function() NULL\n",
+        )
+
+    def test_empty_function_uncompiled(self) -> None:
+        """Test that a simple function can be parsed."""
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_empty_function_uncompiled.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        converted_fun = converted["test_empty_function_uncompiled"]
+
+        self.assertIsInstance(
+            converted_fun,
+            rdata.conversion.RFunction,
+        )
+
+        np.testing.assert_equal(converted_fun.environment, ChainMap({}))
+        np.testing.assert_equal(converted_fun.formals, None)
+        self.assertIsInstance(converted_fun.body, rdata.conversion.RLanguage)
+        np.testing.assert_equal(
+            converted_fun.source,
+            "test_empty_function_uncompiled <- function() {}\n",
+        )
+
+    def test_empty_function(self) -> None:
+        """Test that a simple function (compiled) can be parsed."""
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_empty_function.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        converted_fun = converted["test_empty_function"]
+
+        self.assertIsInstance(
+            converted_fun,
+            rdata.conversion.RFunction,
+        )
+
+        np.testing.assert_equal(converted_fun.environment, ChainMap({}))
+        np.testing.assert_equal(converted_fun.formals, None)
+
+        converted_body = converted_fun.body
+
+        self.assertIsInstance(
+            converted_body,
+            rdata.conversion.RBytecode,
+        )
+
+        np.testing.assert_equal(converted_body.code, np.array([12, 17, 1]))
+        np.testing.assert_equal(converted_body.attributes, {})
+
+        np.testing.assert_equal(
+            converted_fun.source,
+            "test_empty_function <- function() {}\n",
+        )
+
+    def test_function(self) -> None:
+        """Test that functions can be parsed."""
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_function.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        converted_fun = converted["test_function"]
+
+        self.assertIsInstance(
+            converted_fun,
+            rdata.conversion.RFunction,
+        )
+
+        np.testing.assert_equal(converted_fun.environment, ChainMap({}))
+        np.testing.assert_equal(converted_fun.formals, None)
+
+        converted_body = converted_fun.body
+
+        self.assertIsInstance(
+            converted_body,
+            rdata.conversion.RBytecode,
+        )
+
+        np.testing.assert_equal(
+            converted_body.code,
+            np.array([12, 23, 1, 34, 4, 38, 2, 1]),
+        )
+        np.testing.assert_equal(converted_body.attributes, {})
+
+        np.testing.assert_equal(
+            converted_fun.source,
+            "test_function <- function() {print(\"Hello\")}\n",
+        )
+
+    def test_function_arg(self) -> None:
+        """Test that functions can be parsed."""
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_function_arg.rda")
+        converted = rdata.conversion.convert(parsed)
+
+        converted_fun = converted["test_function_arg"]
+
+        self.assertIsInstance(
+            converted_fun,
+            rdata.conversion.RFunction,
+        )
+
+        np.testing.assert_equal(converted_fun.environment, ChainMap({}))
+        np.testing.assert_equal(converted_fun.formals, {"a": NotImplemented})
+
+        converted_body = converted_fun.body
+
+        self.assertIsInstance(
+            converted_body,
+            rdata.conversion.RBytecode,
+        )
+
+        np.testing.assert_equal(
+            converted_body.code,
+            np.array([12, 23, 1, 29, 4, 38, 2, 1]),
+        )
+        np.testing.assert_equal(converted_body.attributes, {})
+
+        np.testing.assert_equal(
+            converted_fun.source,
+            "test_function_arg <- function(a) {print(a)}\n",
+        )
 
     def test_encodings(self) -> None:
         """Test of differents encodings."""

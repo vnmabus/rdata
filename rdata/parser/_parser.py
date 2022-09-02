@@ -19,6 +19,7 @@ from typing import (
     List,
     Mapping,
     Optional,
+    Sequence,
     Set,
     TextIO,
     Tuple,
@@ -106,10 +107,26 @@ class RObjectType(enum.Enum):
     RAW = 24  # raw vector
     S4 = 25  # S4 classes not of simple type
     ALTREP = 238  # Alternative representations
+    ATTRLIST = 239  # Bytecode attribute
+    ATTRLANG = 240  # Bytecode attribute
     EMPTYENV = 242  # Empty environment
+    BCREPREF = 243  # Bytecode repetition reference
+    BCREPDEF = 244  # Bytecode repetition definition
+    MISSINGARG = 251  # Missinf argument
     GLOBALENV = 253  # Global environment
     NILVALUE = 254  # NIL value
     REF = 255  # Reference
+
+
+BYTECODE_SPECIAL_SET = {
+    RObjectType.BCODE,
+    RObjectType.BCREPREF,
+    RObjectType.BCREPDEF,
+    RObjectType.LANG,
+    RObjectType.LIST,
+    RObjectType.ATTRLANG,
+    RObjectType.ATTRLIST,
+}
 
 
 class CharFlags(enum.IntFlag):
@@ -156,6 +173,98 @@ class RObjectInfo():
     reference: int
 
 
+def _str_internal(
+    obj: RObject | Sequence[RObject],
+    indent: int = 0,
+    used_references: Optional[Set[int]] = None,
+) -> str:
+
+    if used_references is None:
+        used_references = set()
+
+    small_indent = indent + 2
+    big_indent = indent + 4
+
+    indent_spaces = ' ' * indent
+    small_indent_spaces = ' ' * small_indent
+    big_indent_spaces = ' ' * big_indent
+
+    string = ""
+
+    if isinstance(obj, Sequence):
+        string += f"{indent_spaces}[\n"
+        for elem in obj:
+            string += _str_internal(
+                elem,
+                big_indent,
+                used_references.copy(),
+            )
+        string += f"{indent_spaces}]\n"
+
+        return string
+
+    string += f"{indent_spaces}{obj.info.type}\n"
+
+    if obj.tag:
+        tag_string = _str_internal(
+            obj.tag,
+            big_indent,
+            used_references.copy(),
+        )
+        string += f"{small_indent_spaces}tag:\n{tag_string}\n"
+
+    if obj.info.reference:
+        assert obj.referenced_object
+        reference_string = (
+            f"{big_indent_spaces}..."
+            if obj.info.reference in used_references
+            else _str_internal(
+                obj.referenced_object,
+                indent + 4, used_references.copy())
+        )
+        string += (
+            f"{small_indent_spaces}reference: "
+            f"{obj.info.reference}\n{reference_string}\n"
+        )
+
+    string += f"{small_indent_spaces}value:\n"
+
+    if isinstance(obj.value, RObject):
+        string += _str_internal(
+            obj.value,
+            big_indent,
+            used_references.copy(),
+        )
+    elif isinstance(obj.value, (tuple, list)):
+        for elem in obj.value:
+            string += _str_internal(
+                elem,
+                big_indent,
+                used_references.copy(),
+            )
+    elif isinstance(obj.value, np.ndarray):
+        string += big_indent_spaces
+        if len(obj.value) > 4:
+            string += (
+                f"[{obj.value[0]}, {obj.value[1]} ... "
+                f"{obj.value[-2]}, {obj.value[-1]}]\n"
+            )
+        else:
+            string += f"{obj.value}\n"
+    else:
+        string += f"{big_indent_spaces}{obj.value}\n"
+
+    if obj.attributes:
+        attr_string = _str_internal(
+            obj.attributes,
+            big_indent,
+            used_references.copy(),
+        )
+        string += f"{small_indent_spaces}attributes:\n{attr_string}\n"
+
+    return string
+
+
 @dataclass
 class RObject():
     """Representation of a R object."""
@@ -166,81 +275,8 @@ class RObject():
     tag: Optional[RObject] = None
     referenced_object: Optional[RObject] = None
 
-    def _str_internal(
-        self,
-        indent: int = 0,
-        used_references: Optional[Set[int]] = None,
-    ) -> str:
-
-        if used_references is None:
-            used_references = set()
-
-        small_indent = indent + 2
-        big_indent = indent + 4
-
-        indent_spaces = ' ' * indent
-        small_indent_spaces = ' ' * small_indent
-        big_indent_spaces = ' ' * big_indent
-
-        string = ""
-
-        string += f"{indent_spaces}{self.info.type}\n"
-
-        if self.tag:
-            tag_string = self.tag._str_internal(
-                big_indent,
-                used_references.copy(),
-            )
-            string += f"{small_indent_spaces}tag:\n{tag_string}\n"
-
-        if self.info.reference:
-            assert self.referenced_object
-            reference_string = (
-                f"{big_indent_spaces}..."
-                if self.info.reference in used_references
-                else self.referenced_object._str_internal(
-                    indent + 4, used_references.copy())
-            )
-            string += (
-                f"{small_indent_spaces}reference: "
-                f"{self.info.reference}\n{reference_string}\n"
-            )
-
-        string += f"{small_indent_spaces}value:\n"
-
-        if isinstance(self.value, RObject):
-            string += self.value._str_internal(
-                big_indent,
-                used_references.copy(),
-            )
-        elif isinstance(self.value, (tuple, list)):
-            for elem in self.value:
-                string += elem._str_internal(
-                    big_indent,
-                    used_references.copy(),
-                )
-        elif isinstance(self.value, np.ndarray):
-            string += big_indent_spaces
-            if len(self.value) > 4:
-                string += (
-                    f"[{self.value[0]}, {self.value[1]} ... "
-                    f"{self.value[-2]}, {self.value[-1]}]\n"
-                )
-            else:
-                string += f"{self.value}\n"
-        else:
-            string += f"{big_indent_spaces}{self.value}\n"
-
-        if self.attributes:
-            attr_string = self.attributes._str_internal(
-                big_indent,
-                used_references.copy())
-            string += f"{small_indent_spaces}attributes:\n{attr_string}\n"
-
-        return string
-
     def __str__(self) -> str:
-        return self._str_internal()
+        return _str_internal(self)
 
 
 @dataclass
@@ -250,6 +286,15 @@ class RData():
     versions: RVersions
     extra: RExtraInfo
     object: RObject
+
+    def __str__(self) -> str:
+        return (
+            "RData(\n"
+            f"  versions: {self.versions}\n"
+            f"  extra: {self.extra}\n"
+            f"  object: \n{_str_internal(self.object, indent=4)}\n"
+            ")\n"
+        )
 
 
 @dataclass
@@ -488,23 +533,75 @@ class Parser(abc.ABC):
         constructor = self.altrep_constructor_dict[altrep_name]
         return constructor(state)
 
+    def _parse_bytecode_constant(
+        self,
+        reference_list: Optional[List[RObject]],
+        bytecode_rep_list: List[RObject | None] | None = None,
+    ) -> RObject:
+
+        obj_type = self.parse_int()
+
+        return self.parse_R_object(
+            reference_list,
+            bytecode_rep_list,
+            info_int=obj_type,
+        )
+
+    def _parse_bytecode(
+        self,
+        reference_list: Optional[List[RObject]],
+        bytecode_rep_list: List[RObject | None] | None = None,
+    ) -> Tuple[RObject, Sequence[RObject]]:
+        """Parse R bytecode."""
+        if bytecode_rep_list is None:
+            n_repeated = self.parse_int()
+
+        code = self.parse_R_object(reference_list, bytecode_rep_list)
+
+        if bytecode_rep_list is None:
+            bytecode_rep_list = [None] * n_repeated
+
+        n_constants = self.parse_int()
+        constants = [
+            self._parse_bytecode_constant(
+                reference_list,
+                bytecode_rep_list,
+            )
+            for _ in range(n_constants)
+        ]
+
+        return (code, constants)
+
     def parse_R_object(
         self,
-        reference_list: Optional[List[RObject]] = None,
+        reference_list: List[RObject] | None = None,
+        bytecode_rep_list: List[RObject | None] | None = None,
+        info_int: int | None = None,
     ) -> RObject:
         """Parse a R object."""
         if reference_list is None:
             # Index is 1-based, so we insert a dummy object
             reference_list = []
 
-        info_int = self.parse_int()
-
-        info = parse_r_object_info(info_int)
+        original_info_int = info_int
+        if (
+            info_int is not None
+            and RObjectType(info_int) in BYTECODE_SPECIAL_SET
+        ):
+            info = parse_r_object_info(info_int)
+            info.tag = info.type not in {
+                RObjectType.BCREPREF,
+                RObjectType.BCODE,
+            }
+        else:
+            info_int = self.parse_int()
+            info = parse_r_object_info(info_int)
 
         tag = None
         attributes = None
         referenced_object = None
 
+        bytecode_rep_position = -1
         tag_read = False
         attributes_read = False
         add_reference = False
@@ -513,30 +610,66 @@ class Parser(abc.ABC):
 
         value: Any
 
+        if info.type == RObjectType.BCREPDEF:
+            assert bytecode_rep_list
+            bytecode_rep_position = self.parse_int()
+            info.type = RObjectType(self.parse_int())
+
         if info.type == RObjectType.NIL:
             value = None
 
         elif info.type == RObjectType.SYM:
             # Read Char
-            value = self.parse_R_object(reference_list)
+            value = self.parse_R_object(reference_list, bytecode_rep_list)
             # Symbols can be referenced
             add_reference = True
 
-        elif info.type in {RObjectType.LIST, RObjectType.LANG}:
+        elif info.type in {
+            RObjectType.LIST,
+            RObjectType.LANG,
+            RObjectType.CLO,
+            RObjectType.PROM,
+            RObjectType.DOT,
+            RObjectType.ATTRLANG,
+        }:
+            if info.type is RObjectType.ATTRLANG:
+                info.type = RObjectType.LANG
+                info.attributes = True
+
             tag = None
             if info.attributes:
-                attributes = self.parse_R_object(reference_list)
+                attributes = self.parse_R_object(
+                    reference_list,
+                    bytecode_rep_list,
+                )
                 attributes_read = True
-            elif info.tag:
-                tag = self.parse_R_object(reference_list)
+
+            if info.tag:
+                tag = self.parse_R_object(reference_list, bytecode_rep_list)
                 tag_read = True
 
             # Read CAR and CDR
-            car = self.parse_R_object(reference_list)
-            cdr = self.parse_R_object(reference_list)
+            car = self.parse_R_object(
+                reference_list,
+                bytecode_rep_list,
+                info_int=(
+                    None if original_info_int is None
+                    else self.parse_int()
+                ),
+            )
+            cdr = self.parse_R_object(
+                reference_list,
+                bytecode_rep_list,
+                info_int=(
+                    None if original_info_int is None
+                    else self.parse_int()
+                ),
+            )
             value = (car, cdr)
 
         elif info.type == RObjectType.ENV:
+            info.object = True
+
             result = RObject(
                 info=info,
                 tag=tag,
@@ -548,10 +681,10 @@ class Parser(abc.ABC):
             reference_list.append(result)
 
             locked = self.parse_bool()
-            enclosure = self.parse_R_object(reference_list)
-            frame = self.parse_R_object(reference_list)
-            hash_table = self.parse_R_object(reference_list)
-            attributes = self.parse_R_object(reference_list)
+            enclosure = self.parse_R_object(reference_list, bytecode_rep_list)
+            frame = self.parse_R_object(reference_list, bytecode_rep_list)
+            hash_table = self.parse_R_object(reference_list, bytecode_rep_list)
+            attributes = self.parse_R_object(reference_list, bytecode_rep_list)
 
             value = EnvironmentValue(
                 locked=locked,
@@ -559,6 +692,11 @@ class Parser(abc.ABC):
                 frame=frame,
                 hash_table=hash_table,
             )
+
+        elif info.type in {RObjectType.SPECIAL, RObjectType.BUILTIN}:
+            length = self.parse_int()
+            if length > 0:
+                value = self.parse_string(length=length)
 
         elif info.type == RObjectType.CHAR:
             length = self.parse_int()
@@ -615,15 +753,51 @@ class Parser(abc.ABC):
             value = [None] * length
 
             for i in range(length):
-                value[i] = self.parse_R_object(reference_list)
+                value[i] = self.parse_R_object(
+                    reference_list, bytecode_rep_list)
+
+        elif info.type == RObjectType.BCODE:
+            value = self._parse_bytecode(reference_list, bytecode_rep_list)
+            tag_read = True
+
+        elif info.type == RObjectType.EXTPTR:
+
+            result = RObject(
+                info=info,
+                tag=tag,
+                attributes=attributes,
+                value=None,
+                referenced_object=referenced_object,
+            )
+
+            reference_list.append(result)
+            protected = self.parse_R_object(
+                reference_list,
+                bytecode_rep_list,
+            )
+            extptr_tag = self.parse_R_object(
+                reference_list,
+                bytecode_rep_list,
+            )
+
+            value = (protected, extptr_tag)
 
         elif info.type == RObjectType.S4:
             value = None
 
         elif info.type == RObjectType.ALTREP:
-            altrep_info = self.parse_R_object(reference_list)
-            altrep_state = self.parse_R_object(reference_list)
-            altrep_attr = self.parse_R_object(reference_list)
+            altrep_info = self.parse_R_object(
+                reference_list,
+                bytecode_rep_list,
+            )
+            altrep_state = self.parse_R_object(
+                reference_list,
+                bytecode_rep_list,
+            )
+            altrep_attr = self.parse_R_object(
+                reference_list,
+                bytecode_rep_list,
+            )
 
             if self.expand_altrep:
                 info, value = self.expand_altrep_to_object(
@@ -635,6 +809,16 @@ class Parser(abc.ABC):
                 value = (altrep_info, altrep_state, altrep_attr)
 
         elif info.type == RObjectType.EMPTYENV:
+            value = None
+
+        elif info.type == RObjectType.BCREPREF:
+            assert bytecode_rep_list
+            position = self.parse_int()
+            result = bytecode_rep_list[position]
+            assert result
+            return result
+
+        elif info.type == RObjectType.MISSINGARG:
             value = None
 
         elif info.type == RObjectType.GLOBALENV:
@@ -657,7 +841,7 @@ class Parser(abc.ABC):
                 "and ignored",
             )
         if info.attributes and not attributes_read:
-            attributes = self.parse_R_object(reference_list)
+            attributes = self.parse_R_object(reference_list, bytecode_rep_list)
 
         if result is None:
             result = RObject(
@@ -675,6 +859,10 @@ class Parser(abc.ABC):
 
         if add_reference:
             reference_list.append(result)
+
+        if bytecode_rep_position >= 0:
+            assert bytecode_rep_list
+            bytecode_rep_list[bytecode_rep_position] = result
 
         return result
 
@@ -716,6 +904,11 @@ class ParserXDR(Parser):
         result = self.data[self.position:(self.position + length)]
         self.position += length
         return bytes(result)
+
+    def parse_all(self) -> RData:
+        rdata = super().parse_all()
+        assert self.position == len(self.data)
+        return rdata
 
 
 def parse_file(
