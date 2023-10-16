@@ -28,7 +28,7 @@ jobs:
     - name: Run tests
       run: |
         pip3 install .
-        coverage run --source=rdata/ --omit=rdata/tests/ setup.py test;
+        coverage run --source=rdata/ --omit=rdata/tests/ pytest;
         
     - name: Generate coverage XML
       run: |
