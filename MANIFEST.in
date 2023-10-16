@@ -1,5 +1,4 @@
 include MANIFEST.in
-include rdata/VERSION
 include LICENSE
 include rdata/py.typed
 include *.txt
