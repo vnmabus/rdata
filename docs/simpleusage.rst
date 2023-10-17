@@ -32,7 +32,7 @@ Convert custom R classes
 
 The basic :func:`~rdata.conversion.convert` routine only constructs a
 :class:`~rdata.conversion.SimpleConverter` objects and calls its
-:func:`~rdata.conversion.SimpleConverter.convert` method. All arguments of
+:meth:`~rdata.conversion.SimpleConverter.convert` method. All arguments of
 :func:`~rdata.conversion.convert` are directly passed to the
 :class:`~rdata.conversion.SimpleConverter` initialization method.
 
@@ -55,18 +55,21 @@ Pandas :class:`~pandas.Categorical` objects:
 >>> import rdata
 
 >>> def factor_constructor(obj, attrs):
-...     values = [bytes(attrs['levels'][i - 1], 'utf8')
-...               if i >= 0 else None for i in obj]
+...     values = [
+...         bytes(attrs['levels'][i - 1], 'utf8')
+...         if i >= 0 else None for i in obj
+...     ]
 ...
 ...     return values
 
 >>> new_dict = {
-...         **rdata.conversion.DEFAULT_CLASS_MAP,
-...         "factor": factor_constructor
-...         }
+...     **rdata.conversion.DEFAULT_CLASS_MAP,
+...     "factor": factor_constructor
+... }
 
->>> parsed = rdata.parser.parse_file(rdata.TESTDATA_PATH
-...                                  / "test_dataframe.rda")
+>>> parsed = rdata.parser.parse_file(
+...     rdata.TESTDATA_PATH / "test_dataframe.rda"
+... )
 >>> converted = rdata.conversion.convert(parsed, new_dict)
 >>> converted
 {'test_dataframe':   class  value

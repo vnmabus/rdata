@@ -37,8 +37,8 @@ dependencies = [
 
 [project.optional-dependencies]
 docs = [
+  "pydata-sphinx-theme",
   "sphinx>=3.1",
-  "sphinx_rtd_theme",
 ]
 test = [
   "pytest",

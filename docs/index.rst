@@ -12,7 +12,6 @@ Open :code:`.rda` R data files containing datasets and convert them to the appro
    installation
    simpleusage
    apilist
-   internalapi
 
 rdata is developed `on Github <http://github.com/vnmabus/rdata>`_. Please
 report `issues <https://github.com/vnmabus/rdata/issues>`_ there as well.
