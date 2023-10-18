@@ -242,7 +242,7 @@ sphinx_gallery_conf = {
     },
     "doc_module": "rdata",
     "jupyterlite": {
-        "use_jupyter_lab": True,
+        "use_jupyter_lab": False,
     },
     "first_notebook_cell": textwrap.dedent("""\
     # %%
