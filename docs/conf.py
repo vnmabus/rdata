@@ -19,9 +19,11 @@
 #
 import os
 import sys
+import warnings
 
 import pkg_resources
 import rdata
+import textwrap
 
 # General information about the project.
 project = "rdata"
@@ -64,6 +66,7 @@ version = ".".join(release.split(".")[:2])
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "jupyterlite_sphinx",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.intersphinx",
@@ -71,6 +74,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.todo",
     "sphinx.ext.viewcode",
+    "sphinx_gallery.gen_gallery",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -129,6 +133,9 @@ html_theme_options = {
             "type": "url",
         },
     ],
+    "logo": {
+        "text": "🗃 rdata",
+    },
 }
 
 html_context = {
@@ -223,3 +230,27 @@ intersphinx_mapping = {
 # -- Options for "sphinx.ext.todo" --
 
 todo_include_todos = True
+
+
+# -- Options for "sphinx_gallery.gen_gallery" --
+
+sphinx_gallery_conf = {
+    "examples_dirs": ["../examples"],
+    "gallery_dirs": ["auto_examples"],
+    "reference_url": {
+        "rdata": None,
+    },
+    "doc_module": "rdata",
+    "jupyterlite": {
+        "use_jupyter_lab": True,
+    },
+    "first_notebook_cell": textwrap.dedent("""\
+    # %%
+    # If we are in a Pyodide kernel, we need to install the packages first.
+    #
+    
+    %pip install lzma
+    %pip install rdata
+    %pip install ipywidgets
+    """),
+}

@@ -12,6 +12,7 @@ Open :code:`.rda` R data files containing datasets and convert them to the appro
    installation
    simpleusage
    apilist
+   Try online! <https://rdata.readthedocs.io/en/latest/lite/lab/?path=auto_examples/plot_example.ipynb>
 
 rdata is developed `on Github <http://github.com/vnmabus/rdata>`_. Please
 report `issues <https://github.com/vnmabus/rdata/issues>`_ there as well.
