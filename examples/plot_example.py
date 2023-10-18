@@ -3,15 +3,8 @@
 R data loading
 ==============
 
-Shows how to load R packages.
+Use the file uploader to convert files to Python.
 """
-
-# Author: Carlos Ramos Carreño
-# License: MIT
-
-# %%
-# Use the file uploader to convert files to Python.
-#
 import rdata
 from ipywidgets import FileUpload, interact
 

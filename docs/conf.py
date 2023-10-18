@@ -245,10 +245,6 @@ sphinx_gallery_conf = {
         "use_jupyter_lab": True,
     },
     "first_notebook_cell": textwrap.dedent("""\
-    # %%
-    # If we are in a Pyodide kernel, we need to install the packages first.
-    #
-    
     %pip install lzma
     %pip install rdata
     %pip install ipywidgets
