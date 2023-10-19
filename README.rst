@@ -1,14 +1,35 @@
 rdata
 =====
 
-|build-status| |docs| |coverage| |landscape| |pypi| |zenodo|
+|build-status| |docs| |coverage| |pypi| |zenodo|
 
 Read R datasets from Python.
 
 ..
 	Github does not support include in README for dubious security reasons, so
 	we copy-paste instead. Also Github does not understand Sphinx directives.
+	.. include:: docs/index.rst
 	.. include:: docs/simpleusage.rst
+
+The package rdata offers a lightweight way to import R datasets/objects stored
+in the ".rda" and ".rds" formats into Python.
+Its main advantages are:
+
+- It is a pure Python implementation, with no dependencies on the R language or
+  related libraries.
+  Thus, it can be used anywhere where Python is supported, including the web
+  using `Pyodide <https://pyodide.org/>`_.
+- It attempt to support all R objects that can be meaningfully translated.
+  As opposed to other solutions, you are no limited to import dataframes or
+  data with a particular structure.
+- It allows users to easily customize the conversion of R classes to Python
+  ones.
+  Does your data use custom R classes?
+  Worry no longer, as it is possible to define custom conversions to the Python
+  classes of your choosing.
+- It has a permissive license (MIT). As opposed to other packages that depend
+  on R libraries and thus need to adhere to the GPL license, you can use rdata
+  as a dependency on MIT, BSD or even closed source projects.
 	
 Installation
 ============
@@ -122,10 +143,6 @@ Pandas `Categorical` objects:
     :alt: Coverage Status
     :scale: 100%
     :target: https://codecov.io/gh/vnmabus/rdata/branch/develop
-    
-.. |landscape| image:: https://landscape.io/github/vnmabus/rdata/develop/landscape.svg?style=flat
-   :target: https://landscape.io/github/vnmabus/rdata/develop
-   :alt: Code Health
     
 .. |pypi| image:: https://badge.fury.io/py/rdata.svg
     :alt: Pypi version

@@ -1,3 +1,67 @@
+[project]
+name = "rdata"
+description = "Read R datasets from Python."
+readme = "README.rst"
+requires-python = ">=3.9"
+license = {file = "LICENSE"}
+keywords = [
+	"rdata",
+	"r",
+	"dataset",
+]
+maintainers = [
+  {name = "Carlos Ramos Carreño", email = "vnmabus@gmail.com"},
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Topic :: File Formats",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+
+dynamic = ["version"]
+
+dependencies = [
+	"numpy",
+	"xarray",
+	"pandas",
+]
+
+[project.optional-dependencies]
+docs = [
+  "ipywidgets",
+  "jupyterlite-sphinx",
+  "jupyterlite-pyodide-kernel",
+  "matplotlib",
+  "pydata-sphinx-theme",
+  "sphinx>=3.1",
+  "sphinx-gallery",
+]
+test = [
+  "pytest",
+  "pytest-cov",
+  "numpy>=1.14",
+]
+
+[project.urls]
+homepage = "https://github.com/vnmabus/rdata"
+documentation = "https://rdata.readthedocs.io"
+repository = "https://github.com/vnmabus/rdata"
+
 [build-system]
-# Minimum requirements for the build system to execute.
-requires = ["setuptools"]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["rdata*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "rdata.__version__"}
