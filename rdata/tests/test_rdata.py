@@ -8,9 +8,8 @@ from typing import Any, Dict
 
 import numpy as np
 import pandas as pd
-import xarray
-
 import rdata
+import xarray
 
 TESTDATA_PATH = rdata.TESTDATA_PATH
 
