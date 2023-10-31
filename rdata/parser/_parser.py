@@ -9,19 +9,18 @@ import os
 import pathlib
 import warnings
 import xdrlib
+from collections.abc import Iterator
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import (
     Any,
     BinaryIO,
     Callable,
-    List,
+    Final,
     Mapping,
     Optional,
     Sequence,
-    Set,
     TextIO,
-    Tuple,
 )
 
 import numpy as np
@@ -31,7 +30,6 @@ try:
         Traversable as Traversable,
     )
 except ImportError:
-    from collections.abc import Iterator
     from typing import Protocol, runtime_checkable
 
     @runtime_checkable
@@ -96,7 +94,7 @@ magic_dict = {
 }
 
 
-def file_type(data: memoryview) -> Optional[FileTypes]:
+def file_type(data: memoryview) -> FileTypes | None:
     """Return the type of the file."""
     for filetype, magic in magic_dict.items():
         if data[:len(magic)] == magic:
@@ -112,14 +110,14 @@ class RdataFormats(enum.Enum):
     binary = "binary"
 
 
-format_dict = {
+format_dict: Final = MappingProxyType({
     RdataFormats.XDR: b"X\n",
     RdataFormats.ASCII: b"A\n",
     RdataFormats.binary: b"B\n",
-}
+})
 
 
-def rdata_format(data: memoryview) -> Optional[RdataFormats]:
+def rdata_format(data: memoryview) -> RdataFormats | None:
     """Return the format of the data."""
     for format_type, magic in format_dict.items():
         if data[:len(magic)] == magic:
@@ -166,7 +164,7 @@ class RObjectType(enum.Enum):
     REF = 255  # Reference
 
 
-BYTECODE_SPECIAL_SET = frozenset((
+BYTECODE_SPECIAL_SET: Final = frozenset((
     RObjectType.BCODE,
     RObjectType.BCREPREF,
     RObjectType.BCREPDEF,
@@ -224,7 +222,7 @@ class RObjectInfo():
 def _str_internal(
     obj: RObject | Sequence[RObject],
     indent: int = 0,
-    used_references: Optional[Set[int]] = None,
+    used_references: Optional[set[int]] = None,
 ) -> str:
 
     if used_references is None:
@@ -357,7 +355,7 @@ class EnvironmentValue():
 
 AltRepConstructor = Callable[
     [RObject],
-    Tuple[RObjectInfo, Any],
+    tuple[RObjectInfo, Any],
 ]
 AltRepConstructorMap = Mapping[bytes, AltRepConstructor]
 
@@ -378,7 +376,7 @@ def format_float_with_scipen(number: float, scipen: int) -> bytes:
 
 def deferred_string_constructor(
     state: RObject,
-) -> Tuple[RObjectInfo, Any]:
+) -> tuple[RObjectInfo, Any]:
     """Expand a deferred string ALTREP."""
     new_info = RObjectInfo(
         type=RObjectType.STR,
@@ -417,7 +415,7 @@ def compact_seq_constructor(
     state: RObject,
     *,
     is_int: bool = False,
-) -> Tuple[RObjectInfo, Any]:
+) -> tuple[RObjectInfo, Any]:
     """Expand a compact_seq ALTREP."""
     new_info = RObjectInfo(
         type=RObjectType.INT if is_int else RObjectType.REAL,
@@ -444,21 +442,21 @@ def compact_seq_constructor(
 
 def compact_intseq_constructor(
     state: RObject,
-) -> Tuple[RObjectInfo, Any]:
+) -> tuple[RObjectInfo, Any]:
     """Expand a compact_intseq ALTREP."""
     return compact_seq_constructor(state, is_int=True)
 
 
 def compact_realseq_constructor(
     state: RObject,
-) -> Tuple[RObjectInfo, Any]:
+) -> tuple[RObjectInfo, Any]:
     """Expand a compact_realseq ALTREP."""
     return compact_seq_constructor(state, is_int=False)
 
 
 def wrap_constructor(
     state: RObject,
-) -> Tuple[RObjectInfo, Any]:
+) -> tuple[RObjectInfo, Any]:
     """Expand any wrap_* ALTREP."""
     new_info = RObjectInfo(
         type=state.value[0].info.type,
@@ -474,7 +472,7 @@ def wrap_constructor(
     return new_info, value
 
 
-default_altrep_map_dict: Mapping[bytes, AltRepConstructor] = {
+default_altrep_map_dict: Final[Mapping[bytes, AltRepConstructor]] = {
     b"deferred_string": deferred_string_constructor,
     b"compact_intseq": compact_intseq_constructor,
     b"compact_realseq": compact_realseq_constructor,
@@ -486,7 +484,7 @@ default_altrep_map_dict: Mapping[bytes, AltRepConstructor] = {
     b"wrap_raw": wrap_constructor,
 }
 
-DEFAULT_ALTREP_MAP = MappingProxyType(default_altrep_map_dict)
+DEFAULT_ALTREP_MAP: Final = MappingProxyType(default_altrep_map_dict)
 
 
 class Parser(abc.ABC):
@@ -564,7 +562,7 @@ class Parser(abc.ABC):
         self,
         info: RObject,
         state: RObject,
-    ) -> Tuple[RObjectInfo, Any]:
+    ) -> tuple[RObjectInfo, Any]:
         """Expand alternative representation to normal object."""
         assert info.info.type == RObjectType.LIST
 
@@ -583,8 +581,8 @@ class Parser(abc.ABC):
 
     def _parse_bytecode_constant(
         self,
-        reference_list: Optional[List[RObject]],
-        bytecode_rep_list: List[RObject | None] | None = None,
+        reference_list: list[RObject] | None,
+        bytecode_rep_list: list[RObject | None] | None = None,
     ) -> RObject:
 
         obj_type = self.parse_int()
@@ -597,9 +595,9 @@ class Parser(abc.ABC):
 
     def _parse_bytecode(
         self,
-        reference_list: Optional[List[RObject]],
-        bytecode_rep_list: List[RObject | None] | None = None,
-    ) -> Tuple[RObject, Sequence[RObject]]:
+        reference_list: list[RObject] | None,
+        bytecode_rep_list: list[RObject | None] | None = None,
+    ) -> tuple[RObject, Sequence[RObject]]:
         """Parse R bytecode."""
         if bytecode_rep_list is None:
             n_repeated = self.parse_int()
@@ -622,8 +620,8 @@ class Parser(abc.ABC):
 
     def parse_R_object(
         self,
-        reference_list: List[RObject] | None = None,
-        bytecode_rep_list: List[RObject | None] | None = None,
+        reference_list: list[RObject] | None = None,
+        bytecode_rep_list: list[RObject | None] | None = None,
         info_int: int | None = None,
     ) -> RObject:
         """Parse a R object."""
@@ -1052,7 +1050,7 @@ def parse_file(
 
     if path is None:
         # file is a pre-opened file
-        buffer: Optional[BinaryIO] = getattr(file_or_path, 'buffer', None)
+        buffer: BinaryIO | None = getattr(file_or_path, 'buffer', None)
         if buffer is None:
             assert isinstance(file_or_path, BinaryIO)
             binary_file: BinaryIO = file_or_path
