@@ -14,7 +14,7 @@ import xarray
 TESTDATA_PATH = rdata.TESTDATA_PATH
 
 
-class SimpleTests(unittest.TestCase):
+class SimpleTests(unittest.TestCase):  # noqa:WPS214
     """Collection of simple test cases."""
 
     def test_opened_file(self) -> None:
@@ -234,7 +234,8 @@ class SimpleTests(unittest.TestCase):
     def test_minimal_function_uncompiled(self) -> None:
         """Test that a minimal function can be parsed."""
         parsed = rdata.parser.parse_file(
-            TESTDATA_PATH / "test_minimal_function_uncompiled.rda")
+            TESTDATA_PATH / "test_minimal_function_uncompiled.rda",
+        )
         converted = rdata.conversion.convert(parsed)
 
         converted_fun = converted["test_minimal_function_uncompiled"]
@@ -255,7 +256,8 @@ class SimpleTests(unittest.TestCase):
     def test_minimal_function(self) -> None:
         """Test that a minimal function (compiled) can be parsed."""
         parsed = rdata.parser.parse_file(
-            TESTDATA_PATH / "test_minimal_function.rda")
+            TESTDATA_PATH / "test_minimal_function.rda",
+        )
         converted = rdata.conversion.convert(parsed)
 
         converted_fun = converted["test_minimal_function"]
@@ -286,7 +288,8 @@ class SimpleTests(unittest.TestCase):
     def test_empty_function_uncompiled(self) -> None:
         """Test that a simple function can be parsed."""
         parsed = rdata.parser.parse_file(
-            TESTDATA_PATH / "test_empty_function_uncompiled.rda")
+            TESTDATA_PATH / "test_empty_function_uncompiled.rda",
+        )
         converted = rdata.conversion.convert(parsed)
 
         converted_fun = converted["test_empty_function_uncompiled"]
@@ -301,13 +304,14 @@ class SimpleTests(unittest.TestCase):
         self.assertIsInstance(converted_fun.body, rdata.conversion.RLanguage)
         np.testing.assert_equal(
             converted_fun.source,
-            "test_empty_function_uncompiled <- function() {}\n",
+            "test_empty_function_uncompiled <- function() {}\n",  # noqa:P103
         )
 
     def test_empty_function(self) -> None:
         """Test that a simple function (compiled) can be parsed."""
         parsed = rdata.parser.parse_file(
-            TESTDATA_PATH / "test_empty_function.rda")
+            TESTDATA_PATH / "test_empty_function.rda",
+        )
         converted = rdata.conversion.convert(parsed)
 
         converted_fun = converted["test_empty_function"]
@@ -332,13 +336,14 @@ class SimpleTests(unittest.TestCase):
 
         np.testing.assert_equal(
             converted_fun.source,
-            "test_empty_function <- function() {}\n",
+            "test_empty_function <- function() {}\n",  # noqa:P103
         )
 
     def test_function(self) -> None:
         """Test that functions can be parsed."""
         parsed = rdata.parser.parse_file(
-            TESTDATA_PATH / "test_function.rda")
+            TESTDATA_PATH / "test_function.rda",
+        )
         converted = rdata.conversion.convert(parsed)
 
         converted_fun = converted["test_function"]
@@ -372,7 +377,8 @@ class SimpleTests(unittest.TestCase):
     def test_function_arg(self) -> None:
         """Test that functions can be parsed."""
         parsed = rdata.parser.parse_file(
-            TESTDATA_PATH / "test_function_arg.rda")
+            TESTDATA_PATH / "test_function_arg.rda",
+        )
         converted = rdata.conversion.convert(parsed)
 
         converted_fun = converted["test_function_arg"]

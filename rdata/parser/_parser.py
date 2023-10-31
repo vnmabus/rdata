@@ -12,7 +12,6 @@ import xdrlib
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import (
-    TYPE_CHECKING,
     Any,
     BinaryIO,
     Callable,
@@ -23,10 +22,59 @@ from typing import (
     Set,
     TextIO,
     Tuple,
-    Union,
 )
 
 import numpy as np
+
+try:
+    from importlib.resources.abc import (  # noqa:WPS113
+        Traversable as Traversable,
+    )
+except ImportError:
+    from collections.abc import Iterator
+    from typing import Protocol, runtime_checkable
+
+    @runtime_checkable
+    class Traversable(Protocol):  # type: ignore [no-redef]
+        """Definition of Traversable protocol for Python < 3.11."""
+
+        def iterdir(self) -> Iterator["Traversable"]:
+            pass
+
+        def read_bytes(self) -> bytes:
+            pass
+
+        def read_text(self, encoding: str | None = None) -> str:
+            pass
+
+        def is_dir(self) -> bool:
+            pass
+
+        def is_file(self) -> bool:
+            pass
+
+        def joinpath(
+            self,
+            *descendants: str | os.PathLike[str],
+        ) -> "Traversable":
+            pass
+
+        def __truediv__(
+            self,
+            child: str | os.PathLike[str],
+        ) -> "Traversable":
+            pass
+
+        def open(
+            self,
+            mode: str = 'r',
+            *args: Any,
+            **kwargs: Any,
+        ) -> BinaryIO | TextIO:
+            pass
+
+        def name(self) -> str:
+            pass
 
 
 class FileTypes(enum.Enum):
@@ -118,7 +166,7 @@ class RObjectType(enum.Enum):
     REF = 255  # Reference
 
 
-BYTECODE_SPECIAL_SET = {
+BYTECODE_SPECIAL_SET = frozenset((
     RObjectType.BCODE,
     RObjectType.BCREPREF,
     RObjectType.BCREPDEF,
@@ -126,7 +174,7 @@ BYTECODE_SPECIAL_SET = {
     RObjectType.LIST,
     RObjectType.ATTRLANG,
     RObjectType.ATTRLIST,
-}
+))
 
 
 class CharFlags(enum.IntFlag):
@@ -912,7 +960,7 @@ class ParserXDR(Parser):
 
 
 def parse_file(
-    file_or_path: Union[BinaryIO, TextIO, 'os.PathLike[Any]', str],
+    file_or_path: BinaryIO | TextIO | os.PathLike[Any] | Traversable | str,
     *,
     expand_altrep: bool = True,
     altrep_constructor_dict: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
@@ -995,12 +1043,14 @@ def parse_file(
                      referenced_object=None))
 
     """
-    if isinstance(file_or_path, (os.PathLike, str)):
+    path = None
+
+    if isinstance(file_or_path, Traversable):
+        path = file_or_path
+    elif isinstance(file_or_path, (os.PathLike, str)):
         path = pathlib.Path(file_or_path)
-        if extension is None:
-            extension = path.suffix
-        data = path.read_bytes()
-    else:
+
+    if path is None:
         # file is a pre-opened file
         buffer: Optional[BinaryIO] = getattr(file_or_path, 'buffer', None)
         if buffer is None:
@@ -1009,6 +1059,11 @@ def parse_file(
         else:
             binary_file = buffer
         data = binary_file.read()
+    else:
+        if extension is None:
+            extension = getattr(path, "suffix", None)
+        data = path.read_bytes()
+
     return parse_data(
         data,
         expand_altrep=expand_altrep,

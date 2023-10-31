@@ -1,15 +1,18 @@
 """rdata: Read R datasets from Python."""
+from __future__ import annotations
+
 from importlib.resources import files
-from importlib.resources.abc import Traversable
+from typing import Final
 
 from . import conversion, parser
+from .parser._parser import Traversable
 
 
 def _get_test_data_path() -> Traversable:
     return files(__name__) / "tests" / "data"
 
 
-TESTDATA_PATH = _get_test_data_path()
+TESTDATA_PATH: Final[Traversable] = _get_test_data_path()
 """
 Path of the test data.
 
