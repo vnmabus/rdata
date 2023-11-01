@@ -14,23 +14,43 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import (
     Any,
-    BinaryIO,
     Callable,
     Final,
     Mapping,
     Optional,
+    Protocol,
     Sequence,
-    TextIO,
+    Union,
+    runtime_checkable,
 )
 
 import numpy as np
+
+
+@runtime_checkable
+class BinaryFileLike(Protocol):
+    """Protocol for binary files."""
+
+    def read(self) -> bytes:
+        """Read the contents of the file."""
+
+
+@runtime_checkable
+class BinaryBufferFileLike(Protocol):
+    """Protocol for binary files."""
+
+    @property
+    def buffer(self) -> BinaryFileLike:
+        """Get the underlying buffer."""
+
+
+AcceptableFile = Union[BinaryFileLike, BinaryBufferFileLike]
 
 try:
     from importlib.resources.abc import (  # noqa:WPS113
         Traversable as Traversable,
     )
 except ImportError:
-    from typing import Protocol, runtime_checkable
 
     @runtime_checkable
     class Traversable(Protocol):  # type: ignore [no-redef]
@@ -68,7 +88,7 @@ except ImportError:
             mode: str = 'r',
             *args: Any,
             **kwargs: Any,
-        ) -> BinaryIO | TextIO:
+        ) -> AcceptableFile:
             pass
 
         def name(self) -> str:
@@ -958,7 +978,7 @@ class ParserXDR(Parser):
 
 
 def parse_file(
-    file_or_path: BinaryIO | TextIO | os.PathLike[Any] | Traversable | str,
+    file_or_path: AcceptableFile | os.PathLike[Any] | Traversable | str,
     *,
     expand_altrep: bool = True,
     altrep_constructor_dict: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
@@ -1047,17 +1067,18 @@ def parse_file(
         path = file_or_path
     elif isinstance(file_or_path, (os.PathLike, str)):
         path = pathlib.Path(file_or_path)
-
-    if path is None:
-        # file is a pre-opened file
-        buffer: BinaryIO | None = getattr(file_or_path, 'buffer', None)
-        if buffer is None:
-            assert isinstance(file_or_path, BinaryIO)
-            binary_file: BinaryIO = file_or_path
-        else:
-            binary_file = buffer
-        data = binary_file.read()
     else:
+        # file is a pre-opened file
+        binary_file = (
+            file_or_path.buffer
+            if isinstance(file_or_path, BinaryBufferFileLike)
+            else file_or_path
+        )
+
+        data = binary_file.read()
+
+    if path is not None:
+        # file was a path-like
         if extension is None:
             extension = getattr(path, "suffix", None)
         data = path.read_bytes()
