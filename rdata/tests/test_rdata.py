@@ -495,7 +495,7 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
                             "value": pd.Series(
                                 [1, 2, 3],
                                 dtype=pd.Int32Dtype(),
-                            ),
+                            ).values,
                         },
                         index=pd.RangeIndex(start=1, stop=4),
                     ),
@@ -520,7 +520,7 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
                             "value": pd.Series(
                                 [1, 2, 3],
                                 dtype=pd.Int32Dtype(),
-                            ),
+                            ).values,
                         },
                         index=pd.RangeIndex(start=1, stop=4),
                     ),
@@ -543,7 +543,7 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
                     "value": pd.Series(
                         [1, 2, 3],
                         dtype=pd.Int32Dtype(),
-                    ),
+                    ).values,
                 },
                 index=('Madrid', 'Frankfurt', 'Herzberg am Harz'),
             ),
