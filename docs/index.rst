@@ -31,6 +31,7 @@ Its main advantages are:
    installation
    simpleusage
    apilist
+   auto_examples/index
    Try online! <https://rdata.readthedocs.io/en/latest/lite/lab/?path=auto_examples/plot_example.ipynb>
 
 The package rdata is developed `on Github <http://github.com/vnmabus/rdata>`_.
