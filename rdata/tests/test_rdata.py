@@ -8,8 +8,9 @@ from typing import Any, Dict
 
 import numpy as np
 import pandas as pd
-import rdata
 import xarray
+
+import rdata
 
 TESTDATA_PATH = rdata.TESTDATA_PATH
 
@@ -42,6 +43,40 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
         np.testing.assert_equal(converted, {
             "test_logical": np.array([True, True, False, True, False]),
         })
+
+    def test_nullable_logical(self) -> None:
+        """Test parsing of logical vectors containing NA."""
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_nullable_logical.rda",
+        )
+        converted = rdata.conversion.convert(parsed)
+
+        data = converted["test_nullable_logical"]
+        np.testing.assert_array_equal(
+            data.data,
+            np.array([True, False, True]),
+        )
+        np.testing.assert_array_equal(
+            data.mask,
+            np.array([False, False, True]),
+        )
+
+    def test_nullable_int(self) -> None:
+        """Test parsing of integer vectors containing NA."""
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_nullable_int.rda",
+        )
+        converted = rdata.conversion.convert(parsed)
+
+        data = converted["test_nullable_int"]
+        np.testing.assert_array_equal(
+            data.data,
+            np.array([313, -12, -2**31]),
+        )
+        np.testing.assert_array_equal(
+            data.mask,
+            np.array([False, False, True]),
+        )
 
     def test_vector(self) -> None:
         """Test parsing of numerical vectors."""
@@ -457,7 +492,10 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
                             "class": pd.Categorical(
                                 ["a", "b", "b"],
                             ),
-                            "value": [1, 2, 3],
+                            "value": pd.Series(
+                                [1, 2, 3],
+                                dtype=pd.Int32Dtype(),
+                            ),
                         },
                         index=pd.RangeIndex(start=1, stop=4),
                     ),
@@ -479,7 +517,10 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
                             "class": pd.Categorical(
                                 ["a", "b", "b"],
                             ),
-                            "value": [1, 2, 3],
+                            "value": pd.Series(
+                                [1, 2, 3],
+                                dtype=pd.Int32Dtype(),
+                            ),
                         },
                         index=pd.RangeIndex(start=1, stop=4),
                     ),
@@ -499,7 +540,10 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
                     "class": pd.Categorical(
                         ["a", "b", "b"],
                     ),
-                    "value": [1, 2, 3],
+                    "value": pd.Series(
+                        [1, 2, 3],
+                        dtype=pd.Int32Dtype(),
+                    ),
                 },
                 index=('Madrid', 'Frankfurt', 'Herzberg am Harz'),
             ),

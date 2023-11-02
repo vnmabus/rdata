@@ -20,11 +20,15 @@ from typing import (
     Optional,
     Protocol,
     Sequence,
+    TypeVar,
     Union,
     runtime_checkable,
 )
 
 import numpy as np
+
+R_INT_NA = -2**31  # noqa: WPS432
+"""Value used to represent a missing integer in R."""
 
 
 @runtime_checkable
@@ -523,10 +527,23 @@ class Parser(abc.ABC):
         """Parse a boolean."""
         return bool(self.parse_int())
 
+    def parse_nullable_bool(self) -> bool | None:
+        """Parse a boolean."""
+        read_value = self.parse_nullable_int()
+        if read_value is None:
+            return None
+
+        return bool(read_value)
+
     @abc.abstractmethod
     def parse_int(self) -> int:
         """Parse an integer."""
         pass
+
+    def parse_nullable_int(self) -> int | None:  # noqa: D102
+        result = self.parse_int()
+
+        return None if result == R_INT_NA else result
 
     @abc.abstractmethod
     def parse_double(self) -> float:
@@ -637,6 +654,37 @@ class Parser(abc.ABC):
         ]
 
         return (code, constants)
+
+    T = TypeVar("T")
+
+    def _parse_nullable_array(
+        self,
+        dtype: type[T],
+        parse_function: Callable[[], T | None],
+        fill_value: T,
+    ) -> np.ndarray[Any, Any] | np.ma.MaskedArray[Any, Any]:
+
+        length = self.parse_int()
+
+        value = np.empty(length, dtype=dtype)
+        mask = np.zeros(length, dtype=np.bool_)
+
+        for i in range(length):
+            parsed = parse_function()
+            if parsed is None:
+                mask[i] = True
+                value[i] = fill_value
+            else:
+                value[i] = parsed
+
+        if np.any(mask):
+            return np.ma.MaskedArray(
+                data=value,
+                mask=mask,
+                fill_value=fill_value,
+            )
+
+        return value
 
     def parse_R_object(
         self,
@@ -778,20 +826,18 @@ class Parser(abc.ABC):
                 )
 
         elif info.type == RObjectType.LGL:
-            length = self.parse_int()
-
-            value = np.empty(length, dtype=np.bool_)
-
-            for i in range(length):
-                value[i] = self.parse_bool()
+            value = self._parse_nullable_array(
+                dtype=np.bool_,
+                parse_function=self.parse_nullable_bool,
+                fill_value=True,
+            )
 
         elif info.type == RObjectType.INT:
-            length = self.parse_int()
-
-            value = np.empty(length, dtype=np.int64)
-
-            for i in range(length):
-                value[i] = self.parse_int()
+            value = self._parse_nullable_array(
+                dtype=np.int32,
+                parse_function=self.parse_nullable_int,
+                fill_value=R_INT_NA,
+            )
 
         elif info.type == RObjectType.REAL:
             length = self.parse_int()

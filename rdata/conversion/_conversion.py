@@ -249,7 +249,7 @@ def convert_vector(
 
     # If it has the name attribute, use a dict instead
     field_names = attrs.get('names')
-    if field_names:
+    if field_names is not None:
         value = dict(zip(field_names, value))
 
     return value
@@ -433,6 +433,22 @@ def convert_array(
     return value
 
 
+R_INT_MIN = -2**31  # noqa: WPS432
+
+
+def _dataframe_column_transform(source: Any) -> Any:
+
+    if isinstance(source, np.ndarray):
+        if np.issubdtype(source.dtype, np.integer):
+            return pandas.Series(source, dtype=pandas.Int32Dtype()).values
+        elif np.issubdtype(source.dtype, np.bool_):
+            return pandas.Series(source, dtype=pandas.BooleanDtype()).values
+        elif np.issubdtype(source.dtype, np.str_):
+            return pandas.Series(source, dtype=pandas.StringDtype()).values
+
+    return source
+
+
 def dataframe_constructor(
     obj: Any,
     attrs: StrMap,
@@ -440,11 +456,16 @@ def dataframe_constructor(
 
     row_names = attrs["row.names"]
 
-    # Default row names are stored as [INT_MIN, -len]
-    INT_MIN = -2**31  # noqa: WPS432
+    obj = {key: _dataframe_column_transform(val) for key, val in obj.items()}
+
+    # Default row names are stored as [R_INT_NA, -len]
     index = (
         pandas.RangeIndex(1, abs(row_names[1]) + 1)
-        if len(row_names) == 2 and row_names[0] == INT_MIN
+        if (
+            len(row_names) == 2
+            and isinstance(row_names, np.ma.MaskedArray)
+            and row_names.mask[0]
+        )
         else tuple(row_names)
     )
 
@@ -755,7 +776,7 @@ class SimpleConverter(Converter):
         elif obj.info.type == parser.RObjectType.STR:
 
             # Convert the internal strings
-            value = [self._convert_next(o) for o in obj.value]
+            value = np.array([self._convert_next(o) for o in obj.value])
 
         elif obj.info.type == parser.RObjectType.VEC:
 
