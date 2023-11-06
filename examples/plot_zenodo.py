@@ -6,6 +6,8 @@ A simple example showing how to read a dataset in the RDS format from a URL.
 
 """
 
+# sphinx_gallery_thumbnail_path = '_static/download.png'
+
 # %%
 # If the data to read is accesible at a particular URL, we can open it as a
 # file using the function :external+python:func:`urllib.request.urlopen`.
@@ -62,4 +64,4 @@ converted = rdata.conversion.convert(parsed)
 # RDS files contain just one R object.
 # In this particular case, it is a R dataframe object, that will be converted
 # to a Pandas dataframe by default.
-print(converted)
+converted
