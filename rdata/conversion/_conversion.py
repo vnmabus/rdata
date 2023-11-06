@@ -9,7 +9,7 @@ from typing import (
     Any,
     Callable,
     ChainMap,
-    List,
+    Final,
     Mapping,
     MutableMapping,
     NamedTuple,
@@ -33,14 +33,14 @@ StrMap = Mapping[Union[str, bytes], Any]
 class RLanguage(NamedTuple):
     """R language construct."""
 
-    elements: List[Any]
+    elements: list[Any]
     attributes: Mapping[str, Any]
 
 
 class RExpression(NamedTuple):
     """R expression."""
 
-    elements: List[RLanguage]
+    elements: list[RLanguage]
 
 
 @dataclass
@@ -96,7 +96,7 @@ class REnvironment(ChainMap[Union[str, bytes], Any]):
 def convert_list(
     r_list: parser.RObject,
     conversion_function: ConversionFunction,
-) -> Union[StrMap, List[Any]]:
+) -> StrMap | list[Any]:
     """
     Expand a tagged R pairlist to a Python dictionary.
 
@@ -206,8 +206,8 @@ def convert_attrs(
 def convert_vector(
     r_vec: parser.RObject,
     conversion_function: ConversionFunction,
-    attrs: Optional[StrMap] = None,
-) -> Union[List[Any], StrMap]:
+    attrs: StrMap | None = None,
+) -> list[Any] | StrMap:
     """
     Convert a R vector to a Python list or dictionary.
 
@@ -243,13 +243,13 @@ def convert_vector(
     }:
         raise TypeError("Must receive a VEC or EXPR object")
 
-    value: Union[List[Any], StrMap] = [
+    value: list[Any] | StrMap = [
         conversion_function(o) for o in r_vec.value
     ]
 
     # If it has the name attribute, use a dict instead
     field_names = attrs.get('names')
-    if field_names:
+    if field_names is not None:
         value = dict(zip(field_names, value))
 
     return value
@@ -268,9 +268,9 @@ def safe_decode(byte_str: bytes, encoding: str) -> Union[str, bytes]:
 
 def convert_char(
     r_char: parser.RObject,
-    default_encoding: Optional[str] = None,
+    default_encoding: str | None = None,
     force_default_encoding: bool = False,
-) -> Union[str, bytes, None]:
+) -> str | bytes | None:
     """
     Decode a R character array to a Python string or bytes.
 
@@ -331,7 +331,7 @@ def convert_char(
 def convert_symbol(
     r_symbol: parser.RObject,
     conversion_function: ConversionFunction,
-) -> Union[str, bytes]:
+) -> str | bytes:
     """
     Decode a R symbol to a Python string or bytes.
 
@@ -364,8 +364,8 @@ def convert_symbol(
 def convert_array(
     r_array: RObject,
     conversion_function: ConversionFunction,
-    attrs: Optional[StrMap] = None,
-) -> Union[np.ndarray, xarray.DataArray]:
+    attrs: StrMap | None = None,
+) -> np.ndarray | xarray.DataArray:
     """
     Convert a R array to a Numpy ndarray or a Xarray DataArray.
 
@@ -433,6 +433,22 @@ def convert_array(
     return value
 
 
+R_INT_MIN = -2**31  # noqa: WPS432
+
+
+def _dataframe_column_transform(source: Any) -> Any:
+
+    if isinstance(source, np.ndarray):
+        if np.issubdtype(source.dtype, np.integer):
+            return pandas.Series(source, dtype=pandas.Int32Dtype()).values
+        elif np.issubdtype(source.dtype, np.bool_):
+            return pandas.Series(source, dtype=pandas.BooleanDtype()).values
+        elif np.issubdtype(source.dtype, np.str_):
+            return pandas.Series(source, dtype=pandas.StringDtype()).values
+
+    return source
+
+
 def dataframe_constructor(
     obj: Any,
     attrs: StrMap,
@@ -440,11 +456,16 @@ def dataframe_constructor(
 
     row_names = attrs["row.names"]
 
-    # Default row names are stored as [INT_MIN, -len]
-    INT_MIN = -2**31  # noqa: WPS432
+    obj = {key: _dataframe_column_transform(val) for key, val in obj.items()}
+
+    # Default row names are stored as [R_INT_NA, -len]
     index = (
         pandas.RangeIndex(1, abs(row_names[1]) + 1)
-        if len(row_names) == 2 and row_names[0] == INT_MIN
+        if (
+            len(row_names) == 2
+            and isinstance(row_names, np.ma.MaskedArray)
+            and row_names.mask[0]
+        )
         else tuple(row_names)
     )
 
@@ -573,7 +594,7 @@ ConstructorDict = Mapping[
     Constructor,
 ]
 
-default_class_map_dict: Mapping[Union[str, bytes], Constructor] = {
+default_class_map_dict: Final[Mapping[Union[str, bytes], Constructor]] = {
     "data.frame": dataframe_constructor,
     "factor": factor_constructor,
     "ordered": ordered_constructor,
@@ -583,7 +604,7 @@ default_class_map_dict: Mapping[Union[str, bytes], Constructor] = {
     "srcfilecopy": srcfilecopy_constructor,
 }
 
-DEFAULT_CLASS_MAP = MappingProxyType(default_class_map_dict)
+DEFAULT_CLASS_MAP: Final = MappingProxyType(default_class_map_dict)
 """
 Default mapping of constructor functions.
 
@@ -604,9 +625,15 @@ class Converter(abc.ABC):
     """Interface of a class converting R objects in Python objects."""
 
     @abc.abstractmethod
-    def convert(self, data: Union[parser.RData, parser.RObject]) -> Any:
+    def convert(self, data: parser.RData | parser.RObject) -> Any:
         """Convert a R object to a Python one."""
         pass
+
+
+@dataclass
+class UnresolvedReference():
+    references: MutableMapping[int, Any]
+    index: int
 
 
 class SimpleConverter(Converter):
@@ -638,9 +665,11 @@ class SimpleConverter(Converter):
     def __init__(
         self,
         constructor_dict: ConstructorDict = DEFAULT_CLASS_MAP,
-        default_encoding: Optional[str] = None,
+        *,
+        default_encoding: str | None = None,
         force_default_encoding: bool = False,
         global_environment: MutableMapping[str | bytes, Any] | None = None,
+        base_environment: MutableMapping[str | bytes, Any] | None = None,
     ) -> None:
 
         self.constructor_dict = constructor_dict
@@ -649,6 +678,10 @@ class SimpleConverter(Converter):
         self.global_environment = REnvironment(
             {} if global_environment is None
             else global_environment,
+        )
+        self.base_environment = REnvironment(
+            {} if base_environment is None
+            else base_environment,
         )
         self.empty_environment: StrMap = REnvironment({})
 
@@ -660,12 +693,12 @@ class SimpleConverter(Converter):
 
     def convert(  # noqa: D102
         self,
-        data: Union[parser.RData, parser.RObject],
+        data: parser.RData | parser.RObject,
     ) -> Any:
         self._reset()
         return self._convert_next(data)
 
-    def _convert_next(self, data: Union[parser.RData, parser.RObject]) -> Any:
+    def _convert_next(self, data: parser.RData | parser.RObject) -> Any:
         """Convert a R object to a Python one."""
         obj: RObject
         if isinstance(data, parser.RData):
@@ -696,6 +729,7 @@ class SimpleConverter(Converter):
 
         elif obj.info.type == parser.RObjectType.CLO:
             assert obj.tag is not None
+            assert obj.attributes is not None
             environment = self._convert_next(obj.tag)
             formals = self._convert_next(obj.value[0])
             body = self._convert_next(obj.value[1])
@@ -725,7 +759,10 @@ class SimpleConverter(Converter):
 
             value = RLanguage(rlanguage_list, attributes)
 
-        elif obj.info.type in {parser.RObjectType.SPECIAL, parser.RObjectType.BUILTIN}:
+        elif obj.info.type in {
+            parser.RObjectType.SPECIAL,
+            parser.RObjectType.BUILTIN,
+        }:
 
             value = RBuiltin(name=obj.value.decode("ascii"))
 
@@ -751,7 +788,7 @@ class SimpleConverter(Converter):
         elif obj.info.type == parser.RObjectType.STR:
 
             # Convert the internal strings
-            value = [self._convert_next(o) for o in obj.value]
+            value = np.array([self._convert_next(o) for o in obj.value])
 
         elif obj.info.type == parser.RObjectType.VEC:
 
@@ -787,6 +824,9 @@ class SimpleConverter(Converter):
         elif obj.info.type == parser.RObjectType.S4:
             value = SimpleNamespace(**attrs)
 
+        elif obj.info.type == parser.RObjectType.BASEENV:
+            value = self.base_environment
+
         elif obj.info.type == parser.RObjectType.EMPTYENV:
             value = self.empty_environment
 
@@ -803,6 +843,10 @@ class SimpleConverter(Converter):
             if value is None:
                 reference_id = id(obj.referenced_object)
                 assert obj.referenced_object is not None
+                self.references[reference_id] = UnresolvedReference(
+                    self.references,
+                    reference_id,
+                )
                 value = self._convert_next(obj.referenced_object)
 
         elif obj.info.type == parser.RObjectType.NILVALUE:
@@ -854,7 +898,7 @@ class SimpleConverter(Converter):
 
 
 def convert(
-    data: Union[parser.RData, parser.RObject],
+    data: parser.RData | parser.RObject,
     *args: Any,
     **kwargs: Any,
 ) -> Any:

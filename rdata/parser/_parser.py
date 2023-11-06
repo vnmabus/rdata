@@ -9,24 +9,94 @@ import os
 import pathlib
 import warnings
 import xdrlib
+from collections.abc import Iterator
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import (
-    TYPE_CHECKING,
     Any,
-    BinaryIO,
     Callable,
-    List,
+    Final,
     Mapping,
     Optional,
+    Protocol,
     Sequence,
-    Set,
-    TextIO,
-    Tuple,
+    TypeVar,
     Union,
+    runtime_checkable,
 )
 
 import numpy as np
+
+R_INT_NA = -2**31  # noqa: WPS432
+"""Value used to represent a missing integer in R."""
+
+
+@runtime_checkable
+class BinaryFileLike(Protocol):
+    """Protocol for binary files."""
+
+    def read(self) -> bytes:
+        """Read the contents of the file."""
+
+
+@runtime_checkable
+class BinaryBufferFileLike(Protocol):
+    """Protocol for binary files."""
+
+    @property
+    def buffer(self) -> BinaryFileLike:
+        """Get the underlying buffer."""
+
+
+AcceptableFile = Union[BinaryFileLike, BinaryBufferFileLike]
+
+try:
+    from importlib.resources.abc import (  # noqa:WPS113
+        Traversable as Traversable,
+    )
+except ImportError:
+
+    @runtime_checkable
+    class Traversable(Protocol):  # type: ignore [no-redef]
+        """Definition of Traversable protocol for Python < 3.11."""
+
+        def iterdir(self) -> Iterator["Traversable"]:
+            pass
+
+        def read_bytes(self) -> bytes:
+            pass
+
+        def read_text(self, encoding: str | None = None) -> str:
+            pass
+
+        def is_dir(self) -> bool:
+            pass
+
+        def is_file(self) -> bool:
+            pass
+
+        def joinpath(
+            self,
+            *descendants: str | os.PathLike[str],
+        ) -> "Traversable":
+            pass
+
+        def __truediv__(
+            self,
+            child: str | os.PathLike[str],
+        ) -> "Traversable":
+            pass
+
+        def open(
+            self,
+            mode: str = 'r',
+            *args: Any,
+            **kwargs: Any,
+        ) -> AcceptableFile:
+            pass
+
+        def name(self) -> str:
+            pass
 
 
 class FileTypes(enum.Enum):
@@ -48,7 +118,7 @@ magic_dict = {
 }
 
 
-def file_type(data: memoryview) -> Optional[FileTypes]:
+def file_type(data: memoryview) -> FileTypes | None:
     """Return the type of the file."""
     for filetype, magic in magic_dict.items():
         if data[:len(magic)] == magic:
@@ -64,14 +134,14 @@ class RdataFormats(enum.Enum):
     binary = "binary"
 
 
-format_dict = {
+format_dict: Final = MappingProxyType({
     RdataFormats.XDR: b"X\n",
     RdataFormats.ASCII: b"A\n",
     RdataFormats.binary: b"B\n",
-}
+})
 
 
-def rdata_format(data: memoryview) -> Optional[RdataFormats]:
+def rdata_format(data: memoryview) -> RdataFormats | None:
     """Return the format of the data."""
     for format_type, magic in format_dict.items():
         if data[:len(magic)] == magic:
@@ -109,6 +179,7 @@ class RObjectType(enum.Enum):
     ALTREP = 238  # Alternative representations
     ATTRLIST = 239  # Bytecode attribute
     ATTRLANG = 240  # Bytecode attribute
+    BASEENV = 241  # Base environment
     EMPTYENV = 242  # Empty environment
     BCREPREF = 243  # Bytecode repetition reference
     BCREPDEF = 244  # Bytecode repetition definition
@@ -118,7 +189,7 @@ class RObjectType(enum.Enum):
     REF = 255  # Reference
 
 
-BYTECODE_SPECIAL_SET = {
+BYTECODE_SPECIAL_SET: Final = frozenset((
     RObjectType.BCODE,
     RObjectType.BCREPREF,
     RObjectType.BCREPDEF,
@@ -126,7 +197,7 @@ BYTECODE_SPECIAL_SET = {
     RObjectType.LIST,
     RObjectType.ATTRLANG,
     RObjectType.ATTRLIST,
-}
+))
 
 
 class CharFlags(enum.IntFlag):
@@ -176,7 +247,7 @@ class RObjectInfo():
 def _str_internal(
     obj: RObject | Sequence[RObject],
     indent: int = 0,
-    used_references: Optional[Set[int]] = None,
+    used_references: Optional[set[int]] = None,
 ) -> str:
 
     if used_references is None:
@@ -309,7 +380,7 @@ class EnvironmentValue():
 
 AltRepConstructor = Callable[
     [RObject],
-    Tuple[RObjectInfo, Any],
+    tuple[RObjectInfo, Any],
 ]
 AltRepConstructorMap = Mapping[bytes, AltRepConstructor]
 
@@ -330,7 +401,7 @@ def format_float_with_scipen(number: float, scipen: int) -> bytes:
 
 def deferred_string_constructor(
     state: RObject,
-) -> Tuple[RObjectInfo, Any]:
+) -> tuple[RObjectInfo, Any]:
     """Expand a deferred string ALTREP."""
     new_info = RObjectInfo(
         type=RObjectType.STR,
@@ -369,7 +440,7 @@ def compact_seq_constructor(
     state: RObject,
     *,
     is_int: bool = False,
-) -> Tuple[RObjectInfo, Any]:
+) -> tuple[RObjectInfo, Any]:
     """Expand a compact_seq ALTREP."""
     new_info = RObjectInfo(
         type=RObjectType.INT if is_int else RObjectType.REAL,
@@ -396,21 +467,21 @@ def compact_seq_constructor(
 
 def compact_intseq_constructor(
     state: RObject,
-) -> Tuple[RObjectInfo, Any]:
+) -> tuple[RObjectInfo, Any]:
     """Expand a compact_intseq ALTREP."""
     return compact_seq_constructor(state, is_int=True)
 
 
 def compact_realseq_constructor(
     state: RObject,
-) -> Tuple[RObjectInfo, Any]:
+) -> tuple[RObjectInfo, Any]:
     """Expand a compact_realseq ALTREP."""
     return compact_seq_constructor(state, is_int=False)
 
 
 def wrap_constructor(
     state: RObject,
-) -> Tuple[RObjectInfo, Any]:
+) -> tuple[RObjectInfo, Any]:
     """Expand any wrap_* ALTREP."""
     new_info = RObjectInfo(
         type=state.value[0].info.type,
@@ -426,7 +497,7 @@ def wrap_constructor(
     return new_info, value
 
 
-default_altrep_map_dict: Mapping[bytes, AltRepConstructor] = {
+default_altrep_map_dict: Final[Mapping[bytes, AltRepConstructor]] = {
     b"deferred_string": deferred_string_constructor,
     b"compact_intseq": compact_intseq_constructor,
     b"compact_realseq": compact_realseq_constructor,
@@ -438,7 +509,7 @@ default_altrep_map_dict: Mapping[bytes, AltRepConstructor] = {
     b"wrap_raw": wrap_constructor,
 }
 
-DEFAULT_ALTREP_MAP = MappingProxyType(default_altrep_map_dict)
+DEFAULT_ALTREP_MAP: Final = MappingProxyType(default_altrep_map_dict)
 
 
 class Parser(abc.ABC):
@@ -457,10 +528,23 @@ class Parser(abc.ABC):
         """Parse a boolean."""
         return bool(self.parse_int())
 
+    def parse_nullable_bool(self) -> bool | None:
+        """Parse a boolean."""
+        read_value = self.parse_nullable_int()
+        if read_value is None:
+            return None
+
+        return bool(read_value)
+
     @abc.abstractmethod
     def parse_int(self) -> int:
         """Parse an integer."""
         pass
+
+    def parse_nullable_int(self) -> int | None:  # noqa: D102
+        result = self.parse_int()
+
+        return None if result == R_INT_NA else result
 
     @abc.abstractmethod
     def parse_double(self) -> float:
@@ -516,7 +600,7 @@ class Parser(abc.ABC):
         self,
         info: RObject,
         state: RObject,
-    ) -> Tuple[RObjectInfo, Any]:
+    ) -> tuple[RObjectInfo, Any]:
         """Expand alternative representation to normal object."""
         assert info.info.type == RObjectType.LIST
 
@@ -535,8 +619,8 @@ class Parser(abc.ABC):
 
     def _parse_bytecode_constant(
         self,
-        reference_list: Optional[List[RObject]],
-        bytecode_rep_list: List[RObject | None] | None = None,
+        reference_list: list[RObject] | None,
+        bytecode_rep_list: list[RObject | None] | None = None,
     ) -> RObject:
 
         obj_type = self.parse_int()
@@ -549,9 +633,9 @@ class Parser(abc.ABC):
 
     def _parse_bytecode(
         self,
-        reference_list: Optional[List[RObject]],
-        bytecode_rep_list: List[RObject | None] | None = None,
-    ) -> Tuple[RObject, Sequence[RObject]]:
+        reference_list: list[RObject] | None,
+        bytecode_rep_list: list[RObject | None] | None = None,
+    ) -> tuple[RObject, Sequence[RObject]]:
         """Parse R bytecode."""
         if bytecode_rep_list is None:
             n_repeated = self.parse_int()
@@ -572,10 +656,41 @@ class Parser(abc.ABC):
 
         return (code, constants)
 
+    T = TypeVar("T")
+
+    def _parse_nullable_array(
+        self,
+        dtype: type[T],
+        parse_function: Callable[[], T | None],
+        fill_value: T,
+    ) -> np.ndarray[Any, Any] | np.ma.MaskedArray[Any, Any]:
+
+        length = self.parse_int()
+
+        value = np.empty(length, dtype=dtype)
+        mask = np.zeros(length, dtype=np.bool_)
+
+        for i in range(length):
+            parsed = parse_function()
+            if parsed is None:
+                mask[i] = True
+                value[i] = fill_value
+            else:
+                value[i] = parsed
+
+        if np.any(mask):
+            return np.ma.MaskedArray(
+                data=value,
+                mask=mask,
+                fill_value=fill_value,
+            )
+
+        return value
+
     def parse_R_object(
         self,
-        reference_list: List[RObject] | None = None,
-        bytecode_rep_list: List[RObject | None] | None = None,
+        reference_list: list[RObject] | None = None,
+        bytecode_rep_list: list[RObject | None] | None = None,
         info_int: int | None = None,
     ) -> RObject:
         """Parse a R object."""
@@ -712,20 +827,18 @@ class Parser(abc.ABC):
                 )
 
         elif info.type == RObjectType.LGL:
-            length = self.parse_int()
-
-            value = np.empty(length, dtype=np.bool_)
-
-            for i in range(length):
-                value[i] = self.parse_bool()
+            value = self._parse_nullable_array(
+                dtype=np.bool_,
+                parse_function=self.parse_nullable_bool,
+                fill_value=True,
+            )
 
         elif info.type == RObjectType.INT:
-            length = self.parse_int()
-
-            value = np.empty(length, dtype=np.int64)
-
-            for i in range(length):
-                value[i] = self.parse_int()
+            value = self._parse_nullable_array(
+                dtype=np.int32,
+                parse_function=self.parse_nullable_int,
+                fill_value=R_INT_NA,
+            )
 
         elif info.type == RObjectType.REAL:
             length = self.parse_int()
@@ -807,6 +920,9 @@ class Parser(abc.ABC):
                 attributes = altrep_attr
             else:
                 value = (altrep_info, altrep_state, altrep_attr)
+
+        elif info.type == RObjectType.BASEENV:
+            value = None
 
         elif info.type == RObjectType.EMPTYENV:
             value = None
@@ -912,7 +1028,7 @@ class ParserXDR(Parser):
 
 
 def parse_file(
-    file_or_path: Union[BinaryIO, TextIO, 'os.PathLike[Any]', str],
+    file_or_path: AcceptableFile | os.PathLike[Any] | Traversable | str,
     *,
     expand_altrep: bool = True,
     altrep_constructor_dict: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
@@ -995,20 +1111,28 @@ def parse_file(
                      referenced_object=None))
 
     """
-    if isinstance(file_or_path, (os.PathLike, str)):
+    path = None
+
+    if isinstance(file_or_path, Traversable):
+        path = file_or_path
+    elif isinstance(file_or_path, (os.PathLike, str)):
         path = pathlib.Path(file_or_path)
-        if extension is None:
-            extension = path.suffix
-        data = path.read_bytes()
     else:
         # file is a pre-opened file
-        buffer: Optional[BinaryIO] = getattr(file_or_path, 'buffer', None)
-        if buffer is None:
-            assert isinstance(file_or_path, BinaryIO)
-            binary_file: BinaryIO = file_or_path
-        else:
-            binary_file = buffer
+        binary_file = (
+            file_or_path.buffer
+            if isinstance(file_or_path, BinaryBufferFileLike)
+            else file_or_path
+        )
+
         data = binary_file.read()
+
+    if path is not None:
+        # file was a path-like
+        if extension is None:
+            extension = getattr(path, "suffix", None)
+        data = path.read_bytes()
+
     return parse_data(
         data,
         expand_altrep=expand_altrep,

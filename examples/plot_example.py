@@ -5,8 +5,13 @@ R data loading
 
 Use the file uploader to convert files to Python.
 """
-import rdata
+
+# sphinx_gallery_thumbnail_path = '_static/R_logo.svg'
+
 from ipywidgets import FileUpload, interact
+
+import rdata
+
 
 @interact(files=FileUpload(accept="*.rd*", multiple=True))
 def convert_from_file(files):

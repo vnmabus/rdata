@@ -37,6 +37,7 @@ dependencies = [
 
 [project.optional-dependencies]
 docs = [
+  "igraph",
   "ipywidgets",
   "jupyterlite-sphinx",
   "jupyterlite-pyodide-kernel",
