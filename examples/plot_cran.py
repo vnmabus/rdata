@@ -24,18 +24,18 @@ the CRAN repository of R packages that include custom R types.
 # the package rdata.
 # The package is a tar file so we need also to import the
 # :external+python:mod:`tarfile` module.
-# We will use the package `igraph <https://networkx.org/>`_ for
+# We will use the package `igraph <https://python.igraph.org/en/stable/>`_ for
 # constructing the graph in Python.
 # Finally, we will import some plotting routines from Matplotlib.
 
 import tarfile
 from urllib.request import urlopen
 
+import igraph
+import igraph.drawing
 import matplotlib.pyplot as plt
 from matplotlib.colors import to_hex
 
-import igraph
-import igraph.drawing
 import rdata
 
 # %%
