@@ -179,6 +179,7 @@ class RObjectType(enum.Enum):
     ALTREP = 238  # Alternative representations
     ATTRLIST = 239  # Bytecode attribute
     ATTRLANG = 240  # Bytecode attribute
+    BASEENV = 241  # Base environment
     EMPTYENV = 242  # Empty environment
     BCREPREF = 243  # Bytecode repetition reference
     BCREPDEF = 244  # Bytecode repetition definition
@@ -919,6 +920,9 @@ class Parser(abc.ABC):
                 attributes = altrep_attr
             else:
                 value = (altrep_info, altrep_state, altrep_attr)
+
+        elif info.type == RObjectType.BASEENV:
+            value = None
 
         elif info.type == RObjectType.EMPTYENV:
             value = None

@@ -19,11 +19,12 @@
 #
 import os
 import sys
+import textwrap
 import warnings
 
 import pkg_resources
+
 import rdata
-import textwrap
 
 # General information about the project.
 project = "rdata"
@@ -225,6 +226,7 @@ intersphinx_mapping = {
     "python": (f"https://docs.python.org/{sys.version_info.major}", None),
     "scipy": ("https://docs.scipy.org/doc/scipy", None),
     "sklearn": ("https://scikit-learn.org/stable", None),
+    "igraph": ("https://python.igraph.org/en/stable/api", None),
 }
 
 # -- Options for "sphinx.ext.todo" --
@@ -248,5 +250,7 @@ sphinx_gallery_conf = {
     %pip install lzma
     %pip install rdata
     %pip install ipywidgets
+    import pyodide_http
+    pyodide_http.patch_all()
     """),
 }

@@ -630,6 +630,12 @@ class Converter(abc.ABC):
         pass
 
 
+@dataclass
+class UnresolvedReference():
+    references: MutableMapping[int, Any]
+    index: int
+
+
 class SimpleConverter(Converter):
     """
     Class converting R objects to Python objects.
@@ -659,9 +665,11 @@ class SimpleConverter(Converter):
     def __init__(
         self,
         constructor_dict: ConstructorDict = DEFAULT_CLASS_MAP,
+        *,
         default_encoding: str | None = None,
         force_default_encoding: bool = False,
         global_environment: MutableMapping[str | bytes, Any] | None = None,
+        base_environment: MutableMapping[str | bytes, Any] | None = None,
     ) -> None:
 
         self.constructor_dict = constructor_dict
@@ -670,6 +678,10 @@ class SimpleConverter(Converter):
         self.global_environment = REnvironment(
             {} if global_environment is None
             else global_environment,
+        )
+        self.base_environment = REnvironment(
+            {} if base_environment is None
+            else base_environment,
         )
         self.empty_environment: StrMap = REnvironment({})
 
@@ -812,6 +824,9 @@ class SimpleConverter(Converter):
         elif obj.info.type == parser.RObjectType.S4:
             value = SimpleNamespace(**attrs)
 
+        elif obj.info.type == parser.RObjectType.BASEENV:
+            value = self.base_environment
+
         elif obj.info.type == parser.RObjectType.EMPTYENV:
             value = self.empty_environment
 
@@ -828,6 +843,10 @@ class SimpleConverter(Converter):
             if value is None:
                 reference_id = id(obj.referenced_object)
                 assert obj.referenced_object is not None
+                self.references[reference_id] = UnresolvedReference(
+                    self.references,
+                    reference_id,
+                )
                 value = self._convert_next(obj.referenced_object)
 
         elif obj.info.type == parser.RObjectType.NILVALUE:
