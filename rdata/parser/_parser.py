@@ -451,16 +451,21 @@ def compact_seq_constructor(
         reference=0,
     )
 
+    n = int(state.value[0])
     start = state.value[1]
-    stop = state.value[0]
     step = state.value[2]
 
     if is_int:
         start = int(start)
-        stop = int(stop)
         step = int(step)
-
-    value = np.arange(start, stop, step)
+        # Calculate stop with integer arithmetic
+        # and use built-in range() for numerical stability
+        stop = start + (n - 1) * step
+        value = np.array(range(start, stop + 1, step))
+    else:
+        # Calculate stop with floating-point arithmetic
+        stop = start + (n - 1) * step
+        value = np.linspace(start, stop, n)
 
     return new_info, value
 
