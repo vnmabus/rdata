@@ -8,7 +8,6 @@ import lzma
 import os
 import pathlib
 import warnings
-import xdrlib
 from collections.abc import Iterator
 from dataclasses import dataclass
 from types import MappingProxyType
@@ -1012,19 +1011,16 @@ class ParserXDR(Parser):
         )
         self.data = data
         self.position = position
-        self.xdr_parser = xdrlib.Unpacker(data)
-
-    def parse_int(self) -> int:  # noqa: D102
-        self.xdr_parser.set_position(self.position)
-        result = self.xdr_parser.unpack_int()
-        self.position = self.xdr_parser.get_position()
-        return result
 
     def _parse_array(self,
                      itemkind: str,
                      itemsize: int,
+                     *,
+                     length: int = None
     ) -> npt.NDarray:  # noqa: D102
-        length = self.parse_int()
+        if length is None:
+            length = self.parse_int()
+
         itemtype = f'{itemkind}{itemsize}'
         start = self.position
         buffer = self.data[self.position:(self.position + length * itemsize)]
@@ -1033,12 +1029,14 @@ class ParserXDR(Parser):
         self.position += length * itemsize
         return result
 
-    def parse_double(self) -> float:  # noqa: D102
-        self.xdr_parser.set_position(self.position)
-        result = self.xdr_parser.unpack_double()
-        self.position = self.xdr_parser.get_position()
+    def parse_int(self) -> int:  # noqa: D102
+        return self._parse_array('i', 4, length=1)[0]
 
-        return result
+    def parse_double(self) -> float:  # noqa: D102
+        return self._parse_array('f', 8, length=1)[0]
+
+    def parse_complex(self) -> complex:  # noqa: D102
+        return self._parse_array('c', 8, length=1)[0]
 
     def parse_nullable_int_array(
         self,
