@@ -4,6 +4,7 @@ import abc
 import bz2
 import enum
 import gzip
+import io
 import lzma
 import os
 import pathlib
@@ -13,6 +14,7 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import (
     Any,
+    BinaryIO,
     Callable,
     Final,
     Mapping,
@@ -999,8 +1001,7 @@ class ParserXDR(Parser):
 
     def __init__(
         self,
-        data: memoryview,
-        position: int = 0,
+        file: BinaryIO,
         *,
         expand_altrep: bool = True,
         altrep_constructor_dict: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
@@ -1009,8 +1010,7 @@ class ParserXDR(Parser):
             expand_altrep=expand_altrep,
             altrep_constructor_dict=altrep_constructor_dict,
         )
-        self.data = data
-        self.position = position
+        self.file = file
 
     def _parse_array(self,
                      itemkind: str,
@@ -1022,12 +1022,9 @@ class ParserXDR(Parser):
             length = self.parse_int()
 
         itemtype = f'{itemkind}{itemsize}'
-        start = self.position
-        buffer = self.data[self.position:(self.position + length * itemsize)]
+        buffer = self.file.read(length * itemsize)
         # Read in big-endian order and convert to native byte order
-        result = np.frombuffer(buffer, dtype=f'>{itemtype}').astype(f'={itemtype}')
-        self.position += length * itemsize
-        return result
+        return np.frombuffer(buffer, dtype=f'>{itemtype}').astype(f'={itemtype}')
 
     def parse_int(self) -> int:  # noqa: D102
         return self._parse_array('i', 4, length=1)[0]
@@ -1063,13 +1060,12 @@ class ParserXDR(Parser):
         return self._parse_array('c', 16)
 
     def parse_string(self, length: int) -> bytes:  # noqa: D102
-        result = self.data[self.position:(self.position + length)]
-        self.position += length
-        return bytes(result)
+        return self.file.read(length)
 
     def parse_all(self) -> RData:
         rdata = super().parse_all()
-        assert self.position == len(self.data)
+        # Check that there is no more data in the file
+        assert self.file.read(1) == b''
         return rdata
 
 
@@ -1326,7 +1322,7 @@ def parse_rdata_binary(
 
     if format_type is RdataFormats.XDR:
         parser = ParserXDR(
-            data,
+            io.BytesIO(data),
             expand_altrep=expand_altrep,
             altrep_constructor_dict=altrep_constructor_dict,
         )
