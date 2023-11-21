@@ -1036,7 +1036,7 @@ class ParserXDR(Parser):
         return self._parse_array('f', 8, length=1)[0]
 
     def parse_complex(self) -> complex:  # noqa: D102
-        return self._parse_array('c', 8, length=1)[0]
+        return self._parse_array('c', 16, length=1)[0]
 
     def parse_nullable_int_array(
         self,
@@ -1060,7 +1060,7 @@ class ParserXDR(Parser):
         return self._parse_array('f', 8)
 
     def parse_complex_array(self) -> npt.NDArray[np.complex64]:
-        return self._parse_array('c', 8)
+        return self._parse_array('c', 16)
 
     def parse_string(self, length: int) -> bytes:  # noqa: D102
         result = self.data[self.position:(self.position + length)]
