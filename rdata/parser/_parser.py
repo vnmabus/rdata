@@ -21,7 +21,6 @@ from typing import (
     Optional,
     Protocol,
     Sequence,
-    TypeVar,
     Union,
     runtime_checkable,
 )
@@ -666,17 +665,19 @@ class Parser(abc.ABC):
     def parse_nullable_bool_array(
         self,
         fill_value: bool = True,
-    ) -> npt.NDArray[np.bool_] | np.ma.MaskedArray[Any, np.bool_]:
+    ) -> npt.NDArray[np.bool_] | np.ma.MaskedArray[Any, Any]:
+        """Parse a boolean array."""
         return self.parse_nullable_int_array(fill_value).astype(np.bool_)
 
     def parse_nullable_int_array(
         self,
         fill_value: int = R_INT_NA,
-    ) -> npt.NDArray[np.int32] | np.ma.MaskedArray[Any, np.int32]:
+    ) -> npt.NDArray[np.int32] | np.ma.MaskedArray[Any, Any]:
+        """Parse an integer array."""
 
         length = self.parse_int()
 
-        value = np.empty(length, dtype=dtype)
+        value = np.empty(length, dtype=np.int32)
         mask = np.zeros(length, dtype=np.bool_)
 
         for i in range(length):
@@ -688,7 +689,7 @@ class Parser(abc.ABC):
                 value[i] = parsed
 
         if np.any(mask):
-            return np.ma.MaskedArray(
+            return np.ma.array(  # type: ignore
                 data=value,
                 mask=mask,
                 fill_value=fill_value,
@@ -696,8 +697,8 @@ class Parser(abc.ABC):
 
         return value
 
-    def parse_double_array(self) -> npt.NDArray[float]:
-        """Parse a double array consisting of one integer (length n) and n doubles."""
+    def parse_double_array(self) -> npt.NDArray[np.float64]:
+        """Parse a double array."""
         length = self.parse_int()
 
         result = np.empty(length, dtype=np.double)
@@ -707,8 +708,8 @@ class Parser(abc.ABC):
 
         return result
 
-    def parse_complex_array(self) -> npt.NDArray[complex]:
-        """Parse a complex array consisting of one integer (length n) and n complexes."""
+    def parse_complex_array(self) -> npt.NDArray[np.complex128]:
+        """Parse a complex array."""
         length = self.parse_int()
 
         result = np.empty(length, dtype=np.complex_)
@@ -1016,8 +1017,8 @@ class ParserXDR(Parser):
                      itemkind: str,
                      itemsize: int,
                      *,
-                     length: int = None
-    ) -> npt.NDarray:  # noqa: D102
+                     length: int | None = None,
+    ) -> npt.NDArray[Any]:  # noqa: D102
         if length is None:
             length = self.parse_int()
 
@@ -1027,25 +1028,25 @@ class ParserXDR(Parser):
         return np.frombuffer(buffer, dtype=f'>{itemtype}').astype(f'={itemtype}')
 
     def parse_int(self) -> int:  # noqa: D102
-        return self._parse_array('i', 4, length=1)[0]
+        return int(self._parse_array('i', 4, length=1)[0])
 
     def parse_double(self) -> float:  # noqa: D102
-        return self._parse_array('f', 8, length=1)[0]
+        return float(self._parse_array('f', 8, length=1)[0])
 
     def parse_complex(self) -> complex:  # noqa: D102
-        return self._parse_array('c', 16, length=1)[0]
+        return complex(self._parse_array('c', 16, length=1)[0])
 
     def parse_nullable_int_array(
         self,
         fill_value: int = R_INT_NA,
-    ) -> npt.NDArray[np.int32] | np.ma.MaskedArray[Any, np.int32]:
+    ) -> npt.NDArray[np.int32] | np.ma.MaskedArray[Any, Any]:  # noqa: D102
 
         data = self._parse_array('i', 4)
         mask = data == R_INT_NA
         data[mask] = fill_value
 
         if np.any(mask):
-            return np.ma.array(
+            return np.ma.array(  # type: ignore
                 data=data,
                 mask=mask,
                 fill_value=fill_value,
@@ -1053,10 +1054,10 @@ class ParserXDR(Parser):
 
         return data
 
-    def parse_double_array(self) -> npt.NDArray[np.float64]:
+    def parse_double_array(self) -> npt.NDArray[np.float64]:  # noqa: D102
         return self._parse_array('f', 8)
 
-    def parse_complex_array(self) -> npt.NDArray[np.complex64]:
+    def parse_complex_array(self) -> npt.NDArray[np.complex128]:  # noqa: D102
         return self._parse_array('c', 16)
 
     def parse_string(self, length: int) -> bytes:  # noqa: D102
