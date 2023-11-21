@@ -26,6 +26,7 @@ from typing import (
 )
 
 import numpy as np
+import numpy.typing as npt
 
 R_INT_NA = -2**31  # noqa: WPS432
 """Value used to represent a missing integer in R."""
@@ -692,6 +693,28 @@ class Parser(abc.ABC):
 
         return value
 
+    def parse_double_array(self) -> npt.NDArray[float]:
+        """Parse a double array consisting of one integer (length n) and n doubles."""
+        length = self.parse_int()
+
+        result = np.empty(length, dtype=np.double)
+
+        for i in range(length):
+            result[i] = self.parse_double()
+
+        return result
+
+    def parse_complex_array(self) -> npt.NDArray[complex]:
+        """Parse a complex array consisting of one integer (length n) and n complexes."""
+        length = self.parse_int()
+
+        result = np.empty(length, dtype=np.complex_)
+
+        for i in range(length):
+            result[i] = self.parse_complex()
+
+        return result
+
     def parse_R_object(
         self,
         reference_list: list[RObject] | None = None,
@@ -846,20 +869,10 @@ class Parser(abc.ABC):
             )
 
         elif info.type == RObjectType.REAL:
-            length = self.parse_int()
-
-            value = np.empty(length, dtype=np.double)
-
-            for i in range(length):
-                value[i] = self.parse_double()
+            value = self.parse_double_array()
 
         elif info.type == RObjectType.CPLX:
-            length = self.parse_int()
-
-            value = np.empty(length, dtype=np.complex_)
-
-            for i in range(length):
-                value[i] = self.parse_complex()
+            value = self.parse_complex_array()
 
         elif info.type in {
             RObjectType.STR,
@@ -1011,7 +1024,19 @@ class ParserXDR(Parser):
         self.xdr_parser.set_position(self.position)
         result = self.xdr_parser.unpack_int()
         self.position = self.xdr_parser.get_position()
+        return result
 
+    def _parse_array(self,
+                     itemkind: str,
+                     itemsize: int,
+    ) -> npt.NDarray:  # noqa: D102
+        length = self.parse_int()
+        itemtype = f'{itemkind}{itemsize}'
+        start = self.position
+        buffer = self.data[self.position:(self.position + length * itemsize)]
+        # Read in big-endian order and convert to native byte order
+        result = np.frombuffer(buffer, dtype=f'>{itemtype}').astype(f'={itemtype}')
+        self.position += length * itemsize
         return result
 
     def parse_double(self) -> float:  # noqa: D102
@@ -1020,6 +1045,12 @@ class ParserXDR(Parser):
         self.position = self.xdr_parser.get_position()
 
         return result
+
+    def parse_double_array(self) -> npt.NDArray[np.float64]:
+        return self._parse_array('f', 8)
+
+    def parse_complex_array(self) -> npt.NDArray[np.complex64]:
+        return self._parse_array('c', 8)
 
     def parse_string(self, length: int) -> bytes:  # noqa: D102
         result = self.data[self.position:(self.position + length)]
