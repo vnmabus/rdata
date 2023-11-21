@@ -662,14 +662,16 @@ class Parser(abc.ABC):
 
         return (code, constants)
 
-    T = TypeVar("T")
-
-    def _parse_nullable_array(
+    def parse_nullable_bool_array(
         self,
-        dtype: type[T],
-        parse_function: Callable[[], T | None],
-        fill_value: T,
-    ) -> np.ndarray[Any, Any] | np.ma.MaskedArray[Any, Any]:
+        fill_value: bool = True,
+    ) -> npt.NDArray[np.bool_] | np.ma.MaskedArray[Any, np.bool_]:
+        return self.parse_nullable_int_array(fill_value).astype(np.bool_)
+
+    def parse_nullable_int_array(
+        self,
+        fill_value: int = R_INT_NA,
+    ) -> npt.NDArray[np.int32] | np.ma.MaskedArray[Any, np.int32]:
 
         length = self.parse_int()
 
@@ -677,7 +679,7 @@ class Parser(abc.ABC):
         mask = np.zeros(length, dtype=np.bool_)
 
         for i in range(length):
-            parsed = parse_function()
+            parsed = self.parse_nullable_int()
             if parsed is None:
                 mask[i] = True
                 value[i] = fill_value
@@ -855,18 +857,10 @@ class Parser(abc.ABC):
                 )
 
         elif info.type == RObjectType.LGL:
-            value = self._parse_nullable_array(
-                dtype=np.bool_,
-                parse_function=self.parse_nullable_bool,
-                fill_value=True,
-            )
+            value = self.parse_nullable_bool_array()
 
         elif info.type == RObjectType.INT:
-            value = self._parse_nullable_array(
-                dtype=np.int32,
-                parse_function=self.parse_nullable_int,
-                fill_value=R_INT_NA,
-            )
+            value = self.parse_nullable_int_array()
 
         elif info.type == RObjectType.REAL:
             value = self.parse_double_array()
@@ -1045,6 +1039,24 @@ class ParserXDR(Parser):
         self.position = self.xdr_parser.get_position()
 
         return result
+
+    def parse_nullable_int_array(
+        self,
+        fill_value: int = R_INT_NA,
+    ) -> npt.NDArray[np.int32] | np.ma.MaskedArray[Any, np.int32]:
+
+        data = self._parse_array('i', 4)
+        mask = data == R_INT_NA
+        data[mask] = fill_value
+
+        if np.any(mask):
+            return np.ma.array(
+                data=data,
+                mask=mask,
+                fill_value=fill_value,
+            )
+
+        return data
 
     def parse_double_array(self) -> npt.NDArray[np.float64]:
         return self._parse_array('f', 8)
