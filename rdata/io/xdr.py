@@ -49,7 +49,7 @@ class ParserXDR(Parser):
         itemtype = f'{itemkind}{itemsize}'
         buffer = self.file.read(length * itemsize)
         # Read in big-endian order and convert to native byte order
-        return np.frombuffer(buffer, dtype=f'>{itemtype}').astype(f'={itemtype}')
+        return np.frombuffer(buffer, dtype=f'>{itemtype}').astype(f'={itemtype}', copy=False)
 
     def parse_int(self) -> int:  # noqa: D102
         return int(self._parse_array('i', 4, length=1)[0])
