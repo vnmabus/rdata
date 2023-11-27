@@ -109,6 +109,9 @@ class Converter():
                         self.convert_to_r_object(np.array(data.shape)),
                         )
 
+        elif isinstance(data, (bool, int, float, complex)):
+            return self.convert_to_r_object(np.array(data))
+
         elif isinstance(data, str):
             r_type = RObjectType.STR
             r_value = [self.convert_to_r_object(data.encode(self.encoding))]
