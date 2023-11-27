@@ -48,7 +48,7 @@ class Converter():
         assert encoding in ['UTF-8', 'CP1252']
         self.encoding = encoding
 
-    def convert_to_robject(self, data) -> RObject:
+    def convert_to_r_object(self, data) -> RObject:
         # Default args for most types (None/False/0)
         r_type = None
         r_value = None
@@ -68,12 +68,12 @@ class Converter():
             else:
                 values = data
             for element in values:
-                r_value.append(self.convert_to_robject(element))
+                r_value.append(self.convert_to_r_object(element))
 
             if isinstance(data, dict):
                 attributes = build_r_list(
-                    self.convert_to_robject(b'names'),
-                    self.convert_to_robject(np.array(list(data.keys()))),
+                    self.convert_to_r_object(b'names'),
+                    self.convert_to_r_object(np.array(list(data.keys()))),
                     )
 
         elif isinstance(data, np.ndarray):
@@ -82,12 +82,12 @@ class Converter():
                 r_type = RObjectType.STR
                 r_value = []
                 for element in data:
-                    r_value.append(self.convert_to_robject(element))
+                    r_value.append(self.convert_to_r_object(element))
 
             elif data.dtype.kind in ['U']:
                 assert data.ndim == 1
                 data = np.array([s.encode(self.encoding) for s in data])
-                return self.convert_to_robject(data)
+                return self.convert_to_r_object(data)
 
             else:
                 r_type = {
@@ -103,15 +103,15 @@ class Converter():
                     # R uses column-major order like Fortran
                     r_value = np.ravel(data, order='F')
                     attributes = build_r_list(
-                        self.convert_to_robject(b'dim'),
-                        self.convert_to_robject(np.array(data.shape)),
+                        self.convert_to_r_object(b'dim'),
+                        self.convert_to_r_object(np.array(data.shape)),
                         )
                 else:
                     raise NotImplementedError(f"ndim={data.ndim}")
 
         elif isinstance(data, str):
             r_type = RObjectType.STR
-            r_value = [self.convert_to_robject(data.encode(self.encoding))]
+            r_value = [self.convert_to_r_object(data.encode(self.encoding))]
 
         elif isinstance(data, bytes):
             r_type = RObjectType.CHAR
@@ -133,8 +133,8 @@ class Converter():
 
         return build_r_object(r_type, value=r_value, attributes=attributes, tag=tag, gp=gp)
 
-    def convert_to_rdata(self, data) -> RData:
+    def convert_to_r_data(self, data) -> RData:
         versions = RVersions(3, 262657, 197888)
         extra = RExtraInfo(self.encoding)
-        obj = self.convert_to_robject(data)
+        obj = self.convert_to_r_object(data)
         return RData(versions, extra, obj)
