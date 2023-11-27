@@ -125,7 +125,7 @@ class Writer(abc.ABC):
            RObjectType.NILVALUE,
         }:
             # These types don't have any data
-            pass
+            assert value is None
 
         elif info.type == RObjectType.SYM:
             self.write_R_object(value)
