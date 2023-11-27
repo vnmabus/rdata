@@ -27,6 +27,21 @@ def build_r_object(r_type, *, value=None, attributes=None, tag=None, gp=0):
     return r_object
 
 
+def build_r_list(key, value):
+    r_list = build_r_object(
+        RObjectType.LIST,
+        value=[
+            value,
+            build_r_object(RObjectType.NILVALUE),
+            ],
+        tag=build_r_object(
+            RObjectType.SYM,
+            value=key,
+            ),
+        )
+    return r_list
+
+
 class Converter():
 
     def __init__(self, encoding='UTF-8'):
@@ -56,16 +71,9 @@ class Converter():
                 r_value.append(self.convert_to_robject(element))
 
             if isinstance(data, dict):
-                attributes = build_r_object(
-                    RObjectType.LIST,
-                    value=[
-                        self.convert_to_robject(np.array(list(data.keys()))),
-                        self.convert_to_robject(None),
-                        ],
-                    tag=build_r_object(
-                        RObjectType.SYM,
-                        value=self.convert_to_robject(b'names'),
-                        ),
+                attributes = build_r_list(
+                    self.convert_to_robject(b'names'),
+                    self.convert_to_robject(np.array(list(data.keys()))),
                     )
 
         elif isinstance(data, np.ndarray):
@@ -94,16 +102,9 @@ class Converter():
                 elif data.ndim == 2:
                     # R uses column-major order like Fortran
                     r_value = np.ravel(data, order='F')
-                    attributes = build_r_object(
-                        RObjectType.LIST,
-                        value=[
-                            self.convert_to_robject(np.array(data.shape)),
-                            self.convert_to_robject(None),
-                            ],
-                        tag=build_r_object(
-                            RObjectType.SYM,
-                            value=self.convert_to_robject(b'dim'),
-                            ),
+                    attributes = build_r_list(
+                        self.convert_to_robject(b'dim'),
+                        self.convert_to_robject(np.array(data.shape)),
                         )
                 else:
                     raise NotImplementedError(f"ndim={data.ndim}")
