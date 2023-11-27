@@ -60,7 +60,7 @@ class Converter():
         if data is None:
             r_type = RObjectType.NILVALUE
 
-        elif isinstance(data, (list, dict)):
+        elif isinstance(data, (list, tuple, dict)):
             r_type = RObjectType.VEC
             r_value = []
             if isinstance(data, dict):
