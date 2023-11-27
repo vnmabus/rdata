@@ -97,17 +97,17 @@ class Converter():
                     'c': RObjectType.CPLX,
                 }[data.dtype.kind]
 
-                if data.ndim == 1:
+                if data.ndim == 0:
+                    r_value = data[np.newaxis]
+                elif data.ndim == 1:
                     r_value = data
-                elif data.ndim == 2:
+                else:
                     # R uses column-major order like Fortran
                     r_value = np.ravel(data, order='F')
                     attributes = build_r_list(
                         self.convert_to_r_object(b'dim'),
                         self.convert_to_r_object(np.array(data.shape)),
                         )
-                else:
-                    raise NotImplementedError(f"ndim={data.ndim}")
 
         elif isinstance(data, str):
             r_type = RObjectType.STR
