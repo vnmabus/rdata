@@ -12,52 +12,88 @@ from rdata.parser._parser import (
 )
 
 
+def build_r_object(r_type, *, value=None, attributes=None, tag=None, gp=0):
+    assert r_type is not None
+    r_object = RObject(RObjectInfo(r_type,
+                                   object=False,
+                                   attributes=attributes is not None,
+                                   tag=tag is not None,
+                                   gp=gp,
+                                   reference=0),
+                       value,
+                       attributes,
+                       tag,
+                       None)
+    return r_object
+
+
 class Converter():
 
     def __init__(self, encoding='UTF-8'):
         assert encoding in ['UTF-8', 'CP1252']
         self.encoding = encoding
 
-    def convert_list(self, values):
-        r_value = []
-        for value in values:
-            r_value.append(self.convert_to_robject(value))
-        return r_value
-
-    def convert_array(self, array):
-        if array.ndim != 1:
-            raise NotImplementedError(f"array ndim={array.ndim}")
-        return array
-
     def convert_to_robject(self, data) -> RObject:
         # Default args for most types (None/False/0)
-        r_info_kwargs = dict(
-            object=False,
-            attributes=False,
-            tag=False,
-            gp=0,
-            reference=0,
-        )
+        r_type = None
+        r_value = None
+        gp = 0
         attributes = None
         tag = None
         referenced_object = None
 
-        if isinstance(data, list):
+        if data is None:
+            r_type = RObjectType.NILVALUE
+
+        elif isinstance(data, (list, dict)):
             r_type = RObjectType.VEC
-            r_value = self.convert_list(data)
+            r_value = []
+            if isinstance(data, dict):
+                values = data.values()
+            else:
+                values = data
+            for element in values:
+                r_value.append(self.convert_to_robject(element))
+
+            if isinstance(data, dict):
+                attributes = build_r_object(
+                    RObjectType.LIST,
+                    value=[
+                        self.convert_to_robject(np.array(list(data.keys()))),
+                        self.convert_to_robject(None),
+                        ],
+                    tag=build_r_object(
+                        RObjectType.SYM,
+                        value=self.convert_to_robject(b'names'),
+                        ),
+                    )
 
         elif isinstance(data, np.ndarray):
-            if data.dtype.kind in ['U', 'S']:
-                assert data.size == 1
-                return self.convert_to_robject(data[0])
+            if data.dtype.kind in ['S']:
+                assert data.ndim == 1
+                r_type = RObjectType.STR
+                r_value = []
+                for element in data:
+                    r_value.append(self.convert_to_robject(element))
 
-            r_type = {
-                'b': RObjectType.LGL,
-                'i': RObjectType.INT,
-                'f': RObjectType.REAL,
-                'c': RObjectType.CPLX,
-            }[data.dtype.kind]
-            r_value = self.convert_array(data)
+            elif data.dtype.kind in ['U']:
+                assert data.ndim == 1
+                data = np.array([s.encode(self.encoding) for s in data])
+                return self.convert_to_robject(data)
+
+            else:
+                r_type = {
+                    'b': RObjectType.LGL,
+                    'i': RObjectType.INT,
+                    'f': RObjectType.REAL,
+                    'c': RObjectType.CPLX,
+                }[data.dtype.kind]
+
+                if data.ndim == 1:
+                    r_value = data
+                else:
+                    raise NotImplementedError(f"ndim={data.ndim}")
+
 
         elif isinstance(data, str):
             r_type = RObjectType.STR
@@ -76,14 +112,12 @@ class Converter():
                 gp = CharFlags.LATIN1
             else:
                 raise NotImplementedError("unknown what gp value to use")
-            r_info_kwargs.update(gp=gp)
             r_value = data
 
         else:
             raise NotImplementedError(f"{type(data)}")
 
-        r_info = RObjectInfo(r_type, **r_info_kwargs)
-        return RObject(r_info, r_value, attributes, tag, referenced_object)
+        return build_r_object(r_type, value=r_value, attributes=attributes, tag=tag, gp=gp)
 
     def convert_to_rdata(self, data) -> RData:
         versions = RVersions(3, 262657, 197888)
