@@ -47,14 +47,9 @@ class Converter():
             r_value = self.convert_list(data)
 
         elif isinstance(data, np.ndarray):
-            if data.dtype.kind == 'U':
+            if data.dtype.kind in ['U', 'S']:
                 assert data.size == 1
-                data = data[0] #.encode(self.encoding)
-                return self.convert_to_robject(data)
-            if data.dtype.kind == 'S':
-                assert data.size == 1
-                data = data[0] #.encode('ascii')
-                return self.convert_to_robject(data)
+                return self.convert_to_robject(data[0])
 
             r_type = {
                 'b': RObjectType.LGL,
@@ -83,6 +78,7 @@ class Converter():
                 raise NotImplementedError("unknown what gp value to use")
             r_info_kwargs.update(gp=gp)
             r_value = data
+
         else:
             raise NotImplementedError(f"{type(data)}")
 
