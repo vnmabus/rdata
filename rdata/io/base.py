@@ -102,10 +102,10 @@ class Writer(abc.ABC):
         """Write a complex array."""
         self.__write_array(array, self.write_complex)
 
-    def write_all(self, data):
+    def write_r_data(self, r_data):
         self.write_magic()
-        self.write_header(data.versions, data.extra)
-        self.write_R_object(data.object)
+        self.write_header(r_data.versions, r_data.extra)
+        self.write_R_object(r_data.object)
 
     def write_R_object(self, obj):
         # Some types write attributes and tag with data while some write them

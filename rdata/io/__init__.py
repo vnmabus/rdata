@@ -51,4 +51,4 @@ def write(
 
     with open(path, mode) as f:
         w = Writer(f)
-        w.write_all(r_data)
+        w.write_r_data(r_data)
