@@ -1,6 +1,10 @@
 import string
 import numpy as np
 
+from typing import (
+    Any,
+)
+
 from rdata.parser._parser import (
     CharFlags,
     RData,
@@ -42,102 +46,110 @@ def build_r_list(key, value):
     return r_list
 
 
-class Converter():
+def convert_to_r_data(
+        data: Any,
+        *,
+        encoding: str = 'UTF-8',
+) -> RData:
+    versions = RVersions(3, 262657, 197888)
+    extra = RExtraInfo(encoding)
+    obj = convert_to_r_object(data, encoding=encoding)
+    return RData(versions, extra, obj)
 
-    def __init__(self, encoding='UTF-8'):
-        assert encoding in ['UTF-8', 'CP1252']
-        self.encoding = encoding
 
-    def convert_to_r_object(self, data) -> RObject:
-        # Default args for most types (None/False/0)
-        r_type = None
-        r_value = None
-        gp = 0
-        attributes = None
-        tag = None
-        referenced_object = None
+def convert_to_r_object(
+        data: Any,
+        *,
+        encoding: str,
+) -> RObject:
+    if encoding not in ['UTF-8', 'CP1252']:
+        raise ValueError(f'Unknown encoding: {encoding}')
 
-        if data is None:
-            r_type = RObjectType.NILVALUE
+    # Default args for most types (None/False/0)
+    r_type = None
+    r_value = None
+    gp = 0
+    attributes = None
+    tag = None
+    referenced_object = None
 
-        elif isinstance(data, (list, tuple, dict)):
-            r_type = RObjectType.VEC
-            r_value = []
-            if isinstance(data, dict):
-                values = data.values()
-            else:
-                values = data
-            for element in values:
-                r_value.append(self.convert_to_r_object(element))
+    if data is None:
+        r_type = RObjectType.NILVALUE
 
-            if isinstance(data, dict):
-                attributes = build_r_list(
-                    self.convert_to_r_object(b'names'),
-                    self.convert_to_r_object(np.array(list(data.keys()))),
-                    )
+    elif isinstance(data, (list, tuple, dict)):
+        r_type = RObjectType.VEC
 
-        elif isinstance(data, np.ndarray):
-            if data.dtype.kind in ['S']:
-                assert data.ndim == 1
-                r_type = RObjectType.STR
-                r_value = []
-                for element in data:
-                    r_value.append(self.convert_to_r_object(element))
+        if isinstance(data, dict):
+            values = data.values()
+        else:
+            values = data
 
-            elif data.dtype.kind in ['U']:
-                assert data.ndim == 1
-                data = np.array([s.encode(self.encoding) for s in data])
-                return self.convert_to_r_object(data)
+        r_value = []
+        for element in values:
+            r_value.append(convert_to_r_object(element, encoding=encoding))
 
-            else:
-                r_type = {
-                    'b': RObjectType.LGL,
-                    'i': RObjectType.INT,
-                    'f': RObjectType.REAL,
-                    'c': RObjectType.CPLX,
-                }[data.dtype.kind]
+        if isinstance(data, dict):
+            attributes = build_r_list(
+                convert_to_r_object(b'names', encoding=encoding),
+                convert_to_r_object(np.array(list(data.keys())), encoding=encoding),
+                )
 
-                if data.ndim == 0:
-                    r_value = data[np.newaxis]
-                elif data.ndim == 1:
-                    r_value = data
-                else:
-                    # R uses column-major order like Fortran
-                    r_value = np.ravel(data, order='F')
-                    attributes = build_r_list(
-                        self.convert_to_r_object(b'dim'),
-                        self.convert_to_r_object(np.array(data.shape)),
-                        )
-
-        elif isinstance(data, (bool, int, float, complex)):
-            return self.convert_to_r_object(np.array(data))
-
-        elif isinstance(data, str):
+    elif isinstance(data, np.ndarray):
+        if data.dtype.kind in ['S']:
+            assert data.ndim == 1
             r_type = RObjectType.STR
-            r_value = [self.convert_to_r_object(data.encode(self.encoding))]
+            r_value = []
+            for element in data:
+                r_value.append(convert_to_r_object(element, encoding=encoding))
 
-        elif isinstance(data, bytes):
-            r_type = RObjectType.CHAR
-            if all(chr(byte) in string.printable for byte in data):
-                gp = CharFlags.ASCII
-            elif self.encoding == 'UTF-8':
-                gp = CharFlags.UTF8
-            elif self.encoding == 'CP1252':
-                # XXX CP1252 and Latin1 are not the same
-                #     Check if CharFlags.LATIN1 means actually CP1252
-                #     as R on Windows mentions CP1252 as encoding
-                gp = CharFlags.LATIN1
-            else:
-                raise NotImplementedError("unknown what gp value to use")
-            r_value = data
+        elif data.dtype.kind in ['U']:
+            assert data.ndim == 1
+            data = np.array([s.encode(encoding) for s in data])
+            return convert_to_r_object(data, encoding=encoding)
 
         else:
-            raise NotImplementedError(f"{type(data)}")
+            r_type = {
+                'b': RObjectType.LGL,
+                'i': RObjectType.INT,
+                'f': RObjectType.REAL,
+                'c': RObjectType.CPLX,
+            }[data.dtype.kind]
 
-        return build_r_object(r_type, value=r_value, attributes=attributes, tag=tag, gp=gp)
+            if data.ndim == 0:
+                r_value = data[np.newaxis]
+            elif data.ndim == 1:
+                r_value = data
+            else:
+                # R uses column-major order like Fortran
+                r_value = np.ravel(data, order='F')
+                attributes = build_r_list(
+                    convert_to_r_object(b'dim', encoding=encoding),
+                    convert_to_r_object(np.array(data.shape), encoding=encoding),
+                    )
 
-    def convert_to_r_data(self, data) -> RData:
-        versions = RVersions(3, 262657, 197888)
-        extra = RExtraInfo(self.encoding)
-        obj = self.convert_to_r_object(data)
-        return RData(versions, extra, obj)
+    elif isinstance(data, (bool, int, float, complex)):
+        return convert_to_r_object(np.array(data), encoding=encoding)
+
+    elif isinstance(data, str):
+        r_type = RObjectType.STR
+        r_value = [convert_to_r_object(data.encode(encoding), encoding=encoding)]
+
+    elif isinstance(data, bytes):
+        r_type = RObjectType.CHAR
+        if all(chr(byte) in string.printable for byte in data):
+            gp = CharFlags.ASCII
+        elif encoding == 'UTF-8':
+            gp = CharFlags.UTF8
+        elif encoding == 'CP1252':
+            # XXX CP1252 and Latin1 are not the same
+            #     Check if CharFlags.LATIN1 means actually CP1252
+            #     as R on Windows mentions CP1252 as encoding
+            gp = CharFlags.LATIN1
+        else:
+            raise NotImplementedError("unknown what gp value to use")
+        r_value = data
+
+    else:
+        raise NotImplementedError(f"{type(data)}")
+
+    return build_r_object(r_type, value=r_value, attributes=attributes, tag=tag, gp=gp)
