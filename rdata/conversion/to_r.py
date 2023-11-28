@@ -3,6 +3,7 @@ import numpy as np
 
 from typing import (
     Any,
+    Optional,
 )
 
 from rdata.parser._parser import (
@@ -16,7 +17,40 @@ from rdata.parser._parser import (
 )
 
 
-def build_r_object(r_type, *, value=None, attributes=None, tag=None, gp=0):
+def build_r_object(
+        r_type: RObjectType,
+        *,
+        value: Any = None,
+        attributes: Optional[RObject] = None,
+        tag: Optional[RObject] = None,
+        gp: int = 0,
+) -> RObject:
+    """
+    Build R object.
+
+    Parameters
+    ----------
+    r_type:
+        Type indentifier
+    value:
+        Value
+    attributes:
+        Same as in RObject
+    tag:
+        Same as in RObject
+    gp:
+        Same as in RObjectInfo
+
+    Returns
+    -------
+    r_object:
+        RObject object.
+
+    See Also
+    --------
+    RObject
+    RObjectInfo
+    """
     assert r_type is not None
     r_object = RObject(RObjectInfo(r_type,
                                    object=False,
@@ -31,7 +65,25 @@ def build_r_object(r_type, *, value=None, attributes=None, tag=None, gp=0):
     return r_object
 
 
-def build_r_list(key, value):
+def build_r_list(
+        key: Any,
+        value: Any,
+) -> RObject:
+    """
+    Build R object representing list a single named element.
+
+    Parameters
+    ----------
+    key:
+        Name of the element.
+    value:
+        Value of the element.
+
+    Returns
+    -------
+    r_object:
+        RObject object.
+    """
     r_list = build_r_object(
         RObjectType.LIST,
         value=[
@@ -51,6 +103,25 @@ def convert_to_r_data(
         *,
         encoding: str = 'UTF-8',
 ) -> RData:
+    """
+    Convert Python data to RData object.
+
+    Parameters
+    ----------
+    data:
+        Any Python object.
+    encoding:
+        Encoding to be used for strings within data.
+
+    Returns
+    -------
+    r_data:
+        Corresponding RData object.
+
+    See Also
+    --------
+    convert_to_r_object
+    """
     versions = RVersions(3, 262657, 197888)
     extra = RExtraInfo(encoding)
     obj = convert_to_r_object(data, encoding=encoding)
@@ -62,6 +133,25 @@ def convert_to_r_object(
         *,
         encoding: str,
 ) -> RObject:
+    """
+    Convert Python data to R object.
+
+    Parameters
+    ----------
+    data:
+        Any Python object.
+    encoding:
+        Encoding to be used for strings within data.
+
+    Returns
+    -------
+    r_object:
+        Corresponding R object.
+
+    See Also
+    --------
+    convert_to_r_data
+    """
     if encoding not in ['UTF-8', 'CP1252']:
         raise ValueError(f'Unknown encoding: {encoding}')
 
