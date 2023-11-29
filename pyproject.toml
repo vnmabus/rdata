@@ -9,6 +9,10 @@ keywords = [
 	"r",
 	"dataset",
 ]
+authors = [
+  {name = "Carlos Ramos Carreño", email = "vnmabus@gmail.com"},
+  {name = "Tuomas Rossi", email = "tuomas.rossi@csc.fi"},
+]
 maintainers = [
   {name = "Carlos Ramos Carreño", email = "vnmabus@gmail.com"},
 ]
