@@ -91,9 +91,22 @@ class Converter():
 
                 if data.ndim == 1:
                     r_value = data
+                elif data.ndim == 2:
+                    # R uses column-major order like Fortran
+                    r_value = np.ravel(data, order='F')
+                    attributes = build_r_object(
+                        RObjectType.LIST,
+                        value=[
+                            self.convert_to_robject(np.array(data.shape)),
+                            self.convert_to_robject(None),
+                            ],
+                        tag=build_r_object(
+                            RObjectType.SYM,
+                            value=self.convert_to_robject(b'dim'),
+                            ),
+                        )
                 else:
                     raise NotImplementedError(f"ndim={data.ndim}")
-
 
         elif isinstance(data, str):
             r_type = RObjectType.STR

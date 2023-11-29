@@ -80,9 +80,9 @@ class Writer(abc.ABC):
         pass
 
     def __write_array(self, array, write_value):
-        array = np.ravel(array)
-        self.write_int(len(array))
-        # XXX check if row or column major
+        # Expect only 1D arrays here
+        assert array.ndim == 1
+        self.write_int(array.size)
         for value in array:
             write_value(value)
 

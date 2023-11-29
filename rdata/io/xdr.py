@@ -30,13 +30,21 @@ class WriterXDR(Writer):
         self.file.write(b'X\n')
 
     def __write_array(self, array):
+        # Expect only 1D arrays here
+        assert array.ndim == 1
         self.write_int(array.size)
         self.__write_array_values(array)
 
     def __write_array_values(self, array):
-        # XXX tobytes() creates a memory copy
-        # It'd be better to check contiguity and use ndarray.data
-        self.file.write(array.astype(array.dtype.newbyteorder('>')).tobytes())
+        # Convert to big endian if needed
+        array = array.astype(array.dtype.newbyteorder('>'))
+        # 1D array should be both C and F contiguous
+        assert array.flags['C_CONTIGUOUS'] == array.flags['F_CONTIGUOUS']
+        if array.flags['C_CONTIGUOUS']:
+            data = array.data
+        else:
+            data = array.tobytes()
+        self.file.write(data)
 
     def write_nullable_bool(self, value):
         if value is None or np.ma.is_masked(value):
