@@ -38,34 +38,33 @@ class ParserXDR(Parser):
         self.file = file
 
     def _parse_array(self,
-                     itemkind: str,
-                     itemsize: int,
+                     dtype: np.dtype,
                      *,
                      length: int | None = None,
     ) -> npt.NDArray[Any]:  # noqa: D102
         if length is None:
             length = self.parse_int()
 
-        itemtype = f'{itemkind}{itemsize}'
-        buffer = self.file.read(length * itemsize)
+        dtype = np.dtype(dtype)
+        buffer = self.file.read(length * dtype.itemsize)
         # Read in big-endian order and convert to native byte order
-        return np.frombuffer(buffer, dtype=f'>{itemtype}').astype(f'={itemtype}', copy=False)
+        return np.frombuffer(buffer, dtype=dtype.newbyteorder('>')).astype(dtype, copy=False)
 
     def parse_int(self) -> int:  # noqa: D102
-        return int(self._parse_array('i', 4, length=1)[0])
+        return int(self._parse_array(np.int32, length=1)[0])
 
     def parse_double(self) -> float:  # noqa: D102
-        return float(self._parse_array('f', 8, length=1)[0])
+        return float(self._parse_array(np.float64, length=1)[0])
 
     def parse_complex(self) -> complex:  # noqa: D102
-        return complex(self._parse_array('c', 16, length=1)[0])
+        return complex(self._parse_array(np.complex128, length=1)[0])
 
     def parse_nullable_int_array(
         self,
         fill_value: int = R_INT_NA,
     ) -> npt.NDArray[np.int32] | np.ma.MaskedArray[Any, Any]:  # noqa: D102
 
-        data = self._parse_array('i', 4)
+        data = self._parse_array(np.int32)
         mask = data == R_INT_NA
         data[mask] = fill_value
 
@@ -79,10 +78,10 @@ class ParserXDR(Parser):
         return data
 
     def parse_double_array(self) -> npt.NDArray[np.float64]:  # noqa: D102
-        return self._parse_array('f', 8)
+        return self._parse_array(np.float64)
 
     def parse_complex_array(self) -> npt.NDArray[np.complex128]:  # noqa: D102
-        return self._parse_array('c', 16)
+        return self._parse_array(np.complex128)
 
     def parse_string(self, length: int) -> bytes:  # noqa: D102
         return self.file.read(length)
