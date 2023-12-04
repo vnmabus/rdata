@@ -37,27 +37,31 @@ class ParserXDR(Parser):
         )
         self.file = file
 
-    def _parse_array(self,
-                     dtype: np.dtype,
-                     *,
-                     length: int | None = None,
+    def _parse_array(
+            self,
+            dtype: np.dtype,
     ) -> npt.NDArray[Any]:  # noqa: D102
-        if length is None:
-            length = self.parse_int()
+        length = self.parse_int()
+        return self._parse_array_values(dtype, length)
 
+    def _parse_array_values(
+            self,
+            dtype: np.dtype,
+            length: int,
+    ) -> npt.NDArray[Any]:  # noqa: D102
         dtype = np.dtype(dtype)
         buffer = self.file.read(length * dtype.itemsize)
         # Read in big-endian order and convert to native byte order
         return np.frombuffer(buffer, dtype=dtype.newbyteorder('>')).astype(dtype, copy=False)
 
     def parse_int(self) -> int:  # noqa: D102
-        return int(self._parse_array(np.int32, length=1)[0])
+        return int(self._parse_array_values(np.int32, 1)[0])
 
     def parse_double(self) -> float:  # noqa: D102
-        return float(self._parse_array(np.float64, length=1)[0])
+        return float(self._parse_array_values(np.float64, 1)[0])
 
     def parse_complex(self) -> complex:  # noqa: D102
-        return complex(self._parse_array(np.complex128, length=1)[0])
+        return complex(self._parse_array_values(np.complex128, 1)[0])
 
     def parse_nullable_int_array(
         self,
