@@ -59,7 +59,7 @@ Documentation
 =============
 
 The documentation of rdata is in
-`ReadTheDocs <https://rdata.readthedocs.io/en/latest/>`_.
+`ReadTheDocs <https://rdata.readthedocs.io/>`_.
 	
 Simple usage
 ============
@@ -136,6 +136,13 @@ Pandas `Categorical` objects:
     1     b'a'      1
     2     b'b'      2
     3     b'b'      3}
+    
+Additional examples
+===================
+
+Additional examples illustrating the functionalities of this package can be
+found in the
+`ReadTheDocs documentation <https://rdata.readthedocs.io/en/latest/auto_examples/index.html>`_.
 
 
 .. |build-status| image:: https://github.com/vnmabus/rdata/actions/workflows/main.yml/badge.svg?branch=master
