@@ -17,12 +17,10 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
+import importlib.metadata
 import os
 import sys
 import textwrap
-import warnings
-
-import pkg_resources
 
 import rdata
 
@@ -44,8 +42,8 @@ rtd_branch = os.environ.get(" READTHEDOCS_GIT_IDENTIFIER", "develop")
 language = "en"
 
 try:
-    release = pkg_resources.get_distribution("rdata").version
-except pkg_resources.DistributionNotFound:
+    release = importlib.metadata.version("rdata")
+except importlib.metadata.PackageNotFoundError:
     print(
         f"To build the documentation, The distribution information of\n"
         f"{project} has to be available.  Either install the package\n"
@@ -53,7 +51,6 @@ except pkg_resources.DistributionNotFound:
         f"to setup the metadata.  A virtualenv is recommended!\n",
     )
     sys.exit(1)
-del pkg_resources
 
 version = ".".join(release.split(".")[:2])
 
