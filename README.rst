@@ -1,7 +1,7 @@
 rdata
 =====
 
-|build-status| |docs| |coverage| |pypi| |zenodo|
+|build-status| |docs| |coverage| |repostatus| |versions| |pypi| |conda| |zenodo|
 
 Read R datasets from Python.
 
@@ -152,12 +152,25 @@ Pandas `Categorical` objects:
     :alt: Coverage Status
     :scale: 100%
     :target: https://codecov.io/gh/vnmabus/rdata/branch/develop
+
+.. |repostatus| image:: https://www.repostatus.org/badges/latest/active.svg
+   :alt: Project Status: Active – The project has reached a stable, usable state and is being actively developed.
+   :target: https://www.repostatus.org/#active
+
+.. |versions| image:: https://img.shields.io/pypi/pyversions/rdata
+   :alt: PyPI - Python Version
+   :scale: 100%
     
 .. |pypi| image:: https://badge.fury.io/py/rdata.svg
     :alt: Pypi version
     :scale: 100%
     :target: https://pypi.python.org/pypi/rdata/
-    
+
+.. |conda| image:: https://anaconda.org/conda-forge/rdata/badges/version.svg
+    :alt: Conda version
+    :scale: 100%
+    :target: https://anaconda.org/conda-forge/rdata
+
 .. |zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.6382237.svg
     :alt: Zenodo DOI
     :scale: 100%
