@@ -65,7 +65,7 @@ class ParserXDR(Parser):
     ) -> npt.NDArray[np.int32] | np.ma.MaskedArray[Any, Any]:  # noqa: D102
 
         data = self._parse_array(np.int32)
-        mask = data == R_INT_NA
+        mask = (data == R_INT_NA)
         data[mask] = fill_value
 
         if np.any(mask):
