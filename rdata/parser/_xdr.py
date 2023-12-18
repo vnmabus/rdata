@@ -13,12 +13,8 @@ from ._parser import (
     DEFAULT_ALTREP_MAP,
     Parser,
     RData,
+    R_INT_NA,
 )
-
-
-
-R_INT_NA = -2**31  # noqa: WPS432
-"""Value used to represent a missing integer in R."""
 
 
 class ParserXDR(Parser):
