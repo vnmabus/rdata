@@ -4,7 +4,6 @@ import abc
 import bz2
 import enum
 import gzip
-import io
 import lzma
 import os
 import pathlib
@@ -1251,7 +1250,7 @@ def parse_rdata_binary(
         from ._xdr import ParserXDR
 
         parser = ParserXDR(
-            io.BytesIO(data),
+            data,
             expand_altrep=expand_altrep,
             altrep_constructor_dict=altrep_constructor_dict,
         )

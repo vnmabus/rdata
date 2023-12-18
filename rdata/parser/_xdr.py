@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import io
+
 from typing import (
     Any,
-    BinaryIO,
 )
 
 import numpy as np
@@ -22,7 +23,7 @@ class ParserXDR(Parser):
 
     def __init__(
         self,
-        file: BinaryIO,
+        data: memoryview,
         *,
         expand_altrep: bool = True,
         altrep_constructor_dict: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
@@ -31,7 +32,7 @@ class ParserXDR(Parser):
             expand_altrep=expand_altrep,
             altrep_constructor_dict=altrep_constructor_dict,
         )
-        self.file = file
+        self.file = io.BytesIO(data)
 
     def _parse_array(
             self,
