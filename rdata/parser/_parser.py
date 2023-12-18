@@ -528,36 +528,64 @@ class Parser(abc.ABC):
         self.expand_altrep = expand_altrep
         self.altrep_constructor_dict = altrep_constructor_dict
 
+    def _parse_array(
+            self,
+            dtype: np.dtype,
+    ) -> npt.NDArray[Any]:
+        """Parse an array composed of an integer (array size) and values."""
+        length = self.parse_int()
+        return self._parse_array_values(dtype, length)
+
+    @abc.abstractmethod
+    def _parse_array_values(
+            self,
+            dtype: np.dtype,
+            length: int,
+    ) -> npt.NDArray[Any]:
+        """Parse values of an array."""
+        pass
+
     def parse_bool(self) -> bool:
         """Parse a boolean."""
         return bool(self.parse_int())
 
-    def parse_nullable_bool(self) -> bool | None:
-        """Parse a boolean."""
-        read_value = self.parse_nullable_int()
-        if read_value is None:
-            return None
-
-        return bool(read_value)
-
-    @abc.abstractmethod
     def parse_int(self) -> int:
         """Parse an integer."""
-        pass
+        return int(self._parse_array_values(np.int32, 1)[0])
 
-    def parse_nullable_int(self) -> int | None:  # noqa: D102
-        result = self.parse_int()
+    def parse_nullable_bool_array(
+        self,
+        fill_value: bool = True,
+    ) -> npt.NDArray[np.bool_] | np.ma.MaskedArray[Any, Any]:
+        """Parse a boolean array."""
+        return self.parse_nullable_int_array(fill_value).astype(np.bool_)
 
-        return None if result == R_INT_NA else result
+    def parse_nullable_int_array(
+        self,
+        fill_value: int = R_INT_NA,
+    ) -> npt.NDArray[np.int32] | np.ma.MaskedArray[Any, Any]:
+        """Parse an integer array."""
 
-    @abc.abstractmethod
-    def parse_double(self) -> float:
-        """Parse a double."""
-        pass
+        data = self._parse_array(np.int32)
+        mask = (data == R_INT_NA)
+        data[mask] = fill_value
 
-    def parse_complex(self) -> complex:
-        """Parse a complex number."""
-        return complex(self.parse_double(), self.parse_double())
+        if np.any(mask):
+            return np.ma.array(  # type: ignore
+                data=data,
+                mask=mask,
+                fill_value=fill_value,
+            )
+
+        return data
+
+    def parse_double_array(self) -> npt.NDArray[np.float64]:
+        """Parse a double array."""
+        return self._parse_array(np.float64)
+
+    def parse_complex_array(self) -> npt.NDArray[np.complex128]:
+        """Parse a complex array."""
+        return self._parse_array(np.complex128)
 
     @abc.abstractmethod
     def parse_string(self, length: int) -> bytes:
@@ -659,63 +687,6 @@ class Parser(abc.ABC):
         ]
 
         return (code, constants)
-
-    def parse_nullable_bool_array(
-        self,
-        fill_value: bool = True,
-    ) -> npt.NDArray[np.bool_] | np.ma.MaskedArray[Any, Any]:
-        """Parse a boolean array."""
-        return self.parse_nullable_int_array(fill_value).astype(np.bool_)
-
-    def parse_nullable_int_array(
-        self,
-        fill_value: int = R_INT_NA,
-    ) -> npt.NDArray[np.int32] | np.ma.MaskedArray[Any, Any]:
-        """Parse an integer array."""
-
-        length = self.parse_int()
-
-        value = np.empty(length, dtype=np.int32)
-        mask = np.zeros(length, dtype=np.bool_)
-
-        for i in range(length):
-            parsed = self.parse_nullable_int()
-            if parsed is None:
-                mask[i] = True
-                value[i] = fill_value
-            else:
-                value[i] = parsed
-
-        if np.any(mask):
-            return np.ma.array(  # type: ignore
-                data=value,
-                mask=mask,
-                fill_value=fill_value,
-            )
-
-        return value
-
-    def parse_double_array(self) -> npt.NDArray[np.float64]:
-        """Parse a double array."""
-        length = self.parse_int()
-
-        result = np.empty(length, dtype=np.double)
-
-        for i in range(length):
-            result[i] = self.parse_double()
-
-        return result
-
-    def parse_complex_array(self) -> npt.NDArray[np.complex128]:
-        """Parse a complex array."""
-        length = self.parse_int()
-
-        result = np.empty(length, dtype=np.complex_)
-
-        for i in range(length):
-            result[i] = self.parse_complex()
-
-        return result
 
     def parse_R_object(
         self,
