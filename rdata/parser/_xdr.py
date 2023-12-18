@@ -8,7 +8,7 @@ from typing import (
 import numpy as np
 import numpy.typing as npt
 
-from rdata.parser._parser import (
+from ._parser import (
     AltRepConstructorMap,
     DEFAULT_ALTREP_MAP,
     Parser,

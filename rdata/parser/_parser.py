@@ -1248,7 +1248,7 @@ def parse_rdata_binary(
         data = data[len(format_dict[format_type]):]
 
     if format_type is RdataFormats.XDR:
-        from rdata.io.xdr import ParserXDR
+        from ._xdr import ParserXDR
 
         parser = ParserXDR(
             io.BytesIO(data),
