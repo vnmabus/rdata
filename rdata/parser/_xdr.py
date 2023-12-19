@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import io
+import numpy as np
+import numpy.typing as npt
 
 from typing import (
     Any,
 )
-
-import numpy as np
-import numpy.typing as npt
 
 from ._parser import (
     AltRepConstructorMap,
@@ -18,7 +17,7 @@ from ._parser import (
 
 
 class ParserXDR(Parser):
-    """Parser used when the integers and doubles are in XDR format."""
+    """Parser for data in XDR format."""
 
     def __init__(
         self,
