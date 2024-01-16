@@ -49,6 +49,7 @@ docs = [
   "jupyterlite-sphinx",
   "jupyterlite-pyodide-kernel",
   "matplotlib",
+  "myst-parser",
   "pydata-sphinx-theme",
   "sphinx>=3.1",
   "sphinx-gallery",

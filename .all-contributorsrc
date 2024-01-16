@@ -1,0 +1,122 @@
+{
+  "projectName": "rdata",
+  "projectOwner": "VNMabus",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "files": [
+    "CONTRIBUTORS.md"
+  ],
+  "imageSize": 100,
+  "commit": false,
+  "commitConvention": "none",
+  "contributors": [
+    {
+      "login": "vnmabus",
+      "name": "Carlos Ramos Carreño",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2364173?v=4",
+      "profile": "https://github.com/vnmabus",
+      "contributions": [
+        "code",
+        "data",
+        "doc",
+        "example",
+        "ideas",
+        "infra",
+        "maintenance",
+        "projectManagement",
+        "question",
+        "review",
+        "test",
+        "tutorial"
+      ]
+    },
+    {
+      "login": "",
+      "name": "CSC - IT Center for Science Ltd",
+      "avatar_url": "https://upload.wikimedia.org/wikipedia/en/6/6e/CSC_%E2%80%93_IT_Center_for_Science_%28logo%29.jpg",
+      "profile": "https://www.csc.fi",
+      "contributions": [
+        {
+          "type": "code",
+          "url": "https://github.com/vnmabus/rdata/commits?author=trossi"
+        }
+      ]
+    },
+    {
+      "login": "trossi",
+      "name": "Tuomas Rossi",
+      "avatar_url": "https://avatars.githubusercontent.com/u/34502776?v=4",
+      "profile": "https://github.com/trossi",
+      "contributions": [
+        "code",
+        "ideas",
+        "bug"
+      ]
+    },
+    {
+      "login": "VolodyaCO",
+      "name": "Vladimir Vargas-Calderón",
+      "avatar_url": "https://avatars.githubusercontent.com/u/31494271?v=4",
+      "profile": "https://www.researchgate.net/profile/Vladimir_Vargas-Calderon",
+      "contributions": [
+        "bug"
+      ]
+    },
+    {
+      "login": "Jorgelindo238",
+      "name": "Jorgelindo",
+      "avatar_url": "https://avatars.githubusercontent.com/u/79350063?v=4",
+      "profile": "https://jorgelindodaveiga.myportfolio.com/",
+      "contributions": [
+        "bug"
+      ]
+    },
+    {
+      "login": "zoj613",
+      "name": "zoj613",
+      "avatar_url": "https://avatars.githubusercontent.com/u/44142765?v=4",
+      "profile": "https://github.com/zoj613",
+      "contributions": [
+        "bug"
+      ]
+    },
+    {
+      "login": "schlegelp",
+      "name": "Philipp Schlegel",
+      "avatar_url": "https://avatars.githubusercontent.com/u/7161148?v=4",
+      "profile": "https://github.com/schlegelp",
+      "contributions": [
+        "bug"
+      ]
+    },
+    {
+      "login": "deeenes",
+      "name": "deeenes",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2679889?v=4",
+      "profile": "https://denes.omnipathdb.org/",
+      "contributions": [
+        "bug"
+      ]
+    },
+    {
+      "login": "soheila-sahami",
+      "name": "Soheila",
+      "avatar_url": "https://avatars.githubusercontent.com/u/9429831?v=4",
+      "profile": "https://github.com/soheila-sahami",
+      "contributions": [
+        "ideas"
+      ]
+    },
+    {
+      "login": "userLUX",
+      "name": "userLUX",
+      "avatar_url": "https://avatars.githubusercontent.com/u/107994632?v=4",
+      "profile": "https://github.com/userLUX",
+      "contributions": [
+        "bug"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7,
+  "linkToUsage": true
+}
