@@ -8,7 +8,6 @@ import lzma
 import os
 import pathlib
 import warnings
-import xdrlib
 from collections.abc import Iterator
 from dataclasses import dataclass
 from types import MappingProxyType
@@ -20,12 +19,12 @@ from typing import (
     Optional,
     Protocol,
     Sequence,
-    TypeVar,
     Union,
     runtime_checkable,
 )
 
 import numpy as np
+import numpy.typing as npt
 
 R_INT_NA = -2**31  # noqa: WPS432
 """Value used to represent a missing integer in R."""
@@ -529,36 +528,64 @@ class Parser(abc.ABC):
         self.expand_altrep = expand_altrep
         self.altrep_constructor_dict = altrep_constructor_dict
 
+    def _parse_array(
+            self,
+            dtype: np.dtype,
+    ) -> npt.NDArray[Any]:
+        """Parse an array composed of an integer (array size) and values."""
+        length = self.parse_int()
+        return self._parse_array_values(dtype, length)
+
+    @abc.abstractmethod
+    def _parse_array_values(
+            self,
+            dtype: np.dtype,
+            length: int,
+    ) -> npt.NDArray[Any]:
+        """Parse values of an array."""
+        pass
+
     def parse_bool(self) -> bool:
         """Parse a boolean."""
         return bool(self.parse_int())
 
-    def parse_nullable_bool(self) -> bool | None:
-        """Parse a boolean."""
-        read_value = self.parse_nullable_int()
-        if read_value is None:
-            return None
-
-        return bool(read_value)
-
-    @abc.abstractmethod
     def parse_int(self) -> int:
         """Parse an integer."""
-        pass
+        return int(self._parse_array_values(np.int32, 1)[0])
 
-    def parse_nullable_int(self) -> int | None:  # noqa: D102
-        result = self.parse_int()
+    def parse_nullable_bool_array(
+        self,
+        fill_value: bool = True,
+    ) -> npt.NDArray[np.bool_] | np.ma.MaskedArray[Any, Any]:
+        """Parse a boolean array."""
+        return self.parse_nullable_int_array(fill_value).astype(np.bool_)
 
-        return None if result == R_INT_NA else result
+    def parse_nullable_int_array(
+        self,
+        fill_value: int = R_INT_NA,
+    ) -> npt.NDArray[np.int32] | np.ma.MaskedArray[Any, Any]:
+        """Parse an integer array."""
 
-    @abc.abstractmethod
-    def parse_double(self) -> float:
-        """Parse a double."""
-        pass
+        data = self._parse_array(np.int32)
+        mask = (data == R_INT_NA)
+        data[mask] = fill_value
 
-    def parse_complex(self) -> complex:
-        """Parse a complex number."""
-        return complex(self.parse_double(), self.parse_double())
+        if np.any(mask):
+            return np.ma.array(  # type: ignore
+                data=data,
+                mask=mask,
+                fill_value=fill_value,
+            )
+
+        return data
+
+    def parse_double_array(self) -> npt.NDArray[np.float64]:
+        """Parse a double array."""
+        return self._parse_array(np.float64)
+
+    def parse_complex_array(self) -> npt.NDArray[np.complex128]:
+        """Parse a complex array."""
+        return self._parse_array(np.complex128)
 
     @abc.abstractmethod
     def parse_string(self, length: int) -> bytes:
@@ -660,37 +687,6 @@ class Parser(abc.ABC):
         ]
 
         return (code, constants)
-
-    T = TypeVar("T")
-
-    def _parse_nullable_array(
-        self,
-        dtype: type[T],
-        parse_function: Callable[[], T | None],
-        fill_value: T,
-    ) -> np.ndarray[Any, Any] | np.ma.MaskedArray[Any, Any]:
-
-        length = self.parse_int()
-
-        value = np.empty(length, dtype=dtype)
-        mask = np.zeros(length, dtype=np.bool_)
-
-        for i in range(length):
-            parsed = parse_function()
-            if parsed is None:
-                mask[i] = True
-                value[i] = fill_value
-            else:
-                value[i] = parsed
-
-        if np.any(mask):
-            return np.ma.MaskedArray(
-                data=value,
-                mask=mask,
-                fill_value=fill_value,
-            )
-
-        return value
 
     def parse_R_object(
         self,
@@ -832,34 +828,16 @@ class Parser(abc.ABC):
                 )
 
         elif info.type == RObjectType.LGL:
-            value = self._parse_nullable_array(
-                dtype=np.bool_,
-                parse_function=self.parse_nullable_bool,
-                fill_value=True,
-            )
+            value = self.parse_nullable_bool_array()
 
         elif info.type == RObjectType.INT:
-            value = self._parse_nullable_array(
-                dtype=np.int32,
-                parse_function=self.parse_nullable_int,
-                fill_value=R_INT_NA,
-            )
+            value = self.parse_nullable_int_array()
 
         elif info.type == RObjectType.REAL:
-            length = self.parse_int()
-
-            value = np.empty(length, dtype=np.double)
-
-            for i in range(length):
-                value[i] = self.parse_double()
+            value = self.parse_double_array()
 
         elif info.type == RObjectType.CPLX:
-            length = self.parse_int()
-
-            value = np.empty(length, dtype=np.complex_)
-
-            for i in range(length):
-                value[i] = self.parse_complex()
+            value = self.parse_complex_array()
 
         elif info.type in {
             RObjectType.STR,
@@ -986,50 +964,6 @@ class Parser(abc.ABC):
             bytecode_rep_list[bytecode_rep_position] = result
 
         return result
-
-
-class ParserXDR(Parser):
-    """Parser used when the integers and doubles are in XDR format."""
-
-    def __init__(
-        self,
-        data: memoryview,
-        position: int = 0,
-        *,
-        expand_altrep: bool = True,
-        altrep_constructor_dict: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
-    ) -> None:
-        super().__init__(
-            expand_altrep=expand_altrep,
-            altrep_constructor_dict=altrep_constructor_dict,
-        )
-        self.data = data
-        self.position = position
-        self.xdr_parser = xdrlib.Unpacker(data)
-
-    def parse_int(self) -> int:  # noqa: D102
-        self.xdr_parser.set_position(self.position)
-        result = self.xdr_parser.unpack_int()
-        self.position = self.xdr_parser.get_position()
-
-        return result
-
-    def parse_double(self) -> float:  # noqa: D102
-        self.xdr_parser.set_position(self.position)
-        result = self.xdr_parser.unpack_double()
-        self.position = self.xdr_parser.get_position()
-
-        return result
-
-    def parse_string(self, length: int) -> bytes:  # noqa: D102
-        result = self.data[self.position:(self.position + length)]
-        self.position += length
-        return bytes(result)
-
-    def parse_all(self) -> RData:
-        rdata = super().parse_all()
-        assert self.position == len(self.data)
-        return rdata
 
 
 def parse_file(
@@ -1284,6 +1218,8 @@ def parse_rdata_binary(
         data = data[len(format_dict[format_type]):]
 
     if format_type is RdataFormats.XDR:
+        from ._xdr import ParserXDR
+
         parser = ParserXDR(
             data,
             expand_altrep=expand_altrep,
