@@ -1,5 +1,6 @@
 """Tests of parsing and conversion."""
 
+import itertools
 import unittest
 from collections import ChainMap
 from fractions import Fraction
@@ -731,6 +732,36 @@ class SimpleTests(unittest.TestCase):
             "test_altrep_wrap_logical": [True],
         })
 
+    def test_ascii(self) -> None:
+        """Test ascii files."""
+        ref_ma = np.ma.array(data=[True], mask=[True], fill_value=True)
+        ref = [[1.1], [2], [3.+4.j], ref_ma, ['aä']]
+
+        for tag, v, ext in itertools.product(
+                ('', 'win_'),
+                (2, 3),
+                ('rda', 'rds'),
+                ):
+            f = f'test_ascii_{tag}v{v}.{ext}'
+            with self.subTest(file=f):
+                parsed = rdata.parser.parse_file(
+                    TESTDATA_PATH / f,
+                )
+                converted = rdata.conversion.convert(parsed)
+
+                if ext == 'rda':
+                    np.testing.assert_equal(converted, {'data': ref})
+                    ma = converted['data'][3]
+                else:
+                    np.testing.assert_equal(converted, ref)
+                    ma = converted[3]
+
+                # Test masked array separately
+                np.testing.assert_equal(ma.data, ref_ma.data)
+                np.testing.assert_equal(ma.mask, ref_ma.mask)
+                np.testing.assert_equal(ma.mask, ref_ma.mask)
+                np.testing.assert_equal(ma.get_fill_value(),
+                                        ref_ma.get_fill_value())
 
 if __name__ == "__main__":
     unittest.main()
