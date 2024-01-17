@@ -8,26 +8,16 @@ import lzma
 import os
 import pathlib
 import warnings
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import (
-    Any,
-    Callable,
-    Final,
-    Mapping,
-    Optional,
-    Protocol,
-    Sequence,
-    Union,
-    runtime_checkable,
-)
+from typing import Any, Final, Protocol, Union, runtime_checkable
 
 import numpy as np
 import numpy.typing as npt
 
 #: Value used to represent a missing integer in R.
-R_INT_NA: Final = -2**31  # noqa: WPS432
+R_INT_NA: Final = -2**31
 
 
 @runtime_checkable
@@ -50,16 +40,14 @@ class BinaryBufferFileLike(Protocol):
 AcceptableFile = Union[BinaryFileLike, BinaryBufferFileLike]
 
 try:
-    from importlib.resources.abc import (  # noqa:WPS113
-        Traversable as Traversable,
-    )
+    from importlib.resources.abc import Traversable as Traversable
 except ImportError:
 
     @runtime_checkable
     class Traversable(Protocol):  # type: ignore [no-redef]
         """Definition of Traversable protocol for Python < 3.11."""
 
-        def iterdir(self) -> Iterator["Traversable"]:
+        def iterdir(self) -> Iterator[Traversable]:
             pass
 
         def read_bytes(self) -> bytes:
@@ -77,20 +65,18 @@ except ImportError:
         def joinpath(
             self,
             *descendants: str | os.PathLike[str],
-        ) -> "Traversable":
+        ) -> Traversable:
             pass
 
         def __truediv__(
             self,
             child: str | os.PathLike[str],
-        ) -> "Traversable":
+        ) -> Traversable:
             pass
 
-        def open(
+        def open(  # noqa: A003
             self,
-            mode: str = 'r',
-            *args: Any,
-            **kwargs: Any,
+            mode: str = "r",
         ) -> AcceptableFile:
             pass
 
@@ -211,16 +197,16 @@ class CharFlags(enum.IntFlag):
 
 
 @dataclass
-class RVersions():
+class RVersions:
     """R versions."""
 
-    format: int  # noqa: E701
+    format: int  # noqa: A003
     serialized: int
     minimum: int
 
 
 @dataclass
-class RExtraInfo():
+class RExtraInfo:
     """
     Extra information.
 
@@ -228,25 +214,25 @@ class RExtraInfo():
 
     """
 
-    encoding: Optional[str] = None
+    encoding: str | None = None
 
 
 @dataclass
-class RObjectInfo():
+class RObjectInfo:
     """Internal attributes of a R object."""
 
-    type: RObjectType
-    object: bool
+    type: RObjectType  # noqa: A003
+    object: bool  # noqa: A003
     attributes: bool
     tag: bool
     gp: int
     reference: int
 
 
-def _str_internal(
+def _str_internal(  # noqa: PLR0912, C901
     obj: RObject | Sequence[RObject],
     indent: int = 0,
-    used_references: Optional[set[int]] = None,
+    used_references: set[int] | None = None,
 ) -> str:
 
     if used_references is None:
@@ -255,9 +241,9 @@ def _str_internal(
     small_indent = indent + 2
     big_indent = indent + 4
 
-    indent_spaces = ' ' * indent
-    small_indent_spaces = ' ' * small_indent
-    big_indent_spaces = ' ' * big_indent
+    indent_spaces = " " * indent
+    small_indent_spaces = " " * small_indent
+    big_indent_spaces = " " * big_indent
 
     string = ""
 
@@ -313,8 +299,10 @@ def _str_internal(
                 used_references.copy(),
             )
     elif isinstance(obj.value, np.ndarray):
+        max_displayed_elements: Final = 4
+
         string += big_indent_spaces
-        if len(obj.value) > 4:
+        if len(obj.value) > max_displayed_elements:
             string += (
                 f"[{obj.value[0]}, {obj.value[1]} ... "
                 f"{obj.value[-2]}, {obj.value[-1]}]\n"
@@ -336,26 +324,26 @@ def _str_internal(
 
 
 @dataclass
-class RObject():
+class RObject:
     """Representation of a R object."""
 
     info: RObjectInfo
     value: Any
-    attributes: Optional[RObject]
-    tag: Optional[RObject] = None
-    referenced_object: Optional[RObject] = None
+    attributes: RObject | None
+    tag: RObject | None = None
+    referenced_object: RObject | None = None
 
     def __str__(self) -> str:
         return _str_internal(self)
 
 
 @dataclass
-class RData():
+class RData:
     """Data contained in a R file."""
 
     versions: RVersions
     extra: RExtraInfo
-    object: RObject
+    object: RObject  # noqa: A003
 
     def __str__(self) -> str:
         return (
@@ -368,7 +356,7 @@ class RData():
 
 
 @dataclass
-class EnvironmentValue():
+class EnvironmentValue:
     """Value of an environment."""
 
     locked: bool
@@ -524,7 +512,7 @@ class Parser(abc.ABC):
         *,
         expand_altrep: bool = True,
         altrep_constructor_dict: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
-    ):
+    ) -> None:
         self.expand_altrep = expand_altrep
         self.altrep_constructor_dict = altrep_constructor_dict
 
@@ -543,7 +531,6 @@ class Parser(abc.ABC):
             length: int,
     ) -> npt.NDArray[Any]:
         """Parse values of an array."""
-        pass
 
     def parse_bool(self) -> bool:
         """Parse a boolean."""
@@ -555,23 +542,26 @@ class Parser(abc.ABC):
 
     def parse_nullable_bool_array(
         self,
+        *,
         fill_value: bool = True,
     ) -> npt.NDArray[np.bool_] | np.ma.MaskedArray[Any, Any]:
         """Parse a boolean array."""
-        return self.parse_nullable_int_array(fill_value).astype(np.bool_)
+        return self.parse_nullable_int_array(
+            fill_value=fill_value,
+        ).astype(np.bool_)
 
     def parse_nullable_int_array(
         self,
+        *,
         fill_value: int = R_INT_NA,
     ) -> npt.NDArray[np.int32] | np.ma.MaskedArray[Any, Any]:
         """Parse an integer array."""
-
         data = self._parse_array(np.int32)
         mask = (data == R_INT_NA)
         data[mask] = fill_value
 
         if np.any(mask):
-            return np.ma.array(  # type: ignore
+            return np.ma.array(  # type: ignore [no-untyped-call,no-any-return]
                 data=data,
                 mask=mask,
                 fill_value=fill_value,
@@ -590,7 +580,6 @@ class Parser(abc.ABC):
     @abc.abstractmethod
     def parse_string(self, length: int) -> bytes:
         """Parse a string."""
-        pass
 
     def parse_all(self) -> RData:
         """Parse all the file."""
@@ -607,9 +596,8 @@ class Parser(abc.ABC):
         minimum_r_version = self.parse_int()
 
         if format_version not in {2, 3}:
-            raise NotImplementedError(
-                f"Format version {format_version} unsupported",
-            )
+            msg = f"Format version {format_version} unsupported"
+            raise NotImplementedError(msg)
 
         return RVersions(format_version, r_version, minimum_r_version)
 
@@ -617,12 +605,13 @@ class Parser(abc.ABC):
         """
         Parse the extra info.
 
-        Parses de encoding in version 3 format.
+        Parses the encoding in version 3 format.
 
         """
         encoding = None
 
-        if versions.format >= 3:
+        minimum_version_with_encoding = 3
+        if versions.format >= minimum_version_with_encoding:
             encoding_len = self.parse_int()
             encoding = self.parse_string(encoding_len).decode("ASCII")
 
@@ -688,7 +677,7 @@ class Parser(abc.ABC):
 
         return (code, constants)
 
-    def parse_R_object(
+    def parse_R_object(  # noqa: N802, C901, PLR0912, PLR0915
         self,
         reference_list: list[RObject] | None = None,
         bytecode_rep_list: list[RObject | None] | None = None,
@@ -823,9 +812,8 @@ class Parser(abc.ABC):
             elif length == -1:
                 value = None
             else:
-                raise NotImplementedError(
-                    f"Length of CHAR cannot be {length}",
-                )
+                msg = f"Length of CHAR cannot be {length}"
+                raise NotImplementedError(msg)
 
         elif info.type == RObjectType.LGL:
             value = self.parse_nullable_bool_array()
@@ -904,7 +892,7 @@ class Parser(abc.ABC):
             else:
                 value = (altrep_info, altrep_state, altrep_attr)
 
-        elif info.type == RObjectType.BASEENV:
+        elif info.type == RObjectType.BASEENV:  # noqa: SIM114
             value = None
 
         elif info.type == RObjectType.EMPTYENV:
@@ -917,10 +905,10 @@ class Parser(abc.ABC):
             assert result
             return result
 
-        elif info.type == RObjectType.MISSINGARG:
+        elif info.type == RObjectType.MISSINGARG:  # noqa: SIM114
             value = None
 
-        elif info.type == RObjectType.GLOBALENV:
+        elif info.type == RObjectType.GLOBALENV:  # noqa: SIM114
             value = None
 
         elif info.type == RObjectType.NILVALUE:
@@ -932,10 +920,11 @@ class Parser(abc.ABC):
             referenced_object = reference_list[info.reference - 1]
 
         else:
-            raise NotImplementedError(f"Type {info.type} not implemented")
+            msg = f"Type {info.type} not implemented"
+            raise NotImplementedError(msg)
 
         if info.tag and not tag_read:
-            warnings.warn(
+            warnings.warn(  # noqa: B028
                 f"Tag not implemented for type {info.type} "
                 "and ignored",
             )
@@ -1188,7 +1177,7 @@ type=<RObjectType.CHAR: 9>,
         new_data = lzma.decompress(data)
     elif filetype in {FileTypes.rdata_binary_v2, FileTypes.rdata_binary_v3}:
         if extension == ".rds":
-            warnings.warn(
+            warnings.warn(  # noqa: B028
                 f"Wrong extension {extension} for file in RDATA format",
             )
 
@@ -1197,10 +1186,10 @@ type=<RObjectType.CHAR: 9>,
     else:
         new_data = view
         if extension != ".rds":
-            warnings.warn("Unknown file type: assumed RDS")
+            warnings.warn("Unknown file type: assumed RDS")  # noqa: B028
 
     return parse_function(
-        new_data,  # type: ignore
+        new_data,  # type: ignore [arg-type]
         expand_altrep=expand_altrep,
         altrep_constructor_dict=altrep_constructor_dict,
         extension=extension,
@@ -1209,9 +1198,10 @@ type=<RObjectType.CHAR: 9>,
 
 def parse_rdata_binary(
     data: memoryview,
+    *,
     expand_altrep: bool = True,
     altrep_constructor_dict: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
-    extension: str | None = None,
+    extension: str | None = None,  # noqa: ARG001
 ) -> RData:
     """Select the appropiate parser and parse all the info."""
     format_type = rdata_format(data)
@@ -1229,7 +1219,8 @@ def parse_rdata_binary(
         )
         return parser.parse_all()
 
-    raise NotImplementedError("Unknown file format")
+    msg = "Unknown file format"
+    raise NotImplementedError(msg)
 
 
 def bits(data: int, start: int, stop: int) -> int:
@@ -1263,11 +1254,11 @@ def parse_r_object_info(info_int: int) -> RObjectInfo:
     else:
         object_flag = bool(bits(info_int, 8, 9))
         attributes = bool(bits(info_int, 9, 10))
-        tag = bool(bits(info_int, 10, 11))  # noqa: WPS432
-        gp = bits(info_int, 12, 28)  # noqa: WPS432
+        tag = bool(bits(info_int, 10, 11))
+        gp = bits(info_int, 12, 28)
 
     if type_exp == RObjectType.REF:
-        reference = bits(info_int, 8, 32)  # noqa: WPS432
+        reference = bits(info_int, 8, 32)
 
     return RObjectInfo(
         type=type_exp,

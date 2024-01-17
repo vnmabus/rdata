@@ -73,3 +73,17 @@ include = ["rdata*"]
 
 [tool.setuptools.dynamic]
 version = {attr = "rdata.__version__"}
+
+[tool.ruff]
+select = [
+    "ALL",
+]
+ignore = [
+	"ANN101", # self does not need to be typed
+	"D212", # incompatible with D213, which is our preferred style for multiline docstrings
+	"PLC0414", # allow explicit re-exports
+	"S101", # assert is allowed
+]
+
+[tool.ruff.pydocstyle]
+convention = "google"

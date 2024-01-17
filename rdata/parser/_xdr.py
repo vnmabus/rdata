@@ -35,7 +35,7 @@ class ParserXDR(Parser):
         # Read in big-endian order and convert to native byte order
         return np.frombuffer(
             buffer,
-            dtype=dtype.newbyteorder('>'),
+            dtype=dtype.newbyteorder(">"),
         ).astype(dtype, copy=False)
 
     def parse_string(self, length: int) -> bytes:
@@ -44,5 +44,5 @@ class ParserXDR(Parser):
     def parse_all(self) -> RData:
         rdata = super().parse_all()
         # Check that there is no more data in the file
-        assert self.file.read(1) == b''
+        assert self.file.read(1) == b""
         return rdata
