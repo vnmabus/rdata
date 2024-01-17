@@ -26,7 +26,7 @@ class ParserASCII(Parser):
 
     def _parse_array_values(
             self,
-            dtype: np.dtype,
+            dtype: npt.DTypeLike,
             length: int,
     ) -> npt.NDArray[Any]:
 
