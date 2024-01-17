@@ -56,7 +56,9 @@ class ParserASCII(Parser):
         return array
 
     def parse_string(self, length: int) -> bytes:
-        return self._readline().encode('ascii').decode('unicode_escape').encode('latin1')
+        s = self._readline().encode('ascii').decode('unicode_escape').encode('latin1')
+        assert len(s) == length
+        return s
 
     def check_complete(self):
         assert self.file.read(1) == ''
