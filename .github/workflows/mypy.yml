@@ -15,5 +15,5 @@ jobs:
         reporter: github-pr-review
         # The action will output fail if there are mypy errors
         level: error
-        setup_command: pip install -r requirements.txt pytest mypy
+        setup_command: pip install . pytest mypy
         mypy_flags: ''
