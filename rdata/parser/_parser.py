@@ -26,8 +26,8 @@ from typing import (
 import numpy as np
 import numpy.typing as npt
 
-R_INT_NA = -2**31  # noqa: WPS432
-"""Value used to represent a missing integer in R."""
+#: Value used to represent a missing integer in R.
+R_INT_NA: Final = -2**31  # noqa: WPS432
 
 
 @runtime_checkable
@@ -530,7 +530,7 @@ class Parser(abc.ABC):
 
     def _parse_array(
             self,
-            dtype: np.dtype,
+            dtype: npt.DTypeLike,
     ) -> npt.NDArray[Any]:
         """Parse an array composed of an integer (array size) and values."""
         length = self.parse_int()
@@ -539,7 +539,7 @@ class Parser(abc.ABC):
     @abc.abstractmethod
     def _parse_array_values(
             self,
-            dtype: np.dtype,
+            dtype: npt.DTypeLike,
             length: int,
     ) -> npt.NDArray[Any]:
         """Parse values of an array."""
@@ -1034,7 +1034,8 @@ def parse_file(
                                                   tag=False,
                                                   gp=0,
                                                   reference=0),
-                                 value=RObject(info=RObjectInfo(type=<RObjectType.CHAR: 9>,
+                                 value=RObject(info=RObjectInfo(\
+type=<RObjectType.CHAR: 9>,
                                                                 object=False,
                                                                 attributes=False,
                                                                 tag=False,
@@ -1149,7 +1150,8 @@ def parse_data(
                                                   tag=False,
                                                   gp=0,
                                                   reference=0),
-                                 value=RObject(info=RObjectInfo(type=<RObjectType.CHAR: 9>,
+                                 value=RObject(info=RObjectInfo(\
+type=<RObjectType.CHAR: 9>,
                                                                 object=False,
                                                                 attributes=False,
                                                                 tag=False,

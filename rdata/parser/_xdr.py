@@ -1,19 +1,12 @@
 from __future__ import annotations
 
 import io
+from typing import Any
+
 import numpy as np
 import numpy.typing as npt
 
-from typing import (
-    Any,
-)
-
-from ._parser import (
-    AltRepConstructorMap,
-    DEFAULT_ALTREP_MAP,
-    Parser,
-    RData,
-)
+from ._parser import DEFAULT_ALTREP_MAP, AltRepConstructorMap, Parser, RData
 
 
 class ParserXDR(Parser):
@@ -34,13 +27,16 @@ class ParserXDR(Parser):
 
     def _parse_array_values(
             self,
-            dtype: np.dtype,
+            dtype: npt.DTypeLike,
             length: int,
     ) -> npt.NDArray[Any]:
         dtype = np.dtype(dtype)
         buffer = self.file.read(length * dtype.itemsize)
         # Read in big-endian order and convert to native byte order
-        return np.frombuffer(buffer, dtype=dtype.newbyteorder('>')).astype(dtype, copy=False)
+        return np.frombuffer(
+            buffer,
+            dtype=dtype.newbyteorder('>'),
+        ).astype(dtype, copy=False)
 
     def parse_string(self, length: int) -> bytes:
         return self.file.read(length)
