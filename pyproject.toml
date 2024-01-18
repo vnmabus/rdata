@@ -39,6 +39,7 @@ dependencies = [
 	"numpy",
 	"xarray",
 	"pandas",
+	"typing_extensions>4.4",
 ]
 
 [project.optional-dependencies]
