@@ -74,7 +74,7 @@ except ImportError:
         ) -> Traversable:
             pass
 
-        def open(  # noqa: A003
+        def open(
             self,
             mode: str = "r",
         ) -> AcceptableFile:
@@ -200,7 +200,7 @@ class CharFlags(enum.IntFlag):
 class RVersions:
     """R versions."""
 
-    format: int  # noqa: A003
+    format: int
     serialized: int
     minimum: int
 
@@ -221,8 +221,8 @@ class RExtraInfo:
 class RObjectInfo:
     """Internal attributes of a R object."""
 
-    type: RObjectType  # noqa: A003
-    object: bool  # noqa: A003
+    type: RObjectType
+    object: bool
     attributes: bool
     tag: bool
     gp: int
@@ -343,7 +343,7 @@ class RData:
 
     versions: RVersions
     extra: RExtraInfo
-    object: RObject  # noqa: A003
+    object: RObject
 
     def __str__(self) -> str:
         return (

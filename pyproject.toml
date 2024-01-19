@@ -99,6 +99,9 @@ ignore = [
 	"S310", # URLs in examples have been validated
 	"T201", # print allowed in examples
 ]
+"plot_cran.py" = [
+	"SIM117", # multiple with necessary for now
+]
 
 [tool.ruff.isort]
 combine-as-imports = true
