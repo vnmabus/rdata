@@ -105,6 +105,7 @@ print(converted)
 
 
 def graph_constructor(obj, attrs):
+    """Construct graph object from R representation."""
     n_vertices = int(obj[0][0])
     is_directed = obj[1]
     edge_from = obj[2].astype(int)
@@ -119,7 +120,7 @@ def graph_constructor(obj, attrs):
     vertex_attrs = obj[8][2]
     edge_attrs = obj[8][3]
 
-    graph = igraph.Graph(
+    return igraph.Graph(
         n=n_vertices,
         directed=is_directed,
         edges=list(zip(edge_from, edge_to)),
@@ -127,8 +128,6 @@ def graph_constructor(obj, attrs):
         vertex_attrs=vertex_attrs,
         edge_attrs=edge_attrs,
     )
-
-    return graph
 
 
 # %%

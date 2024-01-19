@@ -1,6 +1,5 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-#
+"""Configuration of the Sphinx documentation."""
+
 # rdata documentation build configuration file, created by
 # sphinx-quickstart on Tue Aug 7 12:49:32 2018.
 #
@@ -27,7 +26,7 @@ import rdata
 # General information about the project.
 project = "rdata"
 author = "Carlos Ramos Carreño"
-copyright = "2018, Carlos Ramos Carreño"
+copyright = "2018, Carlos Ramos Carreño"  # noqa: A001
 github_url = "https://github.com/vnmabus/rdata"
 rtd_version = os.environ.get("READTHEDOCS_VERSION")
 rtd_version_type = os.environ.get("READTHEDOCS_VERSION_TYPE")
@@ -44,7 +43,7 @@ language = "en"
 try:
     release = importlib.metadata.version("rdata")
 except importlib.metadata.PackageNotFoundError:
-    print(
+    print(  # noqa: T201
         f"To build the documentation, The distribution information of\n"
         f"{project} has to be available.  Either install the package\n"
         f"into your development environment or run 'setup.py develop'\n"
@@ -57,8 +56,6 @@ version = ".".join(release.split(".")[:2])
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-#
-# needs_sphinx = '1.0'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -166,7 +163,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, "rdata", "rdata Documentation", [author], 1)
+    (master_doc, "rdata", "rdata Documentation", [author], 1),
 ]
 
 # -- Options for Texinfo output -------------------------------------------
@@ -193,15 +190,6 @@ epub_title = project
 epub_author = author
 epub_publisher = author
 epub_copyright = copyright
-
-# The unique identifier of the text. This can be a ISBN number
-# or the project homepage.
-#
-# epub_identifier = ''
-
-# A unique identification for the text.
-#
-# epub_uid = ''
 
 # A list of files that should not be packed into the epub file.
 epub_exclude_files = ["search.html"]

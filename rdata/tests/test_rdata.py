@@ -4,7 +4,7 @@ import unittest
 from collections import ChainMap
 from fractions import Fraction
 from types import SimpleNamespace
-from typing import Any, Dict
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -15,16 +15,16 @@ import rdata
 TESTDATA_PATH = rdata.TESTDATA_PATH
 
 
-class SimpleTests(unittest.TestCase):  # noqa:WPS214
+class SimpleTests(unittest.TestCase):
     """Collection of simple test cases."""
 
     def test_opened_file(self) -> None:
         """Test that an opened file can be passed to parse_file."""
-        with open(TESTDATA_PATH / "test_vector.rda") as f:
+        with (TESTDATA_PATH / "test_vector.rda").open() as f:
             parsed = rdata.parser.parse_file(f)
             converted = rdata.conversion.convert(parsed)
 
-            self.assertIsInstance(converted, dict)
+            assert isinstance(converted, dict)
 
     def test_opened_string(self) -> None:
         """Test that a string can be passed to parse_file."""
@@ -33,7 +33,7 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
         )
         converted = rdata.conversion.convert(parsed)
 
-        self.assertIsInstance(converted, dict)
+        assert isinstance(converted, dict)
 
     def test_logical(self) -> None:
         """Test parsing of logical vectors."""
@@ -228,9 +228,9 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
             "test_list":
                 [
                     np.array([1.0]),
-                    ['a', 'b', 'c'],
+                    ["a", "b", "c"],
                     np.array([2.0, 3.0]),
-                    ['hi'],
+                    ["hi"],
                 ],
         })
 
@@ -251,7 +251,7 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
         np.testing.assert_equal(converted, {
             "test_expression": rdata.conversion.RExpression([
                 rdata.conversion.RLanguage(
-                    ['^', 'base', 'exponent'],
+                    ["^", "base", "exponent"],
                     attributes={},
                 ),
             ]),
@@ -275,7 +275,7 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
 
         converted_fun = converted["test_minimal_function_uncompiled"]
 
-        self.assertIsInstance(
+        assert isinstance(
             converted_fun,
             rdata.conversion.RFunction,
         )
@@ -297,7 +297,7 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
 
         converted_fun = converted["test_minimal_function"]
 
-        self.assertIsInstance(
+        assert isinstance(
             converted_fun,
             rdata.conversion.RFunction,
         )
@@ -307,7 +307,7 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
 
         converted_body = converted_fun.body
 
-        self.assertIsInstance(
+        assert isinstance(
             converted_body,
             rdata.conversion.RBytecode,
         )
@@ -329,17 +329,17 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
 
         converted_fun = converted["test_empty_function_uncompiled"]
 
-        self.assertIsInstance(
+        assert isinstance(
             converted_fun,
             rdata.conversion.RFunction,
         )
 
         np.testing.assert_equal(converted_fun.environment, ChainMap({}))
         np.testing.assert_equal(converted_fun.formals, None)
-        self.assertIsInstance(converted_fun.body, rdata.conversion.RLanguage)
+        assert isinstance(converted_fun.body, rdata.conversion.RLanguage)
         np.testing.assert_equal(
             converted_fun.source,
-            "test_empty_function_uncompiled <- function() {}\n",  # noqa:P103
+            "test_empty_function_uncompiled <- function() {}\n",
         )
 
     def test_empty_function(self) -> None:
@@ -351,7 +351,7 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
 
         converted_fun = converted["test_empty_function"]
 
-        self.assertIsInstance(
+        assert isinstance(
             converted_fun,
             rdata.conversion.RFunction,
         )
@@ -361,7 +361,7 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
 
         converted_body = converted_fun.body
 
-        self.assertIsInstance(
+        assert isinstance(
             converted_body,
             rdata.conversion.RBytecode,
         )
@@ -371,7 +371,7 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
 
         np.testing.assert_equal(
             converted_fun.source,
-            "test_empty_function <- function() {}\n",  # noqa:P103
+            "test_empty_function <- function() {}\n",
         )
 
     def test_function(self) -> None:
@@ -383,7 +383,7 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
 
         converted_fun = converted["test_function"]
 
-        self.assertIsInstance(
+        assert isinstance(
             converted_fun,
             rdata.conversion.RFunction,
         )
@@ -393,7 +393,7 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
 
         converted_body = converted_fun.body
 
-        self.assertIsInstance(
+        assert isinstance(
             converted_body,
             rdata.conversion.RBytecode,
         )
@@ -418,7 +418,7 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
 
         converted_fun = converted["test_function_arg"]
 
-        self.assertIsInstance(
+        assert isinstance(
             converted_fun,
             rdata.conversion.RFunction,
         )
@@ -428,7 +428,7 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
 
         converted_body = converted_fun.body
 
-        self.assertIsInstance(
+        assert isinstance(
             converted_body,
             rdata.conversion.RBytecode,
         )
@@ -495,7 +495,7 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
                             "value": pd.Series(
                                 [1, 2, 3],
                                 dtype=pd.Int32Dtype(),
-                            ).values,
+                            ).array,
                         },
                         index=pd.RangeIndex(start=1, stop=4),
                     ),
@@ -520,7 +520,7 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
                             "value": pd.Series(
                                 [1, 2, 3],
                                 dtype=pd.Int32Dtype(),
-                            ).values,
+                            ).array,
                         },
                         index=pd.RangeIndex(start=1, stop=4),
                     ),
@@ -543,9 +543,9 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
                     "value": pd.Series(
                         [1, 2, 3],
                         dtype=pd.Int32Dtype(),
-                    ).values,
+                    ).array,
                 },
-                index=('Madrid', 'Frankfurt', 'Herzberg am Harz'),
+                index=("Madrid", "Frankfurt", "Herzberg am Harz"),
             ),
         )
 
@@ -572,7 +572,7 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
             "test_s4": SimpleNamespace(
                 age=np.array(28),
                 name=["Carlos"],
-                **{'class': ["Person"]},  # noqa: WPS517
+                **{"class": ["Person"]},
             ),
         })
 
@@ -583,8 +583,8 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
         )
         converted = rdata.conversion.convert(parsed)
 
-        dict_env = {'string': ['test']}
-        empty_global_env: Dict[str, Any] = {}
+        dict_env = {"string": ["test"]}
+        empty_global_env: dict[str, Any] = {}
 
         np.testing.assert_equal(converted, {
             "test_environment": ChainMap(dict_env, ChainMap(empty_global_env)),
@@ -608,9 +608,9 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
         )
         converted = rdata.conversion.convert(parsed)
 
-        self.assertEqual(converted, {
+        assert converted == {
             "test_emptyenv": ChainMap({}),
-        })
+        }
 
     def test_list_attrs(self) -> None:
         """Test that lists accept attributes."""
@@ -618,7 +618,7 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
         converted = rdata.conversion.convert(parsed)
 
         np.testing.assert_equal(converted, {
-            "test_list_attrs": [['list'], [5]],
+            "test_list_attrs": [["list"], [5]],
         })
 
     def test_altrep_compact_intseq(self) -> None:
@@ -683,7 +683,7 @@ class SimpleTests(unittest.TestCase):  # noqa:WPS214
         converted = rdata.conversion.convert(parsed)
 
         np.testing.assert_equal(converted, {
-            "test_altrep_deferred_string": [  # noqa: WPS317
+            "test_altrep_deferred_string": [
                 "1", "2.3", "10000",
                 "1e+05", "-10000", "-1e+05",
                 "0.001", "1e-04", "1e-05",

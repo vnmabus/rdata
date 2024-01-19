@@ -88,6 +88,21 @@ ignore = [
 	"TID252", # relative imports allowed
 ]
 
+[tool.ruff.per-file-ignores]
+"plot_*.py" = [
+	"ANN", # no type hints in examples
+	"ARG001", # Some unused args are needed
+	"B018", # single object expressions are not useless in examples (they display the object)
+	"D205", # examples do not have a blank line in docstring
+	"D415", # first line in examples does not end with period
+	"ERA001", # Commented code may be useful for the reader
+	"S310", # URLs in examples have been validated
+	"T201", # print allowed in examples
+]
+
+[tool.ruff.isort]
+combine-as-imports = true
+
 [tool.ruff.pydocstyle]
 convention = "google"
 
