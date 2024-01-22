@@ -92,6 +92,8 @@ class FileTypes(enum.Enum):
     xz = "xz"
     rdata_binary_v2 = "rdata version 2 (binary)"
     rdata_binary_v3 = "rdata version 3 (binary)"
+    rdata_ascii_v2 = "rdata version 2 (ascii)"
+    rdata_ascii_v3 = "rdata version 3 (ascii)"
 
 
 magic_dict = {
@@ -100,6 +102,8 @@ magic_dict = {
     FileTypes.xz: b"\xFD7zXZ\x00",
     FileTypes.rdata_binary_v2: b"RDX2\n",
     FileTypes.rdata_binary_v3: b"RDX3\n",
+    FileTypes.rdata_ascii_v2: b"RDA2\n",
+    FileTypes.rdata_ascii_v3: b"RDA3\n",
 }
 
 
@@ -1170,6 +1174,8 @@ type=<RObjectType.CHAR: 9>,
         if filetype in {
             FileTypes.rdata_binary_v2,
             FileTypes.rdata_binary_v3,
+            FileTypes.rdata_ascii_v2,
+            FileTypes.rdata_ascii_v3,
             None,
         } else parse_data
     )
@@ -1180,7 +1186,11 @@ type=<RObjectType.CHAR: 9>,
         new_data = gzip.decompress(data)
     elif filetype is FileTypes.xz:
         new_data = lzma.decompress(data)
-    elif filetype in {FileTypes.rdata_binary_v2, FileTypes.rdata_binary_v3}:
+    elif filetype in {FileTypes.rdata_binary_v2,
+                      FileTypes.rdata_binary_v3,
+                      FileTypes.rdata_ascii_v2,
+                      FileTypes.rdata_ascii_v3,
+                      }:
         if extension == ".rds":
             warnings.warn(  # noqa: B028
                 f"Wrong extension {extension} for file in RDATA format",
