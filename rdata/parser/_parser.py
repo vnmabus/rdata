@@ -583,6 +583,9 @@ class Parser(abc.ABC):
     def parse_string(self, length: int) -> bytes:
         """Parse a string."""
 
+    def check_complete(self):
+        """Check that parsing was completed."""
+
     def parse_all(self) -> RData:
         """Parse all the file."""
         versions = self.parse_versions()
@@ -1212,26 +1215,21 @@ def parse_rdata_binary(
         data = data[len(format_dict[format_type]):]
 
     if format_type is RdataFormats.XDR:
-        from ._xdr import ParserXDR
-
-        parser = ParserXDR(
-            data,
-            expand_altrep=expand_altrep,
-            altrep_constructor_dict=altrep_constructor_dict,
-        )
+        from ._xdr import ParserXDR as Parser
     elif format_type in (RdataFormats.ASCII, RdataFormats.ASCII_CRLF):
-        from ._ascii import ParserASCII
-
-        parser = ParserASCII(
-            data,
-            expand_altrep=expand_altrep,
-            altrep_constructor_dict=altrep_constructor_dict,
-        )
+        from ._ascii import ParserASCII as Parser
     else:
         msg = "Unknown file format"
         raise NotImplementedError(msg)
 
-    return parser.parse_all()
+    parser = Parser(
+        data,
+        expand_altrep=expand_altrep,
+        altrep_constructor_dict=altrep_constructor_dict,
+    )
+    r_data = parser.parse_all()
+    parser.check_complete()
+    return r_data
 
 
 def bits(data: int, start: int, stop: int) -> int:

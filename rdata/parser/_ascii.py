@@ -1,20 +1,13 @@
 from __future__ import annotations
 
 import io
+from typing import Any
+
 import numpy as np
 import numpy.typing as npt
 
-from typing import (
-    Any,
-)
+from ._parser import Parser, R_INT_NA
 
-from ._parser import (
-    AltRepConstructorMap,
-    DEFAULT_ALTREP_MAP,
-    Parser,
-    RData,
-    R_INT_NA,
-)
 
 class ParserASCII(Parser):
     """Parser for data in ASCII format."""
@@ -22,14 +15,9 @@ class ParserASCII(Parser):
     def __init__(
         self,
         data: memoryview,
-        *,
-        expand_altrep: bool = True,
-        altrep_constructor_dict: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
+        **kwargs,
     ) -> None:
-        super().__init__(
-            expand_altrep=expand_altrep,
-            altrep_constructor_dict=altrep_constructor_dict,
-        )
+        super().__init__(**kwargs)
         self.file = io.TextIOWrapper(io.BytesIO(data), encoding='ascii')
 
     def _readline(self) -> str:
@@ -70,8 +58,5 @@ class ParserASCII(Parser):
     def parse_string(self, length: int) -> bytes:
         return self._readline().encode('ascii').decode('unicode_escape').encode('latin1')
 
-    def parse_all(self) -> RData:
-        rdata = super().parse_all()
-        # Check that there is no more data in the file
+    def check_complete(self):
         assert self.file.read(1) == ''
-        return rdata
