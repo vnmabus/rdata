@@ -42,4 +42,4 @@ class ParserXDR(Parser):
         return self.file.read(length)
 
     def check_complete(self) -> None:
-        assert self.file.read(1) == b''
+        assert self.file.read(1) == b""

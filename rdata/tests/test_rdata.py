@@ -739,23 +739,23 @@ class SimpleTests(unittest.TestCase):
                 mask=[True],
                 fill_value=True,
         )
-        ref = [[1.1], [2], [3.+4.j], ref_ma, ['aä']]
+        ref = [[1.1], [2], [3.+4.j], ref_ma, ["aä"]]
 
         for tag, v, ext in itertools.product(
-                ('', 'win_'),
+                ("", "win_"),
                 (2, 3),
-                ('rda', 'rds'),
+                ("rda", "rds"),
                 ):
-            f = f'test_ascii_{tag}v{v}.{ext}'
+            f = f"test_ascii_{tag}v{v}.{ext}"
             with self.subTest(file=f):
                 parsed = rdata.parser.parse_file(
                     TESTDATA_PATH / f,
                 )
                 converted = rdata.conversion.convert(parsed)
 
-                if ext == 'rda':
-                    np.testing.assert_equal(converted, {'data': ref})
-                    ma = converted['data'][3]
+                if ext == "rda":
+                    np.testing.assert_equal(converted, {"data": ref})
+                    ma = converted["data"][3]
                 else:
                     np.testing.assert_equal(converted, ref)
                     ma = converted[3]

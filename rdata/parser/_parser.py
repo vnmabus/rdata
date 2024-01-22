@@ -11,14 +11,14 @@ import warnings
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Any, Final, Protocol, TYPE_CHECKING, Union, runtime_checkable
+from typing import TYPE_CHECKING, Any, Final, Protocol, Union, runtime_checkable
 
 import numpy as np
 import numpy.typing as npt
 
 if TYPE_CHECKING:
-    from ._xdr import ParserXDR
     from ._ascii import ParserASCII
+    from ._xdr import ParserXDR
 
 
 #: Value used to represent a missing integer in R.
@@ -594,6 +594,7 @@ class Parser(abc.ABC):
 
     def check_complete(self) -> None:
         """Check that parsing was completed."""
+        return
 
     def parse_all(self) -> RData:
         """Parse all the file."""
@@ -1229,7 +1230,7 @@ def parse_rdata_binary(
     if format_type:
         data = data[len(format_dict[format_type]):]
 
-    Parser: type[ParserXDR] | type[ParserASCII]
+    Parser: type[ParserXDR | ParserASCII]  # noqa: N806
 
     if format_type is RdataFormats.XDR:
         from ._xdr import ParserXDR as Parser

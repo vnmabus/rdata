@@ -6,7 +6,7 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 
-from ._parser import AltRepConstructorMap, Parser, R_INT_NA
+from ._parser import R_INT_NA, AltRepConstructorMap, Parser
 
 
 class ParserASCII(Parser):
@@ -23,10 +23,10 @@ class ParserASCII(Parser):
             expand_altrep=expand_altrep,
             altrep_constructor_dict=altrep_constructor_dict,
         )
-        self.file = io.TextIOWrapper(io.BytesIO(data), encoding='ascii')
+        self.file = io.TextIOWrapper(io.BytesIO(data), encoding="ascii")
 
     def _readline(self) -> str:
-        """Read a line without trailing \\n"""
+        r"""Read a line without trailing \n."""
         return self.file.readline()[:-1]
 
     def _parse_array_values(
@@ -42,10 +42,7 @@ class ParserASCII(Parser):
             line = self._readline()
 
             if np.issubdtype(dtype, np.integer):
-                if line == 'NA':
-                    value = R_INT_NA
-                else:
-                    value = int(line)
+                value = R_INT_NA if line == "NA" else int(line)
 
             elif np.issubdtype(dtype, np.floating):
                 value = float(line)
@@ -55,7 +52,8 @@ class ParserASCII(Parser):
                 value = complex(float(line), float(line2))
 
             else:
-                raise ValueError(f'unknown dtype: {dtype}')
+                msg = f"Unknown dtype: {dtype}"
+                raise ValueError(msg)
 
             array[i] = value
 
@@ -74,27 +72,27 @@ class ParserASCII(Parser):
         # Now s = r'a\303\244' (9 chars)
 
         # Convert characters to bytes (all characters are ascii)
-        b = s.encode('ascii')
+        b = s.encode("ascii")
         # Now b = br'a\303\244' (9 bytes)
 
         # There is a special 'unicode_escape' encoding that does
         # basically two things here:
         # 1) interpret e.g. br'\303' (4 bytes) as a single byte b'\303'
         # 2) decode so-transformed byte string to a string with latin1 encoding
-        s = b.decode('unicode_escape')
+        s = b.decode("unicode_escape")
         # Now s = 'aÃ¤' (3 chars)
 
         # We don't really want the latter latin1 decoding step done by
         # the previous line of code, so we undo it by encoding in latin1
         # back to bytes
-        b = s.encode('latin1')
+        b = s.encode("latin1")
         # Now b = b'a\303\244' (3 bytes)
 
         # We return this byte representation here. Later in the code there
-        # will be the decoding step from b'a\303\244' to 'aä', that is,
-        # s = b.decode('utf8')
+        # will be the decoding step from b'a\303\244' to 'aä',
+        # that is, s = b.decode('utf8')
         assert len(b) == length
         return b
 
     def check_complete(self) -> None:
-        assert self.file.read(1) == ''
+        assert self.file.read(1) == ""
