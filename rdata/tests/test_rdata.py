@@ -734,7 +734,11 @@ class SimpleTests(unittest.TestCase):
 
     def test_ascii(self) -> None:
         """Test ascii files."""
-        ref_ma = np.ma.array(data=[True], mask=[True], fill_value=True)
+        ref_ma = np.ma.array(  # type: ignore
+                data=[True],
+                mask=[True],
+                fill_value=True,
+        )
         ref = [[1.1], [2], [3.+4.j], ref_ma, ['aä']]
 
         for tag, v, ext in itertools.product(

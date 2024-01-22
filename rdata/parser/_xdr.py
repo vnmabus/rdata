@@ -15,7 +15,7 @@ class ParserXDR(Parser):
     def __init__(
         self,
         data: memoryview,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
         self.file = io.BytesIO(data)
@@ -36,5 +36,5 @@ class ParserXDR(Parser):
     def parse_string(self, length: int) -> bytes:
         return self.file.read(length)
 
-    def check_complete(self):
+    def check_complete(self) -> None:
         assert self.file.read(1) == b''

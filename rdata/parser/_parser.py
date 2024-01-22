@@ -587,7 +587,7 @@ class Parser(abc.ABC):
     def parse_string(self, length: int) -> bytes:
         """Parse a string."""
 
-    def check_complete(self):
+    def check_complete(self) -> None:
         """Check that parsing was completed."""
 
     def parse_all(self) -> RData:
@@ -1227,7 +1227,7 @@ def parse_rdata_binary(
     if format_type is RdataFormats.XDR:
         from ._xdr import ParserXDR as Parser
     elif format_type in (RdataFormats.ASCII, RdataFormats.ASCII_CRLF):
-        from ._ascii import ParserASCII as Parser
+        from ._ascii import ParserASCII as Parser  # type: ignore
     else:
         msg = "Unknown file format"
         raise NotImplementedError(msg)

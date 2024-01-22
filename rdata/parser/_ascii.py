@@ -15,7 +15,7 @@ class ParserASCII(Parser):
     def __init__(
         self,
         data: memoryview,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
         self.file = io.TextIOWrapper(io.BytesIO(data), encoding='ascii')
@@ -31,6 +31,7 @@ class ParserASCII(Parser):
     ) -> npt.NDArray[Any]:
 
         array = np.empty(length, dtype=dtype)
+        value: int | float | complex
 
         for i in range(length):
             line = self._readline()
@@ -60,5 +61,5 @@ class ParserASCII(Parser):
         assert len(s) == length
         return s
 
-    def check_complete(self):
+    def check_complete(self) -> None:
         assert self.file.read(1) == ''
