@@ -8,6 +8,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+import pytest
 import xarray
 
 import rdata
@@ -234,6 +235,7 @@ class SimpleTests(unittest.TestCase):
                 ],
         })
 
+    @pytest.mark.filterwarnings("ignore:Missing constructor")
     def test_file(self) -> None:
         """Test that external pointers can be parsed."""
         parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_file.rda")
@@ -288,6 +290,7 @@ class SimpleTests(unittest.TestCase):
             "test_minimal_function_uncompiled <- function() NULL\n",
         )
 
+    @pytest.mark.filterwarnings("ignore:Missing constructor")
     def test_minimal_function(self) -> None:
         """Test that a minimal function (compiled) can be parsed."""
         parsed = rdata.parser.parse_file(
@@ -342,6 +345,7 @@ class SimpleTests(unittest.TestCase):
             "test_empty_function_uncompiled <- function() {}\n",
         )
 
+    @pytest.mark.filterwarnings("ignore:Missing constructor")
     def test_empty_function(self) -> None:
         """Test that a simple function (compiled) can be parsed."""
         parsed = rdata.parser.parse_file(
@@ -374,6 +378,7 @@ class SimpleTests(unittest.TestCase):
             "test_empty_function <- function() {}\n",
         )
 
+    @pytest.mark.filterwarnings("ignore:Missing constructor")
     def test_function(self) -> None:
         """Test that functions can be parsed."""
         parsed = rdata.parser.parse_file(
@@ -409,6 +414,7 @@ class SimpleTests(unittest.TestCase):
             "test_function <- function() {print(\"Hello\")}\n",
         )
 
+    @pytest.mark.filterwarnings("ignore:Missing constructor")
     def test_function_arg(self) -> None:
         """Test that functions can be parsed."""
         parsed = rdata.parser.parse_file(
@@ -566,7 +572,9 @@ class SimpleTests(unittest.TestCase):
     def test_s4(self) -> None:
         """Test parsing of S4 classes."""
         parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_s4.rda")
-        converted = rdata.conversion.convert(parsed)
+
+        with pytest.warns(UserWarning, match="Missing constructor"):
+            converted = rdata.conversion.convert(parsed)
 
         np.testing.assert_equal(converted, {
             "test_s4": SimpleNamespace(

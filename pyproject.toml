@@ -73,11 +73,26 @@ repository = "https://github.com/vnmabus/rdata"
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.packages.find]
-include = ["rdata*"]
+[tool.mypy]
+strict = true
+strict_equality = true
+implicit_reexport = true
 
-[tool.setuptools.dynamic]
-version = {attr = "rdata.__version__"}
+[[tool.mypy.overrides]]
+module = [
+	"igraph.*",
+	"ipywidgets.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "examples.*"
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+addopts = "--doctest-modules --doctest-glob='*.rst'"
+doctest_optionflags = "NORMALIZE_WHITESPACE ELLIPSIS"
+norecursedirs = ".* build dist *.egg venv .svn _build docs/auto_examples examples"
 
 [tool.ruff.lint]
 select = [
@@ -116,18 +131,8 @@ convention = "google"
 [tool.ruff.lint.pylint]
 max-args = 7
 
-[tool.mypy]
-strict = true
-strict_equality = true
-implicit_reexport = true
+[tool.setuptools.packages.find]
+include = ["rdata*"]
 
-[[tool.mypy.overrides]]
-module = [
-	"igraph.*",
-	"ipywidgets.*",
-]
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "examples.*"
-disallow_untyped_defs = false
+[tool.setuptools.dynamic]
+version = {attr = "rdata.__version__"}
