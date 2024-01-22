@@ -20,7 +20,7 @@ class SimpleTests(unittest.TestCase):
 
     def test_opened_file(self) -> None:
         """Test that an opened file can be passed to parse_file."""
-        with (TESTDATA_PATH / "test_vector.rda").open() as f:
+        with (TESTDATA_PATH / "test_vector.rda").open("rb") as f:
             parsed = rdata.parser.parse_file(f)
             converted = rdata.conversion.convert(parsed)
 

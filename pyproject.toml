@@ -111,3 +111,22 @@ convention = "google"
 
 [tool.ruff.lint.pylint]
 max-args = 7
+
+[tool.mypy]
+strict = true
+strict_equality = true
+implicit_reexport = true
+
+[[tool.mypy.overrides]]
+module = [
+	"igraph.*",
+	"ipywidgets.*",
+	"numpy.*",
+	"pandas.*",
+	"setuptools.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "examples.*"
+disallow_untyped_defs = false

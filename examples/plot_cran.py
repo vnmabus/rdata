@@ -63,7 +63,9 @@ with urlopen(pkg_url) as package:
     with tarfile.open(fileobj=package, mode="r|gz") as package_tar:
         for member in package_tar:
             if member.name == data_path:
-                with package_tar.extractfile(member) as dataset:
+                dataset = package_tar.extractfile(member)
+                assert dataset
+                with dataset:
                     parsed = rdata.parser.parse_file(dataset)
                 break
 
