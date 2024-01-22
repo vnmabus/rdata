@@ -1217,10 +1217,19 @@ def parse_rdata_binary(
             expand_altrep=expand_altrep,
             altrep_constructor_dict=altrep_constructor_dict,
         )
-        return parser.parse_all()
+    elif format_type is RdataFormats.ASCII:
+        from ._ascii import ParserASCII
 
-    msg = "Unknown file format"
-    raise NotImplementedError(msg)
+        parser = ParserASCII(
+            data,
+            expand_altrep=expand_altrep,
+            altrep_constructor_dict=altrep_constructor_dict,
+        )
+    else:
+        msg = "Unknown file format"
+        raise NotImplementedError(msg)
+
+    return parser.parse_all()
 
 
 def bits(data: int, start: int, stop: int) -> int:
