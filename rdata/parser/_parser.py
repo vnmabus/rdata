@@ -116,12 +116,14 @@ class RdataFormats(enum.Enum):
 
     XDR = "XDR"
     ASCII = "ASCII"
+    ASCII_CRLF = "ASCII_CRLF"
     binary = "binary"
 
 
 format_dict: Final = MappingProxyType({
     RdataFormats.XDR: b"X\n",
     RdataFormats.ASCII: b"A\n",
+    RdataFormats.ASCII_CRLF: b"A\r\n",
     RdataFormats.binary: b"B\n",
 })
 
@@ -1217,7 +1219,7 @@ def parse_rdata_binary(
             expand_altrep=expand_altrep,
             altrep_constructor_dict=altrep_constructor_dict,
         )
-    elif format_type is RdataFormats.ASCII:
+    elif format_type in (RdataFormats.ASCII, RdataFormats.ASCII_CRLF):
         from ._ascii import ParserASCII
 
         parser = ParserASCII(
