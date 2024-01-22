@@ -11,10 +11,15 @@ import warnings
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Any, Final, Protocol, Union, runtime_checkable
+from typing import Any, Final, Protocol, TYPE_CHECKING, Union, runtime_checkable
 
 import numpy as np
 import numpy.typing as npt
+
+if TYPE_CHECKING:
+    from ._xdr import ParserXDR
+    from ._ascii import ParserASCII
+
 
 #: Value used to represent a missing integer in R.
 R_INT_NA: Final = -2**31
@@ -1224,10 +1229,12 @@ def parse_rdata_binary(
     if format_type:
         data = data[len(format_dict[format_type]):]
 
+    Parser: type[ParserXDR] | type[ParserASCII]
+
     if format_type is RdataFormats.XDR:
         from ._xdr import ParserXDR as Parser
     elif format_type in (RdataFormats.ASCII, RdataFormats.ASCII_CRLF):
-        from ._ascii import ParserASCII as Parser  # type: ignore
+        from ._ascii import ParserASCII as Parser
     else:
         msg = "Unknown file format"
         raise NotImplementedError(msg)
