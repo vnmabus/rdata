@@ -69,12 +69,19 @@ Read a R dataset
 
 The common way of reading an R dataset is the following one:
 
->>> import rdata
+.. code:: python
 
->>> parsed = rdata.parser.parse_file(rdata.TESTDATA_PATH / "test_vector.rda")
->>> converted = rdata.conversion.convert(parsed)
->>> converted
-{'test_vector': array([1., 2., 3.])}
+    import rdata
+
+    parsed = rdata.parser.parse_file(rdata.TESTDATA_PATH / "test_vector.rda")
+    converted = rdata.conversion.convert(parsed)
+    converted
+    
+which results in
+
+.. code:: python
+
+    {'test_vector': array([1., 2., 3.])}
     
 This consists on two steps: 
 
@@ -115,27 +122,34 @@ As an example, here is how we would implement a conversion routine for the
 factor class to `bytes` objects, instead of the default conversion to
 Pandas `Categorical` objects:
 
->>> import rdata
+.. code:: python
 
->>> def factor_constructor(obj, attrs):
-...     values = [bytes(attrs['levels'][i - 1], 'utf8')
-...               if i >= 0 else None for i in obj]
-...
-...     return values
+    import rdata
 
->>> new_dict = {
-...         **rdata.conversion.DEFAULT_CLASS_MAP,
-...         "factor": factor_constructor
-...         }
+    def factor_constructor(obj, attrs):
+        values = [bytes(attrs['levels'][i - 1], 'utf8')
+                  if i >= 0 else None for i in obj]
+   
+        return values
 
->>> parsed = rdata.parser.parse_file(rdata.TESTDATA_PATH
-...                                  / "test_dataframe.rda")
->>> converted = rdata.conversion.convert(parsed, new_dict)
->>> converted
-{'test_dataframe':   class  value
-    1     b'a'      1
-    2     b'b'      2
-    3     b'b'      3}
+    new_dict = {
+            **rdata.conversion.DEFAULT_CLASS_MAP,
+            "factor": factor_constructor
+            }
+
+    parsed = rdata.parser.parse_file(rdata.TESTDATA_PATH
+                                     / "test_dataframe.rda")
+    converted = rdata.conversion.convert(parsed, new_dict)
+    converted
+    
+which has the following result:
+
+.. code:: python
+
+    {'test_dataframe':   class  value
+        1     b'a'      1
+        2     b'b'      2
+        3     b'b'      3}
     
 Additional examples
 ===================
