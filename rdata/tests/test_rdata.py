@@ -734,7 +734,7 @@ class SimpleTests(unittest.TestCase):
 
     def test_ascii(self) -> None:
         """Test ascii files."""
-        ref_ma = np.ma.array(  # type: ignore
+        ref_ma = np.ma.array(  # type: ignore[no-untyped-call]
                 data=[True],
                 mask=[True],
                 fill_value=True,
