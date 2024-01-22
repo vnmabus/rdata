@@ -434,7 +434,7 @@ def dataframe_constructor(
 
     # Default row names are stored as [R_INT_NA, -len]
     default_row_names_len = 2
-    index = (
+    index: pd.RangeIndex | tuple[str, ...] = (
         pd.RangeIndex(1, abs(row_names[1]) + 1)
         if (
             len(row_names) == default_row_names_len
@@ -477,7 +477,7 @@ def ordered_constructor(
 def ts_constructor(
     obj: np.ndarray[Any, Any],
     attrs: Mapping[str, Any],
-) -> pd.Series:
+) -> pd.Series[Any]:
     """Construct a time series object."""
     start, end, frequency = attrs["tsp"]
 

@@ -54,6 +54,10 @@ docs = [
   "sphinx>=3.1",
   "sphinx-gallery",
 ]
+typing = [
+  "mypy",
+  "pandas-stubs",
+]
 test = [
   "pytest",
   "pytest-cov",
@@ -121,9 +125,6 @@ implicit_reexport = true
 module = [
 	"igraph.*",
 	"ipywidgets.*",
-	"numpy.*",
-	"pandas.*",
-	"setuptools.*",
 ]
 ignore_missing_imports = true
 
