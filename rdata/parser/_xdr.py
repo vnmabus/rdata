@@ -6,7 +6,7 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 
-from ._parser import Parser
+from ._parser import AltRepConstructorMap, Parser
 
 
 class ParserXDR(Parser):
@@ -15,9 +15,14 @@ class ParserXDR(Parser):
     def __init__(
         self,
         data: memoryview,
-        **kwargs: Any,
+        *,
+        expand_altrep: bool,
+        altrep_constructor_dict: AltRepConstructorMap,
     ) -> None:
-        super().__init__(**kwargs)
+        super().__init__(
+            expand_altrep=expand_altrep,
+            altrep_constructor_dict=altrep_constructor_dict,
+        )
         self.file = io.BytesIO(data)
 
     def _parse_array_values(
