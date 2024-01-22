@@ -73,6 +73,13 @@ repository = "https://github.com/vnmabus/rdata"
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
+[tool.isort]
+multi_line_output = 3
+include_trailing_comma = true
+use_parentheses = true
+combine_as_imports = true
+skip_glob = "**/plot_*.py plot_*.py"
+
 [tool.mypy]
 strict = true
 strict_equality = true
