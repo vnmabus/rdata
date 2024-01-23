@@ -19,10 +19,6 @@ jobs:
       run: |
         pip3 install ".[test,typing]" mypy;
         rm -rf build;
-        
-    - name: Run MyPy
-      run: |
-        mypy .;
  
     - uses: tsuyoshicho/action-mypy@v4
       with:
