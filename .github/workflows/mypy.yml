@@ -9,9 +9,11 @@ jobs:
     name: Mypy
     steps:
     - uses: actions/checkout@v4
+
     - name: Install dependencies
       run: |
-        pip install ".[test,typing]" mypy;
+        pip install --upgrade setuptools ".[test,typing]" mypy;
+ 
     - uses: tsuyoshicho/action-mypy@v4
       with:
         github_token: ${{ secrets.github_token }}
