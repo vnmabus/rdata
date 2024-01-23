@@ -206,13 +206,14 @@ autosummary_generate = True
 # -- Options for "sphinx.ext.intersphinx" --
 
 intersphinx_mapping = {
+    "igraph": ("https://python.igraph.org/en/stable/api", None),
     "matplotlib": ("https://matplotlib.org/stable", None),
     "numpy": ("https://numpy.org/doc/stable", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable", None),
     "python": (f"https://docs.python.org/{sys.version_info.major}", None),
     "scipy": ("https://docs.scipy.org/doc/scipy", None),
     "sklearn": ("https://scikit-learn.org/stable", None),
-    "igraph": ("https://python.igraph.org/en/stable/api", None),
+    "xarray": ('http://xarray.pydata.org/en/stable/', None),
 }
 
 # -- Options for "sphinx.ext.todo" --
