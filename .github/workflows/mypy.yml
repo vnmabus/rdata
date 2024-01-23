@@ -24,6 +24,7 @@ jobs:
       with:
         github_token: ${{ secrets.github_token }}
         reporter: github-pr-review
+        install_types: false
         execute_command: "mypy ."
         # The action will output fail if there are mypy errors
         level: error
