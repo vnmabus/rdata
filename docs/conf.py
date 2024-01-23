@@ -213,7 +213,7 @@ intersphinx_mapping = {
     "python": (f"https://docs.python.org/{sys.version_info.major}", None),
     "scipy": ("https://docs.scipy.org/doc/scipy", None),
     "sklearn": ("https://scikit-learn.org/stable", None),
-    "xarray": ('http://xarray.pydata.org/en/stable/', None),
+    "xarray": ("http://xarray.pydata.org/en/stable/", None),
 }
 
 # -- Options for "sphinx.ext.todo" --
