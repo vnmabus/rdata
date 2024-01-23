@@ -18,6 +18,9 @@ jobs:
     - name: Install dependencies
       run: |
         pip3 install ".[test,typing]" mypy;
+        
+    - name: Run MyPy
+      run: |
         mypy .;
  
     - uses: tsuyoshicho/action-mypy@v4
