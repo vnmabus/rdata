@@ -11,10 +11,15 @@ import warnings
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Any, Final, Protocol, Union, runtime_checkable
+from typing import TYPE_CHECKING, Any, Final, Protocol, Union, runtime_checkable
 
 import numpy as np
 import numpy.typing as npt
+
+if TYPE_CHECKING:
+    from ._ascii import ParserASCII
+    from ._xdr import ParserXDR
+
 
 #: Value used to represent a missing integer in R.
 R_INT_NA: Final = -2**31
@@ -92,6 +97,8 @@ class FileTypes(enum.Enum):
     xz = "xz"
     rdata_binary_v2 = "rdata version 2 (binary)"
     rdata_binary_v3 = "rdata version 3 (binary)"
+    rdata_ascii_v2 = "rdata version 2 (ascii)"
+    rdata_ascii_v3 = "rdata version 3 (ascii)"
 
 
 magic_dict = {
@@ -100,6 +107,8 @@ magic_dict = {
     FileTypes.xz: b"\xFD7zXZ\x00",
     FileTypes.rdata_binary_v2: b"RDX2\n",
     FileTypes.rdata_binary_v3: b"RDX3\n",
+    FileTypes.rdata_ascii_v2: b"RDA2\n",
+    FileTypes.rdata_ascii_v3: b"RDA3\n",
 }
 
 
@@ -116,12 +125,14 @@ class RdataFormats(enum.Enum):
 
     XDR = "XDR"
     ASCII = "ASCII"
+    ASCII_CRLF = "ASCII_CRLF"
     binary = "binary"
 
 
 format_dict: Final = MappingProxyType({
     RdataFormats.XDR: b"X\n",
     RdataFormats.ASCII: b"A\n",
+    RdataFormats.ASCII_CRLF: b"A\r\n",
     RdataFormats.binary: b"B\n",
 })
 
@@ -580,6 +591,10 @@ class Parser(abc.ABC):
     @abc.abstractmethod
     def parse_string(self, length: int) -> bytes:
         """Parse a string."""
+
+    def check_complete(self) -> None:
+        """Check that parsing was completed."""
+        return
 
     def parse_all(self) -> RData:
         """Parse all the file."""
@@ -1165,6 +1180,8 @@ type=<RObjectType.CHAR: 9>,
         if filetype in {
             FileTypes.rdata_binary_v2,
             FileTypes.rdata_binary_v3,
+            FileTypes.rdata_ascii_v2,
+            FileTypes.rdata_ascii_v3,
             None,
         } else parse_data
     )
@@ -1175,7 +1192,11 @@ type=<RObjectType.CHAR: 9>,
         new_data = gzip.decompress(data)
     elif filetype is FileTypes.xz:
         new_data = lzma.decompress(data)
-    elif filetype in {FileTypes.rdata_binary_v2, FileTypes.rdata_binary_v3}:
+    elif filetype in {FileTypes.rdata_binary_v2,
+                      FileTypes.rdata_binary_v3,
+                      FileTypes.rdata_ascii_v2,
+                      FileTypes.rdata_ascii_v3,
+                      }:
         if extension == ".rds":
             warnings.warn(  # noqa: B028
                 f"Wrong extension {extension} for file in RDATA format",
@@ -1209,18 +1230,24 @@ def parse_rdata_binary(
     if format_type:
         data = data[len(format_dict[format_type]):]
 
+    Parser: type[ParserXDR | ParserASCII]  # noqa: N806
+
     if format_type is RdataFormats.XDR:
-        from ._xdr import ParserXDR
+        from ._xdr import ParserXDR as Parser
+    elif format_type in (RdataFormats.ASCII, RdataFormats.ASCII_CRLF):
+        from ._ascii import ParserASCII as Parser
+    else:
+        msg = "Unknown file format"
+        raise NotImplementedError(msg)
 
-        parser = ParserXDR(
-            data,
-            expand_altrep=expand_altrep,
-            altrep_constructor_dict=altrep_constructor_dict,
-        )
-        return parser.parse_all()
-
-    msg = "Unknown file format"
-    raise NotImplementedError(msg)
+    parser = Parser(
+        data,
+        expand_altrep=expand_altrep,
+        altrep_constructor_dict=altrep_constructor_dict,
+    )
+    r_data = parser.parse_all()
+    parser.check_complete()
+    return r_data
 
 
 def bits(data: int, start: int, stop: int) -> int:
