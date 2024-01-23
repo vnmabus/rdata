@@ -12,7 +12,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install --upgrade setuptools ".[test,typing]" mypy;
+        pip3 install ".[test,typing]" mypy;
  
     - uses: tsuyoshicho/action-mypy@v4
       with:
