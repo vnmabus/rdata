@@ -73,8 +73,7 @@ The common way of reading an R dataset is the following one:
 
     import rdata
 
-    parsed = rdata.parser.parse_file(rdata.TESTDATA_PATH / "test_vector.rda")
-    converted = rdata.conversion.convert(parsed)
+    converted = rdata.read_rda(rdata.TESTDATA_PATH / "test_vector.rda")
     converted
     
 which results in
@@ -82,6 +81,16 @@ which results in
 .. code:: python
 
     {'test_vector': array([1., 2., 3.])}
+
+Under the hood, this is equivalent to the following code:
+
+.. code:: python
+
+    import rdata
+
+    parsed = rdata.parser.parse_file(rdata.TESTDATA_PATH / "test_vector.rda")
+    converted = rdata.conversion.convert(parsed)
+    converted
     
 This consists on two steps: 
 
@@ -133,13 +142,14 @@ Pandas `Categorical` objects:
         return values
 
     new_dict = {
-            **rdata.conversion.DEFAULT_CLASS_MAP,
-            "factor": factor_constructor
-            }
+        **rdata.conversion.DEFAULT_CLASS_MAP,
+        "factor": factor_constructor
+    }
 
-    parsed = rdata.parser.parse_file(rdata.TESTDATA_PATH
-                                     / "test_dataframe.rda")
-    converted = rdata.conversion.convert(parsed, new_dict)
+    converted = rdata.read_rda(
+        rdata.TESTDATA_PATH / "test_dataframe.rda",
+        constructor_dict=new_dict,
+    )
     converted
     
 which has the following result:
