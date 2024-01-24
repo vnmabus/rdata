@@ -311,7 +311,7 @@ def convert_char(
 def convert_symbol(
     r_symbol: parser.RObject,
     conversion_function: ConversionFunction,
-) -> int:
+) -> str | bytes:
     """
     Decode a R symbol to a Python string or bytes.
 
