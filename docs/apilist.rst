@@ -5,6 +5,17 @@ List of functions and structures
 --------------------------------
 A complete list of all functions and structures provided by rdata.
 
+Convenience functions
+^^^^^^^^^^^^^^^^^^^^^
+Functions that read and transform a `.rds` or `.rda` file, performing parsing and conversion with
+one line of code.
+
+.. autosummary::
+   :toctree: modules
+   
+   rdata.read_rds
+   rdata.read_rda
+
 Parse :code:`.rda` format
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 Functions for parsing data in the :code:`.rda` format. These functions return a structure representing
