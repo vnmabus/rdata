@@ -27,3 +27,4 @@ jobs:
         install_types: false
         # The action will output fail if there are mypy errors
         level: error
+        filter_mode: nofilter
