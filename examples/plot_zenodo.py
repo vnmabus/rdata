@@ -41,7 +41,7 @@ with urlopen(dataset_url) as dataset:
 # We can omit this warning by passing manually the extension of the file
 # instead.
 with urlopen(dataset_url) as dataset:
-    parsed = rdata.parser.parse_file(dataset, extension="rds")
+    parsed = rdata.parser.parse_file(dataset, extension=".rds")
 
 # %%
 # This parsed object contains a lossless representation of the internal data
