@@ -8,7 +8,7 @@ A complete list of all functions and structures provided by rdata.
 Parse :code:`.rda` format
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 Functions for parsing data in the :code:`.rda` format. These functions return a structure representing
-the contents of the file, without transforming it to more appropiate Python objects. Thus, if a different
+the contents of the file, without transforming it to more appropriate Python objects. Thus, if a different
 way of converting R objects to Python objects is needed, it can be done from this structure. 
 
 .. autosummary::
@@ -19,7 +19,7 @@ way of converting R objects to Python objects is needed, it can be done from thi
    
 Conversion of the R objects
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-These objects and functions convert the parsed R objects to appropiate Python objects. The Python object
+These objects and functions convert the parsed R objects to appropriate Python objects. The Python object
 corresponding to a R object is chosen to preserve most original properties, but it could change in the 
 future, if a more fitting Python object is found.
 
@@ -30,3 +30,21 @@ future, if a more fitting Python object is found.
    rdata.conversion.SimpleConverter
    rdata.conversion.convert
 
+Auxiliary structures
+^^^^^^^^^^^^^^^^^^^^
+These classes are used to represent R objects which have no clear analog in Python, so that the information
+therein can be retrieved.
+
+.. autosummary::
+   :toctree: modules
+   
+   rdata.conversion.RBuiltin
+   rdata.conversion.RBytecode
+   rdata.conversion.RFunction
+   rdata.conversion.REnvironment
+   rdata.conversion.RExpression
+   rdata.conversion.RExternalPointer
+   rdata.conversion.RLanguage
+   rdata.conversion.SrcFile
+   rdata.conversion.SrcFileCopy
+   rdata.conversion.SrcRef

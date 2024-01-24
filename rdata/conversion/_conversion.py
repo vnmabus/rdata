@@ -332,7 +332,7 @@ def convert_symbol(
     """
     if r_symbol.info.type is parser.RObjectType.SYM:
         symbol = conversion_function(r_symbol.value)
-        assert isinstance(symbol, (str, bytes))
+        assert isinstance(symbol, str)
         return symbol
 
     msg = "Must receive a SYM object"
@@ -500,6 +500,7 @@ def ts_constructor(
 
 @dataclass
 class SrcRef:
+    """Reference to a source file location."""
     first_line: int
     first_byte: int
     last_line: int
@@ -520,6 +521,7 @@ def srcref_constructor(
 
 @dataclass
 class SrcFile:
+    """Source file."""
     filename: str
     file_encoding: str | None
     string_encoding: str | None
@@ -545,13 +547,14 @@ def srcfile_constructor(
 
 @dataclass
 class SrcFileCopy(SrcFile):
+    """Source file with a copy of its lines."""
     lines: Sequence[str]
 
 
 def srcfilecopy_constructor(
     obj: REnvironment,
     attrs: Mapping[str, Any],  # noqa: ARG001
-) -> SrcFile:
+) -> SrcFileCopy:
 
     frame = obj.frame
     assert frame is not None

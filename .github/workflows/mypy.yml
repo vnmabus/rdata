@@ -9,11 +9,22 @@ jobs:
     name: Mypy
     steps:
     - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: |
+        pip3 install ".[test,typing]" mypy;
+        rm -rf build;  
+ 
     - uses: tsuyoshicho/action-mypy@v4
       with:
         github_token: ${{ secrets.github_token }}
         reporter: github-pr-review
+        install_types: false
         # The action will output fail if there are mypy errors
         level: error
-        setup_command: pip install ".[test,typing]" mypy
-        mypy_flags: ''
+        filter_mode: nofilter

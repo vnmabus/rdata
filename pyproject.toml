@@ -55,6 +55,7 @@ docs = [
   "sphinx-gallery",
 ]
 typing = [
+  "matplotlib>=3.8",
   "mypy",
   "pandas-stubs",
 ]
