@@ -18,13 +18,12 @@ jobs:
     - name: Install dependencies
       run: |
         pip3 install ".[test,typing]" mypy;
-        rm -rf build;
+        rm -rf build;  
  
     - uses: tsuyoshicho/action-mypy@v4
       with:
         github_token: ${{ secrets.github_token }}
         reporter: github-pr-review
         install_types: false
-        execute_command: "mypy ."
         # The action will output fail if there are mypy errors
         level: error
