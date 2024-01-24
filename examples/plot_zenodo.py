@@ -65,3 +65,12 @@ converted = rdata.conversion.convert(parsed)
 # In this particular case, it is a R dataframe object, that will be converted
 # to a Pandas dataframe by default.
 converted
+
+# %%
+# As usually we just want to parse and convert a given dataset, the convenience
+# functions :func:`rdata.read_rds` and :func:`rdata.read_rda` can be used with
+# that purpose.
+with urlopen(dataset_url) as dataset:
+    data = rdata.read_rds(dataset)
+
+data

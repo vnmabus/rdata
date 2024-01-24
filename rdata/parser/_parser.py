@@ -11,7 +11,14 @@ import warnings
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, Final, Protocol, Union, runtime_checkable
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Final,
+    Protocol,
+    Union,
+    runtime_checkable,
+)
 
 import numpy as np
 import numpy.typing as npt
@@ -980,9 +987,9 @@ def parse_file(
     """
     Parse a R file (.rda or .rdata).
 
-    Parameters:
+    Args:
         file_or_path: File in the R serialization format.
-        expand_altrep: Wether to translate ALTREPs to normal objects.
+        expand_altrep: Whether to translate ALTREPs to normal objects.
         altrep_constructor_dict: Dictionary mapping each ALTREP to
             its constructor.
         extension: Extension of the file.
@@ -1095,9 +1102,9 @@ def parse_data(
     """
     Parse the data of a R file, received as a sequence of bytes.
 
-    Parameters:
+    Args:
         data: Data extracted of a R file.
-        expand_altrep: Wether to translate ALTREPs to normal objects.
+        expand_altrep: Whether to translate ALTREPs to normal objects.
         altrep_constructor_dict: Dictionary mapping each ALTREP to
             its constructor.
         extension: Extension of the file.
@@ -1208,6 +1215,9 @@ type=<RObjectType.CHAR: 9>,
         new_data = view
         if extension != ".rds":
             warnings.warn("Unknown file type: assumed RDS")  # noqa: B028
+
+        if extension not in {None, ".rds"}:
+            warnings.warn(f"Wrong extension {extension} for file in RDS format")  # noqa: B028
 
     return parse_function(
         new_data,  # type: ignore [arg-type]

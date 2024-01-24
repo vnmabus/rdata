@@ -39,91 +39,77 @@ class SimpleTests(unittest.TestCase):
 
     def test_logical(self) -> None:
         """Test parsing of logical vectors."""
-        parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_logical.rda")
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_logical.rda")
 
-        np.testing.assert_equal(converted, {
+        np.testing.assert_equal(data, {
             "test_logical": np.array([True, True, False, True, False]),
         })
 
     def test_nullable_logical(self) -> None:
         """Test parsing of logical vectors containing NA."""
-        parsed = rdata.parser.parse_file(
-            TESTDATA_PATH / "test_nullable_logical.rda",
-        )
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_nullable_logical.rda")
 
-        data = converted["test_nullable_logical"]
+        array = data["test_nullable_logical"]
         np.testing.assert_array_equal(
-            data.data,
+            array.data,
             np.array([True, False, True]),
         )
         np.testing.assert_array_equal(
-            data.mask,
+            array.mask,
             np.array([False, False, True]),
         )
 
     def test_nullable_int(self) -> None:
         """Test parsing of integer vectors containing NA."""
-        parsed = rdata.parser.parse_file(
-            TESTDATA_PATH / "test_nullable_int.rda",
-        )
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_nullable_int.rda")
 
-        data = converted["test_nullable_int"]
+        array = data["test_nullable_int"]
         np.testing.assert_array_equal(
-            data.data,
+            array.data,
             np.array([313, -12, -2**31]),
         )
         np.testing.assert_array_equal(
-            data.mask,
+            array.mask,
             np.array([False, False, True]),
         )
 
     def test_vector(self) -> None:
         """Test parsing of numerical vectors."""
-        parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_vector.rda")
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_vector.rda")
 
-        np.testing.assert_equal(converted, {
+        np.testing.assert_equal(data, {
             "test_vector": np.array([1.0, 2.0, 3.0]),
         })
 
     def test_empty_string(self) -> None:
         """Test that the empty string is parsed correctly."""
-        parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_empty_str.rda")
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_empty_str.rda")
 
-        np.testing.assert_equal(converted, {
+        np.testing.assert_equal(data, {
             "test_empty_str": [""],
         })
 
     def test_na_string(self) -> None:
         """Test that the NA string is parsed correctly."""
-        parsed = rdata.parser.parse_file(
-            TESTDATA_PATH / "test_na_string.rda",
-        )
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_na_string.rda")
 
-        np.testing.assert_equal(converted, {
+        np.testing.assert_equal(data, {
             "test_na_string": [None],
         })
 
     def test_complex(self) -> None:
         """Test that complex numbers can be parsed."""
-        parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_complex.rda")
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_complex.rda")
 
-        np.testing.assert_equal(converted, {
+        np.testing.assert_equal(data, {
             "test_complex": np.array([1 + 2j, 2, 0, 1 + 3j, -1j]),
         })
 
     def test_matrix(self) -> None:
         """Test that a matrix can be parsed."""
-        parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_matrix.rda")
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_matrix.rda")
 
-        np.testing.assert_equal(converted, {
+        np.testing.assert_equal(data, {
             "test_matrix": np.array([
                 [1.0, 2.0, 3.0],
                 [4.0, 5.0, 6.0],
@@ -132,10 +118,8 @@ class SimpleTests(unittest.TestCase):
 
     def test_named_matrix(self) -> None:
         """Test that a named matrix can be parsed."""
-        parsed = rdata.parser.parse_file(
-            TESTDATA_PATH / "test_named_matrix.rda",
-        )
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_named_matrix.rda")
+
         reference = xarray.DataArray(
             [
                 [1.0, 2.0, 3.0],
@@ -149,16 +133,14 @@ class SimpleTests(unittest.TestCase):
         )
 
         xarray.testing.assert_identical(
-            converted["test_named_matrix"],
+            data["test_named_matrix"],
             reference,
         )
 
     def test_half_named_matrix(self) -> None:
         """Test that a named matrix with no name for a dim can be parsed."""
-        parsed = rdata.parser.parse_file(
-            TESTDATA_PATH / "test_half_named_matrix.rda",
-        )
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_half_named_matrix.rda")
+
         reference = xarray.DataArray(
             [
                 [1.0, 2.0, 3.0],
@@ -171,16 +153,14 @@ class SimpleTests(unittest.TestCase):
         )
 
         xarray.testing.assert_identical(
-            converted["test_half_named_matrix"],
+            data["test_half_named_matrix"],
             reference,
         )
 
     def test_full_named_matrix(self) -> None:
         """Test that a named matrix with dim names can be parsed."""
-        parsed = rdata.parser.parse_file(
-            TESTDATA_PATH / "test_full_named_matrix.rda",
-        )
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_full_named_matrix.rda")
+
         reference = xarray.DataArray(
             [
                 [1.0, 2.0, 3.0],
@@ -194,16 +174,14 @@ class SimpleTests(unittest.TestCase):
         )
 
         xarray.testing.assert_identical(
-            converted["test_full_named_matrix"],
+            data["test_full_named_matrix"],
             reference,
         )
 
     def test_full_named_matrix_rds(self) -> None:
         """Test that a named matrix with dim names can be parsed."""
-        parsed = rdata.parser.parse_file(
-            TESTDATA_PATH / "test_full_named_matrix.rds",
-        )
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rds(TESTDATA_PATH / "test_full_named_matrix.rds")
+
         reference = xarray.DataArray(
             [
                 [1.0, 2.0, 3.0],
@@ -217,16 +195,15 @@ class SimpleTests(unittest.TestCase):
         )
 
         xarray.testing.assert_identical(
-            converted,
+            data,
             reference,
         )
 
     def test_list(self) -> None:
         """Test that list can be parsed."""
-        parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_list.rda")
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_list.rda")
 
-        np.testing.assert_equal(converted, {
+        np.testing.assert_equal(data, {
             "test_list":
                 [
                     np.array([1.0]),
@@ -239,19 +216,17 @@ class SimpleTests(unittest.TestCase):
     @pytest.mark.filterwarnings("ignore:Missing constructor")
     def test_file(self) -> None:
         """Test that external pointers can be parsed."""
-        parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_file.rda")
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_file.rda")
 
-        np.testing.assert_equal(converted, {
+        np.testing.assert_equal(data, {
             "test_file": [5],
         })
 
     def test_expression(self) -> None:
         """Test that expressions can be parsed."""
-        parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_expression.rda")
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_expression.rda")
 
-        np.testing.assert_equal(converted, {
+        np.testing.assert_equal(data, {
             "test_expression": rdata.conversion.RExpression([
                 rdata.conversion.RLanguage(
                     ["^", "base", "exponent"],
@@ -262,21 +237,19 @@ class SimpleTests(unittest.TestCase):
 
     def test_builtin(self) -> None:
         """Test that builtin functions can be parsed."""
-        parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_builtin.rda")
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_builtin.rda")
 
-        np.testing.assert_equal(converted, {
+        np.testing.assert_equal(data, {
             "test_builtin": rdata.conversion.RBuiltin(name="abs"),
         })
 
     def test_minimal_function_uncompiled(self) -> None:
         """Test that a minimal function can be parsed."""
-        parsed = rdata.parser.parse_file(
+        data = rdata.read_rda(
             TESTDATA_PATH / "test_minimal_function_uncompiled.rda",
         )
-        converted = rdata.conversion.convert(parsed)
 
-        converted_fun = converted["test_minimal_function_uncompiled"]
+        converted_fun = data["test_minimal_function_uncompiled"]
 
         assert isinstance(
             converted_fun,
@@ -294,12 +267,9 @@ class SimpleTests(unittest.TestCase):
     @pytest.mark.filterwarnings("ignore:Missing constructor")
     def test_minimal_function(self) -> None:
         """Test that a minimal function (compiled) can be parsed."""
-        parsed = rdata.parser.parse_file(
-            TESTDATA_PATH / "test_minimal_function.rda",
-        )
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_minimal_function.rda")
 
-        converted_fun = converted["test_minimal_function"]
+        converted_fun = data["test_minimal_function"]
 
         assert isinstance(
             converted_fun,
@@ -326,12 +296,11 @@ class SimpleTests(unittest.TestCase):
 
     def test_empty_function_uncompiled(self) -> None:
         """Test that a simple function can be parsed."""
-        parsed = rdata.parser.parse_file(
+        data = rdata.read_rda(
             TESTDATA_PATH / "test_empty_function_uncompiled.rda",
         )
-        converted = rdata.conversion.convert(parsed)
 
-        converted_fun = converted["test_empty_function_uncompiled"]
+        converted_fun = data["test_empty_function_uncompiled"]
 
         assert isinstance(
             converted_fun,
@@ -349,12 +318,9 @@ class SimpleTests(unittest.TestCase):
     @pytest.mark.filterwarnings("ignore:Missing constructor")
     def test_empty_function(self) -> None:
         """Test that a simple function (compiled) can be parsed."""
-        parsed = rdata.parser.parse_file(
-            TESTDATA_PATH / "test_empty_function.rda",
-        )
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_empty_function.rda")
 
-        converted_fun = converted["test_empty_function"]
+        converted_fun = data["test_empty_function"]
 
         assert isinstance(
             converted_fun,
@@ -382,12 +348,9 @@ class SimpleTests(unittest.TestCase):
     @pytest.mark.filterwarnings("ignore:Missing constructor")
     def test_function(self) -> None:
         """Test that functions can be parsed."""
-        parsed = rdata.parser.parse_file(
-            TESTDATA_PATH / "test_function.rda",
-        )
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_function.rda")
 
-        converted_fun = converted["test_function"]
+        converted_fun = data["test_function"]
 
         assert isinstance(
             converted_fun,
@@ -418,12 +381,9 @@ class SimpleTests(unittest.TestCase):
     @pytest.mark.filterwarnings("ignore:Missing constructor")
     def test_function_arg(self) -> None:
         """Test that functions can be parsed."""
-        parsed = rdata.parser.parse_file(
-            TESTDATA_PATH / "test_function_arg.rda",
-        )
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_function_arg.rda")
 
-        converted_fun = converted["test_function_arg"]
+        converted_fun = data["test_function_arg"]
 
         assert isinstance(
             converted_fun,
@@ -457,12 +417,11 @@ class SimpleTests(unittest.TestCase):
             UserWarning,
             msg="Unknown encoding. Assumed ASCII.",
         ):
-            parsed = rdata.parser.parse_file(
+            data = rdata.read_rda(
                 TESTDATA_PATH / "test_encodings.rda",
             )
-            converted = rdata.conversion.convert(parsed)
 
-            np.testing.assert_equal(converted, {
+            np.testing.assert_equal(data, {
                 "test_encoding_utf8": ["eĥoŝanĝo ĉiuĵaŭde"],
                 "test_encoding_latin1": ["cañón"],
                 "test_encoding_bytes": [b"reba\xf1o"],
@@ -471,12 +430,9 @@ class SimpleTests(unittest.TestCase):
 
     def test_encodings_v3(self) -> None:
         """Test encodings in version 3 format."""
-        parsed = rdata.parser.parse_file(
-            TESTDATA_PATH / "test_encodings_v3.rda",
-        )
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_encodings_v3.rda")
 
-        np.testing.assert_equal(converted, {
+        np.testing.assert_equal(data, {
             "test_encoding_utf8": ["eĥoŝanĝo ĉiuĵaŭde"],
             "test_encoding_latin1": ["cañón"],
             "test_encoding_bytes": [b"reba\xf1o"],
@@ -487,13 +443,10 @@ class SimpleTests(unittest.TestCase):
         """Test dataframe conversion."""
         for f in ("test_dataframe.rda", "test_dataframe_v3.rda"):
             with self.subTest(file=f):
-                parsed = rdata.parser.parse_file(
-                    TESTDATA_PATH / f,
-                )
-                converted = rdata.conversion.convert(parsed)
+                data = rdata.read_rda(TESTDATA_PATH / f)
 
                 pd.testing.assert_frame_equal(
-                    converted["test_dataframe"],
+                    data["test_dataframe"],
                     pd.DataFrame(
                         {
                             "class": pd.Categorical(
@@ -512,13 +465,10 @@ class SimpleTests(unittest.TestCase):
         """Test dataframe conversion."""
         for f in ("test_dataframe.rds", "test_dataframe_v3.rds"):
             with self.subTest(file=f):
-                parsed = rdata.parser.parse_file(
-                    TESTDATA_PATH / f,
-                )
-                converted = rdata.conversion.convert(parsed)
+                data = rdata.read_rds(TESTDATA_PATH / f)
 
                 pd.testing.assert_frame_equal(
-                    converted,
+                    data,
                     pd.DataFrame(
                         {
                             "class": pd.Categorical(
@@ -535,13 +485,10 @@ class SimpleTests(unittest.TestCase):
 
     def test_dataframe_rownames(self) -> None:
         """Test dataframe conversion."""
-        parsed = rdata.parser.parse_file(
-            TESTDATA_PATH / "test_dataframe_rownames.rda",
-        )
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_dataframe_rownames.rda")
 
         pd.testing.assert_frame_equal(
-            converted["test_dataframe_rownames"],
+            data["test_dataframe_rownames"],
             pd.DataFrame(
                 {
                     "class": pd.Categorical(
@@ -558,11 +505,10 @@ class SimpleTests(unittest.TestCase):
 
     def test_ts(self) -> None:
         """Test time series conversion."""
-        parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_ts.rda")
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_ts.rda")
 
         pd.testing.assert_series_equal(
-            converted["test_ts"],
+            data["test_ts"],
             pd.Series({
                 2000 + Fraction(2, 12): 1.0,
                 2000 + Fraction(3, 12): 2.0,
@@ -572,12 +518,10 @@ class SimpleTests(unittest.TestCase):
 
     def test_s4(self) -> None:
         """Test parsing of S4 classes."""
-        parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_s4.rda")
-
         with pytest.warns(UserWarning, match="Missing constructor"):
-            converted = rdata.conversion.convert(parsed)
+            data = rdata.read_rda(TESTDATA_PATH / "test_s4.rda")
 
-        np.testing.assert_equal(converted, {
+        np.testing.assert_equal(data, {
             "test_s4": SimpleNamespace(
                 age=np.array(28),
                 name=["Carlos"],
@@ -612,32 +556,25 @@ class SimpleTests(unittest.TestCase):
 
     def test_emptyenv(self) -> None:
         """Test parsing the empty environment."""
-        parsed = rdata.parser.parse_file(
-            TESTDATA_PATH / "test_emptyenv.rda",
-        )
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_emptyenv.rda")
 
-        assert converted == {
+        assert data == {
             "test_emptyenv": ChainMap({}),
         }
 
     def test_list_attrs(self) -> None:
         """Test that lists accept attributes."""
-        parsed = rdata.parser.parse_file(TESTDATA_PATH / "test_list_attrs.rda")
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_list_attrs.rda")
 
-        np.testing.assert_equal(converted, {
+        np.testing.assert_equal(data, {
             "test_list_attrs": [["list"], [5]],
         })
 
     def test_altrep_compact_intseq(self) -> None:
         """Test alternative representation of sequences of ints."""
-        parsed = rdata.parser.parse_file(
-            TESTDATA_PATH / "test_altrep_compact_intseq.rda",
-        )
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_altrep_compact_intseq.rda")
 
-        np.testing.assert_equal(converted, {
+        np.testing.assert_equal(data, {
             "test_altrep_compact_intseq": np.arange(1000),
         })
 
@@ -648,23 +585,21 @@ class SimpleTests(unittest.TestCase):
         This test an origin different from 0, to reproduce
         issue #29.
         """
-        parsed = rdata.parser.parse_file(
+        data = rdata.read_rda(
             TESTDATA_PATH / "test_altrep_compact_intseq_asymmetric.rda",
         )
-        converted = rdata.conversion.convert(parsed)
 
-        np.testing.assert_equal(converted, {
+        np.testing.assert_equal(data, {
             "test_altrep_compact_intseq_asymmetric": np.arange(-5, 6),
         })
 
     def test_altrep_compact_realseq(self) -> None:
         """Test alternative representation of sequences of ints."""
-        parsed = rdata.parser.parse_file(
+        data = rdata.read_rda(
             TESTDATA_PATH / "test_altrep_compact_realseq.rda",
         )
-        converted = rdata.conversion.convert(parsed)
 
-        np.testing.assert_equal(converted, {
+        np.testing.assert_equal(data, {
             "test_altrep_compact_realseq": np.arange(1000.0),
         })
 
@@ -675,23 +610,21 @@ class SimpleTests(unittest.TestCase):
         This test an origin different from 0, to reproduce
         issue #29.
         """
-        parsed = rdata.parser.parse_file(
+        data = rdata.read_rda(
             TESTDATA_PATH / "test_altrep_compact_realseq_asymmetric.rda",
         )
-        converted = rdata.conversion.convert(parsed)
 
-        np.testing.assert_equal(converted, {
+        np.testing.assert_equal(data, {
             "test_altrep_compact_realseq_asymmetric": np.arange(-5.0, 6.0),
         })
 
     def test_altrep_deferred_string(self) -> None:
         """Test alternative representation of deferred strings."""
-        parsed = rdata.parser.parse_file(
+        data = rdata.read_rda(
             TESTDATA_PATH / "test_altrep_deferred_string.rda",
         )
-        converted = rdata.conversion.convert(parsed)
 
-        np.testing.assert_equal(converted, {
+        np.testing.assert_equal(data, {
             "test_altrep_deferred_string": [
                 "1", "2.3", "10000",
                 "1e+05", "-10000", "-1e+05",
@@ -701,51 +634,44 @@ class SimpleTests(unittest.TestCase):
 
     def test_altrep_wrap_real(self) -> None:
         """Test alternative representation of wrap_real."""
-        parsed = rdata.parser.parse_file(
+        data = rdata.read_rda(
             TESTDATA_PATH / "test_altrep_wrap_real.rda",
         )
-        converted = rdata.conversion.convert(parsed)
 
-        np.testing.assert_equal(converted, {
+        np.testing.assert_equal(data, {
             "test_altrep_wrap_real": [3],
         })
 
     def test_altrep_wrap_string(self) -> None:
         """Test alternative representation of wrap_string."""
-        parsed = rdata.parser.parse_file(
-            TESTDATA_PATH / "test_altrep_wrap_string.rda",
-        )
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_altrep_wrap_string.rda")
 
-        np.testing.assert_equal(converted, {
+        np.testing.assert_equal(data, {
             "test_altrep_wrap_string": ["Hello"],
         })
 
     def test_altrep_wrap_logical(self) -> None:
         """Test alternative representation of wrap_logical."""
-        parsed = rdata.parser.parse_file(
-            TESTDATA_PATH / "test_altrep_wrap_logical.rda",
-        )
-        converted = rdata.conversion.convert(parsed)
+        data = rdata.read_rda(TESTDATA_PATH / "test_altrep_wrap_logical.rda")
 
-        np.testing.assert_equal(converted, {
+        np.testing.assert_equal(data, {
             "test_altrep_wrap_logical": [True],
         })
 
     def test_ascii(self) -> None:
         """Test ascii files."""
         ref_ma = np.ma.array(  # type: ignore[no-untyped-call]
-                data=[True],
-                mask=[True],
-                fill_value=True,
+            data=[True],
+            mask=[True],
+            fill_value=True,
         )
-        ref = [[1.1], [2], [3.+4.j], ref_ma, ["aä"]]
+        ref = [[1.1], [2], [3. + 4.j], ref_ma, ["aä"]]
 
         for tag, v, ext in itertools.product(
                 ("", "win_"),
                 (2, 3),
                 ("rda", "rds"),
-                ):
+        ):
             f = f"test_ascii_{tag}v{v}.{ext}"
             with self.subTest(file=f):
                 parsed = rdata.parser.parse_file(
@@ -766,6 +692,7 @@ class SimpleTests(unittest.TestCase):
                 np.testing.assert_equal(ma.mask, ref_ma.mask)
                 np.testing.assert_equal(ma.get_fill_value(),
                                         ref_ma.get_fill_value())
+
 
 if __name__ == "__main__":
     unittest.main()

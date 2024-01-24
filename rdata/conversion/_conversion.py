@@ -89,17 +89,14 @@ def convert_list(
     """
     Expand a tagged R pairlist to a Python dictionary.
 
-    Parameters:
-        r_list: RObject
-            Pairlist R object, with tags.
-        conversion_function: Callable
-            Conversion function to apply to the elements of the list. By default
-            is the identity function.
+    Args:
+        r_list: Pairlist R object, with tags.
+        conversion_function: Conversion function to apply to the elements of
+            the list. By default is the identity function.
 
     Returns:
-        dictionary: dict
-            A dictionary with the tags of the pairwise list as keys and their
-            corresponding values as values.
+        A dictionary with the tags of the pairwise list as keys and their
+        corresponding values as values.
 
     See Also:
         convert_vector
@@ -160,17 +157,14 @@ def convert_attrs(
     """
     Return the attributes of an object as a Python dictionary.
 
-    Parameters:
-        r_obj: RObject
-            R object.
-        conversion_function: Callable
-            Conversion function to apply to the elements of the attribute list. By
-            default is the identity function.
+    Args:
+        r_obj: R object.
+        conversion_function: Conversion function to apply to the elements of
+            the attribute list. By default is the identity function.
 
     Returns:
-        dictionary: dict
-            A dictionary with the names of the attributes as keys and their
-            corresponding values as values.
+        A dictionary with the names of the attributes as keys and their
+        corresponding values as values.
 
     See Also:
         convert_list
@@ -197,18 +191,16 @@ def convert_vector(
     If the vector has a ``names`` attribute, the result is a dictionary with
     the names as keys. Otherwise, the result is a Python list.
 
-    Parameters:
-        r_vec: RObject
-            R vector.
-        conversion_function: Callable
-            Conversion function to apply to the elements of the vector. By default
-            is the identity function.
+    Args:
+        r_vec: R vector.
+        conversion_function: Conversion function to apply to the elements of
+            the vector. By default is the identity function.
+        attrs: Attributes of the vector.
 
     Returns:
-        vector: dict or list
-            A dictionary with the ``names`` of the vector as keys and their
-            corresponding values as values. If the vector does not have an argument
-            ``names``, then a normal Python list is returned.
+        A dictionary with the ``names`` of the vector as keys and their
+        corresponding values as values. If the vector does not have an
+        argument ``names``, then a normal Python list is returned.
 
     See Also:
         convert_list
@@ -260,13 +252,14 @@ def convert_char(
     string can be encoded in UTF8, LATIN1 or ASCII, or can be a sequence
     of bytes.
 
-    Parameters:
-        r_char: RObject
-            R character array.
+    Args:
+        r_char: R character array.
+        default_encoding: Default encoding to apply when encoding info
+            is not available.
+        force_default_encoding: Always use the default encoding.
 
     Returns:
-        string: str or bytes
-            Decoded string.
+        Decoded string.
 
     See Also:
         convert_symbol
@@ -315,16 +308,13 @@ def convert_symbol(
     """
     Decode a R symbol to a Python string or bytes.
 
-    Parameters:
-        r_symbol: RObject
-            R symbol.
-        conversion_function: Callable
-            Conversion function to apply to the char element of the symbol.
-            By default is the identity function.
+    Args:
+        r_symbol: R symbol.
+        conversion_function: Conversion function to apply to the char element
+            of the symbol. By default is the identity function.
 
     Returns:
-        string: str or bytes
-            Decoded string.
+        Decoded string.
 
     See Also:
         convert_char
@@ -349,13 +339,12 @@ def convert_array(
     If the array has attribute ``dimnames`` the output will be a
     Xarray DataArray, preserving the dimension names.
 
-    Parameters:
-        r_array: RObject
-            R array.
+    Args:
+        r_array: R array.
+        attrs: Attributes of the array.
 
     Returns:
-        array: ndarray or DataArray
-            Array.
+        Array.
 
     See Also:
         convert_vector
@@ -622,25 +611,29 @@ class SimpleConverter(Converter):
     """
     Class converting R objects to Python objects.
 
-    Parameters
-    ----------
-    constructor_dict:
-        Dictionary mapping names of R classes to constructor functions with
-        the following prototype:
+    Args:
+        constructor_dict:
+            Dictionary mapping names of R classes to constructor functions with
+            the following prototype:
 
-        .. code-block :: python
+            .. code-block :: python
 
-            def constructor(obj, attrs):
+                def constructor(obj, attrs):
 
-        This dictionary can be used to support custom R classes. By default,
-        the dictionary used is
-        :data:`~rdata.conversion._conversion.DEFAULT_CLASS_MAP`
-        which has support for several common classes.
-    default_encoding:
-        Default encoding used for strings with unknown encoding. If `None`,
-        the one stored in the file will be used, or ASCII as a fallback.
-    force_default_encoding:
-        Use the default encoding even if the strings specify other encoding.
+            This dictionary can be used to support custom R classes. By
+            default, the dictionary used is
+            :data:`~rdata.conversion._conversion.DEFAULT_CLASS_MAP`
+            which has support for several common classes.
+        default_encoding:
+            Default encoding used for strings with unknown encoding. If `None`,
+            the one stored in the file will be used, or ASCII as a fallback.
+        force_default_encoding:
+            Use the default encoding even if the strings specify other
+            encoding.
+        global_environment: Global environment to use. By default is an empty
+            environment.
+        base_environment: Base environment to use. By default is an empty
+            environment.
 
     """
 
@@ -896,6 +889,30 @@ def convert(
 ) -> Any:  # noqa: ANN401
     """
     Use the default converter (:func:`SimpleConverter`) to convert the data.
+
+    Args:
+        data: Parsed data.
+        constructor_dict: Dictionary mapping names of R classes to constructor
+            functions with the following prototype:
+
+            .. code-block :: python
+
+                def constructor(obj, attrs):
+
+            This dictionary can be used to support custom R classes. By
+            default, the dictionary used is
+            :data:`~rdata.conversion._conversion.DEFAULT_CLASS_MAP`
+            which has support for several common classes.
+        default_encoding: Default encoding used for strings with unknown
+            encoding. If `None`, the one stored in the file will be used, or
+            ASCII as a fallback.
+        force_default_encoding:
+            Use the default encoding even if the strings specify other
+            encoding.
+        global_environment: Global environment to use. By default is an empty
+            environment.
+        base_environment: Base environment to use. By default is an empty
+            environment.
 
     Examples:
         Parse one of the included examples, containing a vector
