@@ -101,7 +101,7 @@ disallow_untyped_defs = false
 [tool.pytest.ini_options]
 addopts = "--doctest-modules --doctest-glob='*.rst'"
 doctest_optionflags = "NORMALIZE_WHITESPACE ELLIPSIS"
-norecursedirs = ".* build dist *.egg venv .svn _build docs/auto_examples examples"
+norecursedirs = ".* build dist *.egg venv .svn _build docs/auto_examples examples asv_benchmarks"
 
 [tool.ruff.lint]
 select = [
