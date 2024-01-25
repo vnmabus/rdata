@@ -78,7 +78,7 @@ The common way of reading an R dataset is the following one:
     
 which results in
 
-.. code:: python
+.. code::
 
     {'test_vector': array([1., 2., 3.])}
 
@@ -169,7 +169,7 @@ Pandas
     
 which has the following result:
 
-.. code:: python
+.. code::
 
     {'test_dataframe':   class  value
         1     b'a'      1

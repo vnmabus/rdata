@@ -606,6 +606,7 @@ class SimpleConverter(Converter):
             .. code-block :: python
 
                 def constructor(obj, attrs):
+                    ...
 
             This dictionary can be used to support custom R classes. By
             default, the dictionary used is
@@ -885,6 +886,7 @@ def convert(
             .. code-block :: python
 
                 def constructor(obj, attrs):
+                    ...
 
             This dictionary can be used to support custom R classes. By
             default, the dictionary used is

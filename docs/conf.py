@@ -62,6 +62,7 @@ version = ".".join(release.split(".")[:2])
 # ones.
 extensions = [
     "myst_parser",
+    "sphinx_codeautolink",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.intersphinx",
