@@ -60,6 +60,12 @@ Documentation
 
 The documentation of rdata is in
 `ReadTheDocs <https://rdata.readthedocs.io/>`_.
+
+Examples
+========
+
+Examples of use are available in
+`ReadTheDocs <https://rdata.readthedocs.io/en/stable/auto_examples/>`_.
 	
 Simple usage
 ============
