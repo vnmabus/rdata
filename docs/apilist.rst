@@ -40,6 +40,7 @@ future, if a more fitting Python object is found.
    rdata.conversion.Converter
    rdata.conversion.SimpleConverter
    rdata.conversion.convert
+   rdata.conversion.DEFAULT_CLASS_MAP
 
 Auxiliary structures
 ^^^^^^^^^^^^^^^^^^^^

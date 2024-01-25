@@ -576,21 +576,8 @@ default_class_map_dict: Final[ConstructorDict] = {
     "srcfilecopy": srcfilecopy_constructor,
 }
 
+#: Default mapping of constructor functions.
 DEFAULT_CLASS_MAP: Final = MappingProxyType(default_class_map_dict)
-"""
-Default mapping of constructor functions.
-
-It has support for converting several commonly used R classes:
-
-- Converts R \"data.frame\" objects into Pandas :class:`~pandas.DataFrame`
-  objects.
-- Converts R \"factor\" objects into unordered Pandas
-  :class:`~pandas.Categorical` objects.
-- Converts R \"ordered\" objects into ordered Pandas
-  :class:`~pandas.Categorical` objects.
-- Converts R \"ts\" objects into Pandas :class:`~pandas.Series` objects.
-
-"""
 
 
 class Converter(abc.ABC):
