@@ -95,43 +95,56 @@ Under the hood, this is equivalent to the following code:
 This consists on two steps: 
 
 #. First, the file is parsed using the function
-   :func:`rdata.parser.parse_file`. This provides a literal description of the
+   `rdata.parser.parse_file <https://rdata.readthedocs.io/en/latest/modules/rdata.parser.parse_file.html>`_.
+   This provides a literal description of the
    file contents as a hierarchy of Python objects representing the basic R
    objects. This step is unambiguous and always the same.
 #. Then, each object must be converted to an appropriate Python object. In this
    step there are several choices on which Python type is the most appropriate
    as the conversion for a given R object. Thus, we provide a default
-   :func:`rdata.conversion.convert` routine, which tries to select Python
-   objects that preserve most information of the original R object. For custom
-   R classes, it is also possible to specify conversion routines to Python
-   objects.
+   `rdata.conversion.convert <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.convert.html>`_
+   routine, which tries to select Python objects that preserve most information
+   of the original R object. For custom R classes, it is also possible to
+   specify conversion routines to Python objects.
    
 Convert custom R classes
 ------------------------
 
-The basic :func:`~rdata.conversion.convert` routine only constructs a
-:class:`~rdata.conversion.SimpleConverter` object and calls its
-:func:`~rdata.conversion.convert` method. All arguments of
-:func:`~rdata.conversion.convert` are directly passed to the
-:class:`~rdata.conversion.SimpleConverter` initialization method.
+The basic
+`convert <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.convert.html>`_
+routine only constructs a
+`SimpleConverter <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.SimpleConverter.html>`_
+object and calls its
+`convert <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.SimpleConverter.html#rdata.conversion.SimpleConverter.convert>`_
+method. All arguments of
+`convert <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.convert.html>`_
+are directly passed to the
+`SimpleConverter <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.SimpleConverter.html>`_
+initialization method.
 
 It is possible, although not trivial, to make a custom
-:class:`~rdata.conversion.Converter` object to change the way in which the
+`Converter <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.Converter.html>`_
+object to change the way in which the
 basic R objects are transformed to Python objects. However, a more common
 situation is that one does not want to change how basic R objects are
 converted, but instead wants to provide conversions for specific R classes.
 This can be done by passing a dictionary to the
-:class:`~rdata.conversion.SimpleConverter` initialization method, containing
+`SimpleConverter <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.SimpleConverter.html>`_
+initialization method, containing
 as keys the names of R classes and as values, callables that convert a
 R object of that class to a Python object. By default, the dictionary used
-is :data:`~rdata.conversion.DEFAULT_CLASS_MAP`, which can convert
-commonly used R classes such as
+is
+`DEFAULT_CLASS_MAP <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.DEFAULT_CLASS_MAP.html>`_,
+which can convert commonly used R classes such as
 `data.frame <https://www.rdocumentation.org/packages/base/topics/data.frame>`_
 and `factor <https://www.rdocumentation.org/packages/base/topics/factor>`_.
 
 As an example, here is how we would implement a conversion routine for the
-factor class to :class:`bytes` objects, instead of the default conversion to
-Pandas :class:`~pandas.Categorical` objects:
+factor class to
+`bytes <https://docs.python.org/3/library/stdtypes.html#bytes>`_
+objects, instead of the default conversion to
+Pandas
+`Categorical <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Categorical.html#pandas.Categorical>`_ objects:
 
 .. code:: python
 

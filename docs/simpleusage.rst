@@ -48,7 +48,7 @@ Convert custom R classes
 
 The basic :func:`~rdata.conversion.convert` routine only constructs a
 :class:`~rdata.conversion.SimpleConverter` object and calls its
-:func:`~rdata.conversion.convert` method. All arguments of
+:meth:`~rdata.conversion.SimpleConverter.convert` method. All arguments of
 :func:`~rdata.conversion.convert` are directly passed to the
 :class:`~rdata.conversion.SimpleConverter` initialization method.
 
