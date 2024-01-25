@@ -38,7 +38,7 @@ def execute_r_data_source(
     function_or_class: HasDoc,
     *,
     prefix: str = R_CODE_PREFIX,
-    **kwargs: Any,
+    **kwargs: Any,  # noqa: ANN401
 ) -> None:
     """Execute R data source."""
     source = get_data_source(
