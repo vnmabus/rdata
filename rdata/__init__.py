@@ -4,7 +4,7 @@ from __future__ import annotations
 from importlib.resources import files
 from typing import TYPE_CHECKING, Final
 
-from . import conversion as conversion, parser as parser
+from . import conversion as conversion, parser as parser, testing as testing
 from ._read import read_rda as read_rda, read_rds as read_rds
 
 if TYPE_CHECKING:
