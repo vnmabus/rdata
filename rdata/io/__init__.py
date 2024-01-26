@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from rdata.parser import RData
+
 
 def write(
         path: os.PathLike[Any] | str,

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import io
 import numpy as np
 import numpy.typing as npt
-from typing import BinaryIO
 
 from .base import Writer
 from rdata.parser._parser import R_INT_NA
@@ -22,7 +22,7 @@ class WriterXDR(Writer):
 
     def __init__(
         self,
-        file: BinaryIO,
+        file: io.BytesIO,
     ) -> None:
         self.file = file
 

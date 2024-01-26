@@ -161,7 +161,6 @@ def convert_to_r_object(
     gp = 0
     attributes = None
     tag = None
-    referenced_object = None
 
     if data is None:
         r_type = RObjectType.NILVALUE
