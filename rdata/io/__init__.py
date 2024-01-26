@@ -10,8 +10,8 @@ def write(
         path: os.PathLike[Any] | str,
         r_data: RData,
         *,
-        format: str = 'xdr',
-        compression: str = 'gzip',
+        format: str = "xdr",
+        compression: str = "gzip",
 ) -> None:
     """
     Write RData object to a file.
@@ -27,26 +27,26 @@ def write(
     compression:
         Compression (gzip, bzip2, xz, or none)
     """
-    if format == 'ascii':
+    if format == "ascii":
         from .ascii import WriterASCII as Writer
-        mode = 'w'
-    elif format == 'xdr':
+        mode = "w"
+    elif format == "xdr":
         from .xdr import WriterXDR as Writer
-        mode = 'wb'
+        mode = "wb"
     else:
-        raise ValueError(f'Unknown format: {format}')
+        raise ValueError(f"Unknown format: {format}")
 
-    if compression == 'gzip':
+    if compression == "gzip":
         from gzip import open
-    elif compression == 'bzip2':
+    elif compression == "bzip2":
         from bz2 import open
-    elif compression == 'xz':
+    elif compression == "xz":
         from lzma import open
-    elif compression == 'none':
+    elif compression == "none":
         import builtins
         open = builtins.open
     else:
-        msg = f'Unknown compression: {compression}'
+        msg = f"Unknown compression: {compression}"
         if compression is None:
             msg += ". Use 'none' for no compression."
         raise ValueError(msg)

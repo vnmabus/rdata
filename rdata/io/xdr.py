@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import io
+
 import numpy as np
-import numpy.typing as npt
+
+from rdata.parser._parser import R_INT_NA
 
 from .base import Writer
-from rdata.parser._parser import R_INT_NA
 
 
 def flatten_nullable_int_array(array):
@@ -27,7 +28,7 @@ class WriterXDR(Writer):
         self.file = file
 
     def write_magic(self):
-        self.file.write(b'X\n')
+        self.file.write(b"X\n")
 
     def __write_array(self, array):
         # Expect only 1D arrays here
@@ -37,10 +38,10 @@ class WriterXDR(Writer):
 
     def __write_array_values(self, array):
         # Convert to big endian if needed
-        array = array.astype(array.dtype.newbyteorder('>'))
+        array = array.astype(array.dtype.newbyteorder(">"))
         # 1D array should be both C and F contiguous
-        assert array.flags['C_CONTIGUOUS'] == array.flags['F_CONTIGUOUS']
-        if array.flags['C_CONTIGUOUS']:
+        assert array.flags["C_CONTIGUOUS"] == array.flags["F_CONTIGUOUS"]
+        if array.flags["C_CONTIGUOUS"]:
             data = array.data
         else:
             data = array.tobytes()

@@ -6,30 +6,30 @@ import warnings
 import numpy as np
 
 from rdata.parser._parser import (
-        RObjectType,
-        RObjectInfo,
-        RVersions,
-        RExtraInfo,
-        )
+    RExtraInfo,
+    RObjectInfo,
+    RObjectType,
+    RVersions,
+)
 
 
 def pack_r_object_info(info: RObjectInfo) -> np.int32:
     if info.type == RObjectType.NILVALUE:
-        bits = f'{0:24b}'
+        bits = f"{0:24b}"
     elif info.type == RObjectType.REF:
-        bits = f'{info.reference:24b}'
+        bits = f"{info.reference:24b}"
     else:
-        bits = (f'{0:4b}'
-                f'{info.gp:16b}'
-                f'{0:1b}'
-                f'{info.tag:1b}'
-                f'{info.attributes:1b}'
-                f'{info.object:1b}'
+        bits = (f"{0:4b}"
+                f"{info.gp:16b}"
+                f"{0:1b}"
+                f"{info.tag:1b}"
+                f"{info.attributes:1b}"
+                f"{info.object:1b}"
                 )
-    bits += f'{info.type.value:8b}'
-    bits = bits.replace(' ', '0')
+    bits += f"{info.type.value:8b}"
+    bits = bits.replace(" ", "0")
     assert len(bits) == 32
-    info_int = np.packbits([int(b) for b in bits]).view('>i4').astype('=i4')[0]
+    info_int = np.packbits([int(b) for b in bits]).view(">i4").astype("=i4")[0]
     return info_int
 
 
@@ -49,7 +49,7 @@ class Writer(abc.ABC):
         self.write_int(versions.serialized)
         self.write_int(versions.minimum)
         if versions.format >= 3:
-            self.write_string(extra.encoding.encode('ascii'))
+            self.write_string(extra.encoding.encode("ascii"))
 
     def write_bool(self, value):
         self.write_int(int(value))
@@ -60,7 +60,7 @@ class Writer(abc.ABC):
 
     def write_int(self, value):
         if not isinstance(value, (int, np.int32)):
-            raise RuntimeError(f'Not valid integer: {value} ({type(value)})')
+            raise RuntimeError(f"Not valid integer: {value} ({type(value)})")
         self.write_nullable_int(value)
 
     @abc.abstractmethod

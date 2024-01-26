@@ -1,10 +1,10 @@
 import string
-import numpy as np
-
 from typing import (
     Any,
     Optional,
 )
+
+import numpy as np
 
 from rdata.parser._parser import (
     CharFlags,
@@ -41,12 +41,12 @@ def build_r_object(
     gp:
         Same as in RObjectInfo
 
-    Returns
+    Returns:
     -------
     r_object:
         RObject object.
 
-    See Also
+    See Also:
     --------
     RObject
     RObjectInfo
@@ -79,7 +79,7 @@ def build_r_list(
     value:
         Value of the element.
 
-    Returns
+    Returns:
     -------
     r_object:
         RObject object.
@@ -101,7 +101,7 @@ def build_r_list(
 def convert_to_r_data(
         data: Any,
         *,
-        encoding: str = 'UTF-8',
+        encoding: str = "UTF-8",
 ) -> RData:
     """
     Convert Python data to RData object.
@@ -113,12 +113,12 @@ def convert_to_r_data(
     encoding:
         Encoding to be used for strings within data.
 
-    Returns
+    Returns:
     -------
     r_data:
         Corresponding RData object.
 
-    See Also
+    See Also:
     --------
     convert_to_r_object
     """
@@ -143,17 +143,17 @@ def convert_to_r_object(
     encoding:
         Encoding to be used for strings within data.
 
-    Returns
+    Returns:
     -------
     r_object:
         Corresponding R object.
 
-    See Also
+    See Also:
     --------
     convert_to_r_data
     """
-    if encoding not in ['UTF-8', 'CP1252']:
-        raise ValueError(f'Unknown encoding: {encoding}')
+    if encoding not in ["UTF-8", "CP1252"]:
+        raise ValueError(f"Unknown encoding: {encoding}")
 
     # Default args for most types (None/False/0)
     r_type = None
@@ -179,29 +179,29 @@ def convert_to_r_object(
 
         if isinstance(data, dict):
             attributes = build_r_list(
-                convert_to_r_object(b'names', encoding=encoding),
+                convert_to_r_object(b"names", encoding=encoding),
                 convert_to_r_object(np.array(list(data.keys())), encoding=encoding),
                 )
 
     elif isinstance(data, np.ndarray):
-        if data.dtype.kind in ['S']:
+        if data.dtype.kind in ["S"]:
             assert data.ndim == 1
             r_type = RObjectType.STR
             r_value = []
             for element in data:
                 r_value.append(convert_to_r_object(element, encoding=encoding))
 
-        elif data.dtype.kind in ['U']:
+        elif data.dtype.kind in ["U"]:
             assert data.ndim == 1
             data = np.array([s.encode(encoding) for s in data])
             return convert_to_r_object(data, encoding=encoding)
 
         else:
             r_type = {
-                'b': RObjectType.LGL,
-                'i': RObjectType.INT,
-                'f': RObjectType.REAL,
-                'c': RObjectType.CPLX,
+                "b": RObjectType.LGL,
+                "i": RObjectType.INT,
+                "f": RObjectType.REAL,
+                "c": RObjectType.CPLX,
             }[data.dtype.kind]
 
             if data.ndim == 0:
@@ -210,9 +210,9 @@ def convert_to_r_object(
                 r_value = data
             else:
                 # R uses column-major order like Fortran
-                r_value = np.ravel(data, order='F')
+                r_value = np.ravel(data, order="F")
                 attributes = build_r_list(
-                    convert_to_r_object(b'dim', encoding=encoding),
+                    convert_to_r_object(b"dim", encoding=encoding),
                     convert_to_r_object(np.array(data.shape), encoding=encoding),
                     )
 
@@ -227,9 +227,9 @@ def convert_to_r_object(
         r_type = RObjectType.CHAR
         if all(chr(byte) in string.printable for byte in data):
             gp = CharFlags.ASCII
-        elif encoding == 'UTF-8':
+        elif encoding == "UTF-8":
             gp = CharFlags.UTF8
-        elif encoding == 'CP1252':
+        elif encoding == "CP1252":
             # XXX CP1252 and Latin1 are not the same
             #     Check if CharFlags.LATIN1 means actually CP1252
             #     as R on Windows mentions CP1252 as encoding

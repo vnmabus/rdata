@@ -26,6 +26,6 @@ from ._conversion import (
 )
 
 from .to_r import (
-    convert_to_r_data,
-    convert_to_r_object,
+    convert_to_r_data as convert_to_r_data,
+    convert_to_r_object as convert_to_r_object,
 )
