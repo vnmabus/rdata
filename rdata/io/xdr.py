@@ -18,7 +18,7 @@ def flatten_nullable_int_array(array):
 
 
 class WriterXDR(Writer):
-    """Writer for XDR format files."""
+    """Writer for files in XDR format."""
 
     def __init__(
         self,

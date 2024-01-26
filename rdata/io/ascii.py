@@ -8,7 +8,7 @@ from .base import Writer
 
 
 class WriterASCII(Writer):
-    """Writer for ASCII format files."""
+    """Writer for files in ASCII format."""
 
     def __init__(
         self,
