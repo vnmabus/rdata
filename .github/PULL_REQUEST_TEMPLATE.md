@@ -1,7 +1,7 @@
 <!--
 Thanks for your contribution! Please ensure you have taken a look at
 the contribution guidelines:
-https://github.com/VNMabus/rdata/blob/develop/CONTRIBUTING.md
+https://github.com/vnmabus/rdata/blob/develop/CONTRIBUTING.md
 -->
 
 ## References to issues or other PRs
@@ -26,6 +26,6 @@ Example: Fixes #42. See also #123.
 ## Checklist before requesting a review
 
 - [ ] I have performed a self-review of my code
-- [ ] The code conforms to the style used in this package
-- [ ] The code is fully documented and typed (type-checked with Mypy)
+- [ ] The code conforms to the style used in this package (checked with [Ruff](https://docs.astral.sh/ruff/))
+- [ ] The code is fully documented and typed (type-checked with [Mypy](https://mypy-lang.org/))
 - [ ] I have added thorough tests for the new/changed functionality
