@@ -86,10 +86,10 @@ def build_r_list(
     """
     r_list = build_r_object(
         RObjectType.LIST,
-        value=[
+        value=(
             value,
             build_r_object(RObjectType.NILVALUE),
-            ],
+            ),
         tag=build_r_object(
             RObjectType.SYM,
             value=key,
