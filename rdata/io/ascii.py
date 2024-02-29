@@ -21,7 +21,9 @@ class WriterASCII(Writer):
         """Write a line with trailing \\n"""
         self.file.write(f"{line}\n")
 
-    def write_magic(self):
+    def write_magic(self, rda_version):
+        if rda_version is not None:
+            self._writeline(f"RDA{rda_version}")
         self._writeline("A")
 
     def write_nullable_bool(self, value):

@@ -40,7 +40,7 @@ class Writer(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def write_magic(self):
+    def write_magic(self, rda_version):
         pass
 
     def write_header(self, versions: RVersions, extra: RExtraInfo):
@@ -102,8 +102,8 @@ class Writer(abc.ABC):
         """Write a complex array."""
         self.__write_array(array, self.write_complex)
 
-    def write_r_data(self, r_data):
-        self.write_magic()
+    def write_r_data(self, r_data, *, rds=True):
+        self.write_magic(None if rds else r_data.versions.format)
         self.write_header(r_data.versions, r_data.extra)
         self.write_R_object(r_data.object)
 

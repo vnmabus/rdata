@@ -27,7 +27,9 @@ class WriterXDR(Writer):
     ) -> None:
         self.file = file
 
-    def write_magic(self):
+    def write_magic(self, rda_version):
+        if rda_version is not None:
+            self.file.write(f"RDX{rda_version}\n".encode("ascii"))
         self.file.write(b"X\n")
 
     def __write_array(self, array):

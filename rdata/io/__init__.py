@@ -31,11 +31,9 @@ def write(
     if format == "ascii":
         from .ascii import WriterASCII as Writer
         mode = "w"
-        magic = f"RDA{r_data.versions.format}\n"
     elif format == "xdr":
         from .xdr import WriterXDR as Writer
         mode = "wb"
-        magic = f"RDX{r_data.versions.format}\n".encode("ascii")
     else:
         raise ValueError(f"Unknown format: {format}")
 
@@ -55,7 +53,5 @@ def write(
         raise ValueError(msg)
 
     with open(path, mode) as f:
-        if not rds:
-            f.write(magic)
         w = Writer(f)
-        w.write_r_data(r_data)
+        w.write_r_data(r_data, rds=rds)
