@@ -56,7 +56,7 @@ def build_r_object(
                                    object=False,
                                    attributes=attributes is not None,
                                    tag=tag is not None,
-                                   gp=gp,
+                                   gp=int(gp),
                                    reference=0),
                        value,
                        attributes,
