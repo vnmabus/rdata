@@ -122,7 +122,13 @@ class Writer(abc.ABC):
             for element in value:
                 self.write_R_object(element)
 
-        elif info.type == RObjectType.CHAR:
+        elif info.type in {
+            RObjectType.CHAR,
+            RObjectType.BUILTIN,
+            # XXX Parser treats this equal to BUILTIN.
+            #     Not tested if it works
+            # RObjectType.SPECIAL,
+        }:
             self.write_string(value)
 
         elif info.type in {
