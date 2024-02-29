@@ -48,4 +48,5 @@ def test_write(fname):
         except NotImplementedError as e:
             pytest.xfail(str(e))
 
-        assert data == fd.getvalue()
+        out_data = fd.getvalue()
+        assert data == out_data

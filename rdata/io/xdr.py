@@ -79,5 +79,8 @@ class WriterXDR(Writer):
         self.__write_array(array)
 
     def write_string(self, value: bytes):
-        self.write_int(len(value))
-        self.file.write(value)
+        if value is None:
+            self.write_int(-1)
+        else:
+            self.write_int(len(value))
+            self.file.write(value)
