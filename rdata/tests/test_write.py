@@ -25,9 +25,9 @@ def decompress_data(data):
     return decompress(data)
 
 
-fnames = TESTDATA_PATH.glob("*.rd?")
+fnames = sorted([fpath.name for fpath in TESTDATA_PATH.glob("*.rd?")])
 
-@pytest.mark.parametrize("fname", fnames)
+@pytest.mark.parametrize("fname", fnames, ids=fnames)
 def test_write(fname):
     with (TESTDATA_PATH / fname).open("rb") as f:
         data = decompress_data(f.read())
