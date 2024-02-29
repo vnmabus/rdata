@@ -66,33 +66,43 @@ def build_r_object(
 
 
 def build_r_list(
-        key: Any,
-        value: Any,
+        dct: dict[str, Any],
+        *,
+        encoding: str,
 ) -> RObject:
     """
-    Build R object representing list a single named element.
+    Build R object representing named linked list.
 
     Parameters
     ----------
-    key:
-        Name of the element.
-    value:
-        Value of the element.
+    dct:
+        Dictionary.
+    encoding:
+        Encoding to be used for strings within data.
 
     Returns:
     -------
     r_object:
         RObject object.
     """
+    dct = dct.copy()
+    key = next(iter(dct))
+    value = convert_to_r_object(dct.pop(key), encoding=encoding)
+
+    if len(dct) == 0:
+        value2 = build_r_object(RObjectType.NILVALUE)
+    else:
+        value2 = build_r_list(dct, encoding=encoding)
+
     r_list = build_r_object(
         RObjectType.LIST,
         value=(
             value,
-            build_r_object(RObjectType.NILVALUE),
+            value2,
             ),
         tag=build_r_object(
             RObjectType.SYM,
-            value=key,
+            value=convert_to_r_object(key.encode("ascii"), encoding=encoding),
             ),
         )
     return r_list
@@ -136,11 +146,7 @@ def convert_to_r_data(
     else:
         if not isinstance(data, dict):
             raise ValueError("For RDA file, data must be a dictionary.")
-        key = next(iter(data))
-        obj = build_r_list(
-            convert_to_r_object(key.encode("ascii"), encoding=encoding),
-            convert_to_r_object(data[key], encoding=encoding),
-            )
+        obj = build_r_list(data, encoding=encoding)
 
     return RData(versions, extra, obj)
 
@@ -195,10 +201,8 @@ def convert_to_r_object(
             r_value.append(convert_to_r_object(element, encoding=encoding))
 
         if isinstance(data, dict):
-            attributes = build_r_list(
-                convert_to_r_object(b"names", encoding=encoding),
-                convert_to_r_object(np.array(list(data.keys())), encoding=encoding),
-                )
+            attributes = build_r_list({"names": np.array(list(data.keys()))},
+                                      encoding=encoding)
 
     elif isinstance(data, np.ndarray):
         if data.dtype.kind in ["O"]:
@@ -234,10 +238,8 @@ def convert_to_r_object(
             else:
                 # R uses column-major order like Fortran
                 r_value = np.ravel(data, order="F")
-                attributes = build_r_list(
-                    convert_to_r_object(b"dim", encoding=encoding),
-                    convert_to_r_object(np.array(data.shape), encoding=encoding),
-                    )
+                attributes = build_r_list({"dim": np.array(data.shape)},
+                                          encoding=encoding)
 
     elif isinstance(data, (bool, int, float, complex)):
         return convert_to_r_object(np.array(data), encoding=encoding)
