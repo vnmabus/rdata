@@ -102,6 +102,7 @@ def convert_to_r_data(
         data: Any,
         *,
         encoding: str = "UTF-8",
+        versions: RVersions = None,
 ) -> RData:
     """
     Convert Python data to RData object.
@@ -122,7 +123,8 @@ def convert_to_r_data(
     --------
     convert_to_r_object
     """
-    versions = RVersions(3, 262657, 197888)
+    if versions is None:
+        versions = RVersions(3, 262657, 197888)
     extra = RExtraInfo(encoding)
     obj = convert_to_r_object(data, encoding=encoding)
     return RData(versions, extra, obj)

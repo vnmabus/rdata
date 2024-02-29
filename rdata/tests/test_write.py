@@ -71,7 +71,7 @@ def test_convert_to_r(fname):
         py_data = rdata.conversion.convert(r_data)
 
         try:
-            new_r_data = rdata.conversion.convert_to_r_data(py_data)
+            new_r_data = rdata.conversion.convert_to_r_data(py_data, versions=r_data.versions)
         except NotImplementedError as e:
             pytest.xfail(str(e))
 
