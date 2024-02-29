@@ -39,6 +39,7 @@ def test_write(fname):
         if format == 'ascii':
             fd = io.StringIO()
             data = data.decode('ascii')
+            data = data.replace('\r\n', '\n')
         else:
             fd = io.BytesIO()
 
