@@ -29,10 +29,8 @@ def write(
         Compression (gzip, bzip2, xz, or none)
     """
     if format == "ascii":
-        from .ascii import WriterASCII as Writer
         mode = "w"
     elif format == "xdr":
-        from .xdr import WriterXDR as Writer
         mode = "wb"
     else:
         raise ValueError(f"Unknown format: {format}")
@@ -53,5 +51,34 @@ def write(
         raise ValueError(msg)
 
     with open(path, mode) as f:
-        w = Writer(f)
-        w.write_r_data(r_data, rds=rds)
+        write_file(f, r_data, format=format, rds=rds)
+
+
+def write_file(
+        fileobj,
+        r_data: RData,
+        *,
+        format: str = "xdr",
+        rds: bool = False,
+) -> None:
+    """
+    Write RData object to a file object.
+
+    Parameters
+    ----------
+    fileobj:
+        File object
+    r_data:
+        RData object
+    format:
+        File format (ascii or xdr)
+    """
+    if format == "ascii":
+        from .ascii import WriterASCII as Writer
+    elif format == "xdr":
+        from .xdr import WriterXDR as Writer
+    else:
+        raise ValueError(f"Unknown format: {format}")
+
+    w = Writer(fileobj)
+    w.write_r_data(r_data, rds=rds)

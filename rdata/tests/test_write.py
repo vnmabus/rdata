@@ -1,3 +1,4 @@
+import io
 import pytest
 
 import rdata
@@ -35,14 +36,7 @@ def test_write(fname):
 
         r_data = rdata.parser.parse_data(data)
 
-        ofpath = 'output.rda'
-        rdata.io.write(ofpath, r_data, format='xdr', compression='none', rds=rds)
+        fd = io.BytesIO()
+        rdata.io.write_file(fd, r_data, format='xdr', rds=rds)
 
-        with open(ofpath, 'rb') as ff:
-            out_data = ff.read()
-
-        assert data == out_data
-
-
-
-
+        assert data == fd.getvalue()
