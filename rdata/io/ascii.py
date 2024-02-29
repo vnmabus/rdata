@@ -26,23 +26,34 @@ class WriterASCII(Writer):
             self._writeline(f"RDA{rda_version}")
         self._writeline("A")
 
-    def write_nullable_bool(self, value):
-        if value is None or np.ma.is_masked(value):
-            self._writeline("NA")
-        else:
-            self.write_int(int(value))
+    def _write_array_values(self, array):
+        # Convert boolean to int
+        if np.issubdtype(array.dtype, np.bool_):
+            array = array.astype(np.int32)
 
-    def write_nullable_int(self, value):
-        if value is None or np.ma.is_masked(value):
-            self._writeline("NA")
-        else:
-            self._writeline(value)
+        # Convert complex to pairs of floats
+        if np.issubdtype(array.dtype, np.complexfloating):
+            assert array.dtype == np.complex128
+            array = array.view(np.float64)
 
-    def write_double(self, value):
-        s = str(value)
-        if s.endswith(".0"):
-            s = s[:-2]
-        self._writeline(s)
+        # Write data
+        for value in array:
+            if np.issubdtype(array.dtype, np.integer):
+                if value is None or np.ma.is_masked(value):
+                    line = "NA"
+                else:
+                    line = str(value)
+
+            elif np.issubdtype(array.dtype, np.floating):
+                line = str(value)
+                if line.endswith(".0"):
+                    line = line[:-2]
+
+            else:
+                msg = f"Unknown dtype: {array.dtype}"
+                raise ValueError(msg)
+
+            self._writeline(line)
 
     def write_string(self, value: bytes):
         self.write_int(len(value))

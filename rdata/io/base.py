@@ -54,53 +54,24 @@ class Writer(abc.ABC):
     def write_bool(self, value):
         self.write_int(int(value))
 
-    @abc.abstractmethod
-    def write_nullable_bool(self, value):
-        pass
-
     def write_int(self, value):
         if not isinstance(value, (int, np.int32)):
             raise RuntimeError(f"Not valid integer: {value} ({type(value)})")
-        self.write_nullable_int(value)
+        self._write_array_values(np.array([value], np.int32))
+
+    def _write_array(self, array):
+        # Expect only 1D arrays here
+        assert array.ndim == 1
+        self.write_int(array.size)
+        self._write_array_values(array)
 
     @abc.abstractmethod
-    def write_nullable_int(self, value):
+    def _write_array_values(self, array):
         pass
-
-    @abc.abstractmethod
-    def write_double(self, value):
-        pass
-
-    def write_complex(self, value):
-        self.write_double(value.real)
-        self.write_double(value.imag)
 
     @abc.abstractmethod
     def write_string(self, value):
         pass
-
-    def __write_array(self, array, write_value):
-        # Expect only 1D arrays here
-        assert array.ndim == 1
-        self.write_int(array.size)
-        for value in array:
-            write_value(value)
-
-    def write_nullable_bool_array(self, array):
-        """Write a boolean array."""
-        self.__write_array(array, self.write_nullable_bool)
-
-    def write_nullable_int_array(self, array):
-        """Write an integer array."""
-        self.__write_array(array, self.write_nullable_int)
-
-    def write_double_array(self, array):
-        """Write a double array."""
-        self.__write_array(array, self.write_double)
-
-    def write_complex_array(self, array):
-        """Write a complex array."""
-        self.__write_array(array, self.write_complex)
 
     def write_r_data(self, r_data, *, rds=True):
         self.write_magic(None if rds else r_data.versions.format)
@@ -154,17 +125,13 @@ class Writer(abc.ABC):
         elif info.type == RObjectType.CHAR:
             self.write_string(value)
 
-        elif info.type == RObjectType.LGL:
-            self.write_nullable_bool_array(value)
-
-        elif info.type == RObjectType.INT:
-            self.write_nullable_int_array(value)
-
-        elif info.type == RObjectType.REAL:
-            self.write_double_array(value)
-
-        elif info.type == RObjectType.CPLX:
-            self.write_complex_array(value)
+        elif info.type in {
+            RObjectType.LGL,
+            RObjectType.INT,
+            RObjectType.REAL,
+            RObjectType.CPLX,
+        }:
+            self._write_array(value)
 
         elif info.type in {
             RObjectType.STR,
