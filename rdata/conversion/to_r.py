@@ -102,6 +102,7 @@ def convert_to_r_data(
         data: Any,
         *,
         encoding: str = "UTF-8",
+        rds: bool = True,
         versions: RVersions = None,
 ) -> RData:
     """
@@ -126,7 +127,18 @@ def convert_to_r_data(
     if versions is None:
         versions = RVersions(3, 262657, 197888)
     extra = RExtraInfo(encoding)
-    obj = convert_to_r_object(data, encoding=encoding)
+
+    if rds:
+        obj = convert_to_r_object(data, encoding=encoding)
+    else:
+        if not isinstance(data, dict):
+            raise ValueError("For RDA file, data must be a dictionary.")
+        key = next(iter(data))
+        obj = build_r_list(
+            convert_to_r_object(key.encode("ascii"), encoding=encoding),
+            convert_to_r_object(data[key], encoding=encoding),
+            )
+
     return RData(versions, extra, obj)
 
 
