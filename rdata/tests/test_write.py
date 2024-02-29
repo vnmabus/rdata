@@ -58,3 +58,21 @@ def test_write(fname):
             print(out_data)
 
         assert data == out_data
+
+
+@pytest.mark.parametrize("fname", fnames, ids=fnames)
+def test_convert_to_r(fname):
+    with (TESTDATA_PATH / fname).open("rb") as f:
+        data = decompress_data(f.read())
+        rds = data[:2] != b'RD'
+        format = 'ascii' if data.isascii() else 'xdr'
+
+        r_data = rdata.parser.parse_data(data)
+        py_data = rdata.conversion.convert(r_data)
+
+        try:
+            new_r_data = rdata.conversion.convert_to_r_data(py_data)
+        except NotImplementedError as e:
+            pytest.xfail(str(e))
+
+        assert r_data == new_r_data
