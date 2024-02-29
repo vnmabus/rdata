@@ -103,9 +103,9 @@ class Writer(abc.ABC):
 
         elif info.type in {
             RObjectType.LIST,
+            RObjectType.LANG,
             # XXX Parser treats these equally as LIST.
             #     Not tested if they work
-            # RObjectType.LANG,
             # RObjectType.CLO,
             # RObjectType.PROM,
             # RObjectType.DOT,
@@ -136,9 +136,7 @@ class Writer(abc.ABC):
         elif info.type in {
             RObjectType.STR,
             RObjectType.VEC,
-            # XXX Parser treats this equally as VEC.
-            #     Not tested if it works
-            # RObjectType.EXPR,
+            RObjectType.EXPR,
         }:
             self.write_int(len(value))
             for element in value:
