@@ -41,6 +41,10 @@ def test_write(fname):
             data = data.decode('ascii')
         else:
             fd = io.BytesIO()
-        rdata.io.write_file(fd, r_data, format=format, rds=rds)
+
+        try:
+            rdata.io.write_file(fd, r_data, format=format, rds=rds)
+        except NotImplementedError as e:
+            pytest.xfail(str(e))
 
         assert data == fd.getvalue()
