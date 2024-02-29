@@ -63,6 +63,13 @@ def test_write(fname):
 @pytest.mark.parametrize("fname", fnames, ids=fnames)
 def test_convert_to_r(fname):
     with (TESTDATA_PATH / fname).open("rb") as f:
+        # Skip test files without unique R->py->R transformation
+        if fname in [
+            "test_encodings.rda",  # mixing encodings for different strings
+            "test_encodings_v3.rda",  # mixing encodings for different strings
+        ]:
+            pytest.skip("ambiguous R->py->R transformation")
+
         data = decompress_data(f.read())
         rds = data[:2] != b'RD'
         format = 'ascii' if data.isascii() else 'xdr'
