@@ -39,7 +39,10 @@ class WriterASCII(Writer):
             self._writeline(value)
 
     def write_double(self, value):
-        self._writeline(str(value))
+        s = str(value)
+        if s.endswith(".0"):
+            s = s[:-2]
+        self._writeline(s)
 
     def write_string(self, value: bytes):
         self.write_int(len(value))
