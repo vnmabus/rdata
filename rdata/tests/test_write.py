@@ -49,4 +49,12 @@ def test_write(fname):
             pytest.xfail(str(e))
 
         out_data = fd.getvalue()
+
+        if data != out_data:
+            print(r_data)
+            print('in')
+            print(data)
+            print('out')
+            print(out_data)
+
         assert data == out_data
