@@ -184,7 +184,13 @@ def convert_to_r_object(
                 )
 
     elif isinstance(data, np.ndarray):
-        if data.dtype.kind in ["S"]:
+        if data.dtype.kind in ["O"]:
+            assert data.size == 1
+            assert data[0] is None
+            r_type = RObjectType.STR
+            r_value = [build_r_object(RObjectType.CHAR)]
+
+        elif data.dtype.kind in ["S"]:
             assert data.ndim == 1
             r_type = RObjectType.STR
             r_value = []
