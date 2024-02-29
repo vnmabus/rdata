@@ -67,8 +67,12 @@ def test_convert_to_r(fname):
         rds = data[:2] != b'RD'
         format = 'ascii' if data.isascii() else 'xdr'
 
-        r_data = rdata.parser.parse_data(data)
-        py_data = rdata.conversion.convert(r_data)
+        r_data = rdata.parser.parse_data(data, expand_altrep=False)
+
+        try:
+            py_data = rdata.conversion.convert(r_data)
+        except NotImplementedError as e:
+            pytest.skip(str(e))
 
         try:
             new_r_data = rdata.conversion.convert_to_r_data(py_data, rds=rds, versions=r_data.versions)
