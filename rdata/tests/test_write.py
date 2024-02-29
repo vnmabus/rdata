@@ -34,7 +34,7 @@ def test_write(fname):
         rds = data[:2] != b'RD'
         format = 'ascii' if data.isascii() else 'xdr'
 
-        r_data = rdata.parser.parse_data(data)
+        r_data = rdata.parser.parse_data(data, expand_altrep=False)
 
         if format == 'ascii':
             fd = io.StringIO()
