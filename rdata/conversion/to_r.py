@@ -126,7 +126,10 @@ def convert_to_r_data(
     """
     if versions is None:
         versions = RVersions(3, 262657, 197888)
-    extra = RExtraInfo(encoding)
+    if versions.format == 2:
+        extra = RExtraInfo(None)
+    else:
+        extra = RExtraInfo(encoding)
 
     if rds:
         obj = convert_to_r_object(data, encoding=encoding)
