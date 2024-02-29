@@ -25,11 +25,9 @@ def decompress_data(data):
     return decompress(data)
 
 
-@pytest.mark.parametrize("fname", [
-    "test_vector.rda",
-    "test_full_named_matrix.rds",
-    "test_ascii_v2.rda",
-    ])
+fnames = TESTDATA_PATH.glob("*.rd?")
+
+@pytest.mark.parametrize("fname", fnames)
 def test_write(fname):
     with (TESTDATA_PATH / fname).open("rb") as f:
         data = decompress_data(f.read())
