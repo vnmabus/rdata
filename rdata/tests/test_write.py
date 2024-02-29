@@ -74,9 +74,22 @@ def test_convert_to_r(fname):
         except NotImplementedError as e:
             pytest.skip(str(e))
 
+        encoding = r_data.extra.encoding
+        if encoding is None:
+            if "win" in fname:
+                encoding = "CP1252"
+            else:
+                encoding = "UTF-8"
+
         try:
-            new_r_data = rdata.conversion.convert_to_r_data(py_data, rds=rds, versions=r_data.versions)
+            new_r_data = rdata.conversion.convert_to_r_data(py_data, rds=rds, versions=r_data.versions, encoding=encoding)
         except NotImplementedError as e:
             pytest.xfail(str(e))
+
+        if r_data != new_r_data:
+            print('ref')
+            print(r_data)
+            print('new')
+            print(new_r_data)
 
         assert r_data == new_r_data
