@@ -355,6 +355,24 @@ class RObject:
     tag: RObject | None = None
     referenced_object: RObject | None = None
 
+    def __eq__(self, other: RObject) -> bool:
+        # Custom equality operator to compare equality of numpy arrays
+        # in the value field
+
+        # Compare value field
+        if isinstance(self.value, np.ndarray):
+            if np.any(self.value != other.value):
+                return False
+        elif self.value != other.value:
+            return False
+
+        # Compare other fields
+        for key in ('info', 'attributes', 'tag', 'referenced_object'):
+            if getattr(self, key) != getattr(other, key):
+                return False
+
+        return True
+
     def __str__(self) -> str:
         return _str_internal(self)
 
