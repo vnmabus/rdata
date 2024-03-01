@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import string
 from typing import (
     Any,
@@ -14,6 +16,11 @@ from rdata.parser._parser import (
     RObjectInfo,
     RObjectType,
     RVersions,
+)
+
+from . import (
+    RExpression,
+    RLanguage,
 )
 
 
@@ -66,17 +73,67 @@ def build_r_object(
 
 
 def build_r_list(
-        dct: dict[str, Any],
+        data: dict[str, Any] | list[Any],
         *,
         encoding: str,
+        convert_value = None,
 ) -> RObject:
     """
     Build R object representing named linked list.
 
     Parameters
     ----------
-    dct:
-        Dictionary.
+    data:
+        Dictionary or list.
+    encoding:
+        Encoding to be used for strings within data.
+    convert_value:
+        Function used for converting value to R object
+        (for example, convert_to_r_object).
+
+    Returns:
+    -------
+    r_object:
+        RObject object.
+    """
+    if convert_value is None:
+        convert_value = convert_to_r_object
+
+    if isinstance(data, dict):
+        data = data.copy()
+        key = next(iter(data))
+        value1 = convert_value(data.pop(key), encoding=encoding)
+        tag = build_r_sym(key, encoding=encoding)
+    elif isinstance(data, list):
+        value1 = convert_value(data[0], encoding=encoding)
+        data = data[1:]
+        tag = None
+
+    if len(data) == 0:
+        value2 = build_r_object(RObjectType.NILVALUE)
+    else:
+        value2 = build_r_list(data, encoding=encoding, convert_value=convert_value)
+
+    r_list = build_r_object(
+        RObjectType.LIST,
+        value=(value1, value2),
+        tag=tag,
+        )
+    return r_list
+
+
+def build_r_sym(
+        data: str,
+        *,
+        encoding: str,
+) -> RObject:
+    """
+    Build R object representing symbol.
+
+    Parameters
+    ----------
+    data:
+        String.
     encoding:
         Encoding to be used for strings within data.
 
@@ -85,27 +142,9 @@ def build_r_list(
     r_object:
         RObject object.
     """
-    dct = dct.copy()
-    key = next(iter(dct))
-    value = convert_to_r_object(dct.pop(key), encoding=encoding)
-
-    if len(dct) == 0:
-        value2 = build_r_object(RObjectType.NILVALUE)
-    else:
-        value2 = build_r_list(dct, encoding=encoding)
-
-    r_list = build_r_object(
-        RObjectType.LIST,
-        value=(
-            value,
-            value2,
-            ),
-        tag=build_r_object(
-            RObjectType.SYM,
-            value=convert_to_r_object(key.encode("ascii"), encoding=encoding),
-            ),
-        )
-    return r_list
+    r_type = RObjectType.SYM
+    r_value = convert_to_r_object(data.encode(encoding), encoding=encoding)
+    return build_r_object(r_type, value=r_value)
 
 
 def convert_to_r_data(
@@ -187,6 +226,22 @@ def convert_to_r_object(
 
     if data is None:
         r_type = RObjectType.NILVALUE
+
+    elif isinstance(data, RExpression):
+        r_type = RObjectType.EXPR
+        values = data.elements
+        r_value = []
+        for element in values:
+            r_value.append(convert_to_r_object(element, encoding=encoding))
+
+    elif isinstance(data, RLanguage):
+        r_type = RObjectType.LANG
+        values = data.elements
+        r_value = (build_r_sym(values[0], encoding=encoding),
+                   build_r_list(values[1:], encoding=encoding, convert_value=build_r_sym))
+
+        if len(data.attributes) > 0:
+            attributes = build_r_list(data.attributes, encoding=encoding)
 
     elif isinstance(data, (list, tuple, dict)):
         r_type = RObjectType.VEC
