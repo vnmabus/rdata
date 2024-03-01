@@ -98,6 +98,8 @@ def test_convert_to_r(fname):
         if r_data != new_r_data:
             print('ref')
             print(r_data)
+            print('py')
+            print(py_data)
             print('new')
             print(new_r_data)
 
