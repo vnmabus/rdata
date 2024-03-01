@@ -65,8 +65,10 @@ def test_convert_to_r(fname):
     with (TESTDATA_PATH / fname).open("rb") as f:
         # Skip test files without unique R->py->R transformation
         if fname in [
-            "test_encodings.rda",  # mixing encodings for different strings
-            "test_encodings_v3.rda",  # mixing encodings for different strings
+            "test_encodings.rda",     # encoding not kept in Python
+            "test_encodings_v3.rda",  # encoding not kept in Python
+            "test_list_attrs.rda",    # attributes not kept in Python
+            "test_file.rda",          # attributes not kept in Python
         ]:
             pytest.skip("ambiguous R->py->R transformation")
 
