@@ -74,7 +74,6 @@ def test_convert_to_r(fname):
 
         data = decompress_data(f.read())
         rds = data[:2] != b'RD'
-        format = 'ascii' if data.isascii() else 'xdr'
 
         r_data = rdata.parser.parse_data(data, expand_altrep=False)
 
