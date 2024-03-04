@@ -8,27 +8,28 @@ import lzma
 import os
 import pathlib
 import warnings
-import xdrlib
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import (
+    TYPE_CHECKING,
     Any,
-    Callable,
     Final,
-    Mapping,
-    Optional,
     Protocol,
-    Sequence,
-    TypeVar,
     Union,
     runtime_checkable,
 )
 
 import numpy as np
+import numpy.typing as npt
 
-R_INT_NA = -2**31  # noqa: WPS432
-"""Value used to represent a missing integer in R."""
+if TYPE_CHECKING:
+    from ._ascii import ParserASCII
+    from ._xdr import ParserXDR
+
+
+#: Value used to represent a missing integer in R.
+R_INT_NA: Final = -2**31
 
 
 @runtime_checkable
@@ -51,16 +52,14 @@ class BinaryBufferFileLike(Protocol):
 AcceptableFile = Union[BinaryFileLike, BinaryBufferFileLike]
 
 try:
-    from importlib.resources.abc import (  # noqa:WPS113
-        Traversable as Traversable,
-    )
+    from importlib.resources.abc import Traversable as Traversable
 except ImportError:
 
     @runtime_checkable
     class Traversable(Protocol):  # type: ignore [no-redef]
         """Definition of Traversable protocol for Python < 3.11."""
 
-        def iterdir(self) -> Iterator["Traversable"]:
+        def iterdir(self) -> Iterator[Traversable]:
             pass
 
         def read_bytes(self) -> bytes:
@@ -78,20 +77,18 @@ except ImportError:
         def joinpath(
             self,
             *descendants: str | os.PathLike[str],
-        ) -> "Traversable":
+        ) -> Traversable:
             pass
 
         def __truediv__(
             self,
             child: str | os.PathLike[str],
-        ) -> "Traversable":
+        ) -> Traversable:
             pass
 
         def open(
             self,
-            mode: str = 'r',
-            *args: Any,
-            **kwargs: Any,
+            mode: str = "r",
         ) -> AcceptableFile:
             pass
 
@@ -107,6 +104,8 @@ class FileTypes(enum.Enum):
     xz = "xz"
     rdata_binary_v2 = "rdata version 2 (binary)"
     rdata_binary_v3 = "rdata version 3 (binary)"
+    rdata_ascii_v2 = "rdata version 2 (ascii)"
+    rdata_ascii_v3 = "rdata version 3 (ascii)"
 
 
 magic_dict = {
@@ -115,6 +114,8 @@ magic_dict = {
     FileTypes.xz: b"\xFD7zXZ\x00",
     FileTypes.rdata_binary_v2: b"RDX2\n",
     FileTypes.rdata_binary_v3: b"RDX3\n",
+    FileTypes.rdata_ascii_v2: b"RDA2\n",
+    FileTypes.rdata_ascii_v3: b"RDA3\n",
 }
 
 
@@ -131,12 +132,14 @@ class RdataFormats(enum.Enum):
 
     XDR = "XDR"
     ASCII = "ASCII"
+    ASCII_CRLF = "ASCII_CRLF"
     binary = "binary"
 
 
 format_dict: Final = MappingProxyType({
     RdataFormats.XDR: b"X\n",
     RdataFormats.ASCII: b"A\n",
+    RdataFormats.ASCII_CRLF: b"A\r\n",
     RdataFormats.binary: b"B\n",
 })
 
@@ -212,16 +215,16 @@ class CharFlags(enum.IntFlag):
 
 
 @dataclass
-class RVersions():
+class RVersions:
     """R versions."""
 
-    format: int  # noqa: E701
+    format: int
     serialized: int
     minimum: int
 
 
 @dataclass
-class RExtraInfo():
+class RExtraInfo:
     """
     Extra information.
 
@@ -229,11 +232,11 @@ class RExtraInfo():
 
     """
 
-    encoding: Optional[str] = None
+    encoding: str | None = None
 
 
 @dataclass
-class RObjectInfo():
+class RObjectInfo:
     """Internal attributes of a R object."""
 
     type: RObjectType
@@ -244,10 +247,10 @@ class RObjectInfo():
     reference: int
 
 
-def _str_internal(
+def _str_internal(  # noqa: PLR0912, C901
     obj: RObject | Sequence[RObject],
     indent: int = 0,
-    used_references: Optional[set[int]] = None,
+    used_references: set[int] | None = None,
 ) -> str:
 
     if used_references is None:
@@ -256,9 +259,9 @@ def _str_internal(
     small_indent = indent + 2
     big_indent = indent + 4
 
-    indent_spaces = ' ' * indent
-    small_indent_spaces = ' ' * small_indent
-    big_indent_spaces = ' ' * big_indent
+    indent_spaces = " " * indent
+    small_indent_spaces = " " * small_indent
+    big_indent_spaces = " " * big_indent
 
     string = ""
 
@@ -314,8 +317,10 @@ def _str_internal(
                 used_references.copy(),
             )
     elif isinstance(obj.value, np.ndarray):
+        max_displayed_elements: Final = 4
+
         string += big_indent_spaces
-        if len(obj.value) > 4:
+        if len(obj.value) > max_displayed_elements:
             string += (
                 f"[{obj.value[0]}, {obj.value[1]} ... "
                 f"{obj.value[-2]}, {obj.value[-1]}]\n"
@@ -337,21 +342,21 @@ def _str_internal(
 
 
 @dataclass
-class RObject():
+class RObject:
     """Representation of a R object."""
 
     info: RObjectInfo
     value: Any
-    attributes: Optional[RObject]
-    tag: Optional[RObject] = None
-    referenced_object: Optional[RObject] = None
+    attributes: RObject | None
+    tag: RObject | None = None
+    referenced_object: RObject | None = None
 
     def __str__(self) -> str:
         return _str_internal(self)
 
 
 @dataclass
-class RData():
+class RData:
     """Data contained in a R file."""
 
     versions: RVersions
@@ -369,7 +374,7 @@ class RData():
 
 
 @dataclass
-class EnvironmentValue():
+class EnvironmentValue:
     """Value of an environment."""
 
     locked: bool
@@ -451,16 +456,21 @@ def compact_seq_constructor(
         reference=0,
     )
 
+    n = int(state.value[0])
     start = state.value[1]
-    stop = state.value[0]
     step = state.value[2]
 
     if is_int:
         start = int(start)
-        stop = int(stop)
         step = int(step)
-
-    value = np.arange(start, stop, step)
+        # Calculate stop with integer arithmetic
+        # and use built-in range() for numerical stability
+        stop = start + (n - 1) * step
+        value = np.array(range(start, stop + 1, step))
+    else:
+        # Calculate stop with floating-point arithmetic
+        stop = start + (n - 1) * step
+        value = np.linspace(start, stop, n)
 
     return new_info, value
 
@@ -520,45 +530,78 @@ class Parser(abc.ABC):
         *,
         expand_altrep: bool = True,
         altrep_constructor_dict: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
-    ):
+    ) -> None:
         self.expand_altrep = expand_altrep
         self.altrep_constructor_dict = altrep_constructor_dict
+
+    def _parse_array(
+            self,
+            dtype: npt.DTypeLike,
+    ) -> npt.NDArray[Any]:
+        """Parse an array composed of an integer (array size) and values."""
+        length = self.parse_int()
+        return self._parse_array_values(dtype, length)
+
+    @abc.abstractmethod
+    def _parse_array_values(
+            self,
+            dtype: npt.DTypeLike,
+            length: int,
+    ) -> npt.NDArray[Any]:
+        """Parse values of an array."""
 
     def parse_bool(self) -> bool:
         """Parse a boolean."""
         return bool(self.parse_int())
 
-    def parse_nullable_bool(self) -> bool | None:
-        """Parse a boolean."""
-        read_value = self.parse_nullable_int()
-        if read_value is None:
-            return None
-
-        return bool(read_value)
-
-    @abc.abstractmethod
     def parse_int(self) -> int:
         """Parse an integer."""
-        pass
+        return int(self._parse_array_values(np.int32, 1)[0])
 
-    def parse_nullable_int(self) -> int | None:  # noqa: D102
-        result = self.parse_int()
+    def parse_nullable_bool_array(
+        self,
+        *,
+        fill_value: bool = True,
+    ) -> npt.NDArray[np.bool_] | np.ma.MaskedArray[Any, Any]:
+        """Parse a boolean array."""
+        return self.parse_nullable_int_array(
+            fill_value=fill_value,
+        ).astype(np.bool_)
 
-        return None if result == R_INT_NA else result
+    def parse_nullable_int_array(
+        self,
+        *,
+        fill_value: int = R_INT_NA,
+    ) -> npt.NDArray[np.int32] | np.ma.MaskedArray[Any, Any]:
+        """Parse an integer array."""
+        data = self._parse_array(np.int32)
+        mask = (data == R_INT_NA)
+        data[mask] = fill_value
 
-    @abc.abstractmethod
-    def parse_double(self) -> float:
-        """Parse a double."""
-        pass
+        if np.any(mask):
+            return np.ma.array(  # type: ignore [no-untyped-call,no-any-return]
+                data=data,
+                mask=mask,
+                fill_value=fill_value,
+            )
 
-    def parse_complex(self) -> complex:
-        """Parse a complex number."""
-        return complex(self.parse_double(), self.parse_double())
+        return data
+
+    def parse_double_array(self) -> npt.NDArray[np.float64]:
+        """Parse a double array."""
+        return self._parse_array(np.float64)
+
+    def parse_complex_array(self) -> npt.NDArray[np.complex128]:
+        """Parse a complex array."""
+        return self._parse_array(np.complex128)
 
     @abc.abstractmethod
     def parse_string(self, length: int) -> bytes:
         """Parse a string."""
-        pass
+
+    def check_complete(self) -> None:
+        """Check that parsing was completed."""
+        return
 
     def parse_all(self) -> RData:
         """Parse all the file."""
@@ -575,9 +618,8 @@ class Parser(abc.ABC):
         minimum_r_version = self.parse_int()
 
         if format_version not in {2, 3}:
-            raise NotImplementedError(
-                f"Format version {format_version} unsupported",
-            )
+            msg = f"Format version {format_version} unsupported"
+            raise NotImplementedError(msg)
 
         return RVersions(format_version, r_version, minimum_r_version)
 
@@ -585,12 +627,13 @@ class Parser(abc.ABC):
         """
         Parse the extra info.
 
-        Parses de encoding in version 3 format.
+        Parses the encoding in version 3 format.
 
         """
         encoding = None
 
-        if versions.format >= 3:
+        minimum_version_with_encoding = 3
+        if versions.format >= minimum_version_with_encoding:
             encoding_len = self.parse_int()
             encoding = self.parse_string(encoding_len).decode("ASCII")
 
@@ -656,38 +699,7 @@ class Parser(abc.ABC):
 
         return (code, constants)
 
-    T = TypeVar("T")
-
-    def _parse_nullable_array(
-        self,
-        dtype: type[T],
-        parse_function: Callable[[], T | None],
-        fill_value: T,
-    ) -> np.ndarray[Any, Any] | np.ma.MaskedArray[Any, Any]:
-
-        length = self.parse_int()
-
-        value = np.empty(length, dtype=dtype)
-        mask = np.zeros(length, dtype=np.bool_)
-
-        for i in range(length):
-            parsed = parse_function()
-            if parsed is None:
-                mask[i] = True
-                value[i] = fill_value
-            else:
-                value[i] = parsed
-
-        if np.any(mask):
-            return np.ma.MaskedArray(
-                data=value,
-                mask=mask,
-                fill_value=fill_value,
-            )
-
-        return value
-
-    def parse_R_object(
+    def parse_R_object(  # noqa: N802, C901, PLR0912, PLR0915
         self,
         reference_list: list[RObject] | None = None,
         bytecode_rep_list: list[RObject | None] | None = None,
@@ -822,39 +834,20 @@ class Parser(abc.ABC):
             elif length == -1:
                 value = None
             else:
-                raise NotImplementedError(
-                    f"Length of CHAR cannot be {length}",
-                )
+                msg = f"Length of CHAR cannot be {length}"
+                raise NotImplementedError(msg)
 
         elif info.type == RObjectType.LGL:
-            value = self._parse_nullable_array(
-                dtype=np.bool_,
-                parse_function=self.parse_nullable_bool,
-                fill_value=True,
-            )
+            value = self.parse_nullable_bool_array()
 
         elif info.type == RObjectType.INT:
-            value = self._parse_nullable_array(
-                dtype=np.int32,
-                parse_function=self.parse_nullable_int,
-                fill_value=R_INT_NA,
-            )
+            value = self.parse_nullable_int_array()
 
         elif info.type == RObjectType.REAL:
-            length = self.parse_int()
-
-            value = np.empty(length, dtype=np.double)
-
-            for i in range(length):
-                value[i] = self.parse_double()
+            value = self.parse_double_array()
 
         elif info.type == RObjectType.CPLX:
-            length = self.parse_int()
-
-            value = np.empty(length, dtype=np.complex_)
-
-            for i in range(length):
-                value[i] = self.parse_complex()
+            value = self.parse_complex_array()
 
         elif info.type in {
             RObjectType.STR,
@@ -921,7 +914,7 @@ class Parser(abc.ABC):
             else:
                 value = (altrep_info, altrep_state, altrep_attr)
 
-        elif info.type == RObjectType.BASEENV:
+        elif info.type == RObjectType.BASEENV:  # noqa: SIM114
             value = None
 
         elif info.type == RObjectType.EMPTYENV:
@@ -934,10 +927,10 @@ class Parser(abc.ABC):
             assert result
             return result
 
-        elif info.type == RObjectType.MISSINGARG:
+        elif info.type == RObjectType.MISSINGARG:  # noqa: SIM114
             value = None
 
-        elif info.type == RObjectType.GLOBALENV:
+        elif info.type == RObjectType.GLOBALENV:  # noqa: SIM114
             value = None
 
         elif info.type == RObjectType.NILVALUE:
@@ -949,10 +942,11 @@ class Parser(abc.ABC):
             referenced_object = reference_list[info.reference - 1]
 
         else:
-            raise NotImplementedError(f"Type {info.type} not implemented")
+            msg = f"Type {info.type} not implemented"
+            raise NotImplementedError(msg)
 
         if info.tag and not tag_read:
-            warnings.warn(
+            warnings.warn(  # noqa: B028
                 f"Tag not implemented for type {info.type} "
                 "and ignored",
             )
@@ -983,50 +977,6 @@ class Parser(abc.ABC):
         return result
 
 
-class ParserXDR(Parser):
-    """Parser used when the integers and doubles are in XDR format."""
-
-    def __init__(
-        self,
-        data: memoryview,
-        position: int = 0,
-        *,
-        expand_altrep: bool = True,
-        altrep_constructor_dict: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
-    ) -> None:
-        super().__init__(
-            expand_altrep=expand_altrep,
-            altrep_constructor_dict=altrep_constructor_dict,
-        )
-        self.data = data
-        self.position = position
-        self.xdr_parser = xdrlib.Unpacker(data)
-
-    def parse_int(self) -> int:  # noqa: D102
-        self.xdr_parser.set_position(self.position)
-        result = self.xdr_parser.unpack_int()
-        self.position = self.xdr_parser.get_position()
-
-        return result
-
-    def parse_double(self) -> float:  # noqa: D102
-        self.xdr_parser.set_position(self.position)
-        result = self.xdr_parser.unpack_double()
-        self.position = self.xdr_parser.get_position()
-
-        return result
-
-    def parse_string(self, length: int) -> bytes:  # noqa: D102
-        result = self.data[self.position:(self.position + length)]
-        self.position += length
-        return bytes(result)
-
-    def parse_all(self) -> RData:
-        rdata = super().parse_all()
-        assert self.position == len(self.data)
-        return rdata
-
-
 def parse_file(
     file_or_path: AcceptableFile | os.PathLike[Any] | Traversable | str,
     *,
@@ -1037,9 +987,9 @@ def parse_file(
     """
     Parse a R file (.rda or .rdata).
 
-    Parameters:
+    Args:
         file_or_path: File in the R serialization format.
-        expand_altrep: Wether to translate ALTREPs to normal objects.
+        expand_altrep: Whether to translate ALTREPs to normal objects.
         altrep_constructor_dict: Dictionary mapping each ALTREP to
             its constructor.
         extension: Extension of the file.
@@ -1095,7 +1045,8 @@ def parse_file(
                                                   tag=False,
                                                   gp=0,
                                                   reference=0),
-                                 value=RObject(info=RObjectInfo(type=<RObjectType.CHAR: 9>,
+                                 value=RObject(info=RObjectInfo(\
+type=<RObjectType.CHAR: 9>,
                                                                 object=False,
                                                                 attributes=False,
                                                                 tag=False,
@@ -1151,9 +1102,9 @@ def parse_data(
     """
     Parse the data of a R file, received as a sequence of bytes.
 
-    Parameters:
+    Args:
         data: Data extracted of a R file.
-        expand_altrep: Wether to translate ALTREPs to normal objects.
+        expand_altrep: Whether to translate ALTREPs to normal objects.
         altrep_constructor_dict: Dictionary mapping each ALTREP to
             its constructor.
         extension: Extension of the file.
@@ -1210,7 +1161,8 @@ def parse_data(
                                                   tag=False,
                                                   gp=0,
                                                   reference=0),
-                                 value=RObject(info=RObjectInfo(type=<RObjectType.CHAR: 9>,
+                                 value=RObject(info=RObjectInfo(\
+type=<RObjectType.CHAR: 9>,
                                                                 object=False,
                                                                 attributes=False,
                                                                 tag=False,
@@ -1235,6 +1187,8 @@ def parse_data(
         if filetype in {
             FileTypes.rdata_binary_v2,
             FileTypes.rdata_binary_v3,
+            FileTypes.rdata_ascii_v2,
+            FileTypes.rdata_ascii_v3,
             None,
         } else parse_data
     )
@@ -1245,9 +1199,13 @@ def parse_data(
         new_data = gzip.decompress(data)
     elif filetype is FileTypes.xz:
         new_data = lzma.decompress(data)
-    elif filetype in {FileTypes.rdata_binary_v2, FileTypes.rdata_binary_v3}:
+    elif filetype in {FileTypes.rdata_binary_v2,
+                      FileTypes.rdata_binary_v3,
+                      FileTypes.rdata_ascii_v2,
+                      FileTypes.rdata_ascii_v3,
+                      }:
         if extension == ".rds":
-            warnings.warn(
+            warnings.warn(  # noqa: B028
                 f"Wrong extension {extension} for file in RDATA format",
             )
 
@@ -1256,10 +1214,13 @@ def parse_data(
     else:
         new_data = view
         if extension != ".rds":
-            warnings.warn("Unknown file type: assumed RDS")
+            warnings.warn("Unknown file type: assumed RDS")  # noqa: B028
+
+        if extension not in {None, ".rds"}:
+            warnings.warn(f"Wrong extension {extension} for file in RDS format")  # noqa: B028
 
     return parse_function(
-        new_data,  # type: ignore
+        new_data,  # type: ignore [arg-type]
         expand_altrep=expand_altrep,
         altrep_constructor_dict=altrep_constructor_dict,
         extension=extension,
@@ -1268,9 +1229,10 @@ def parse_data(
 
 def parse_rdata_binary(
     data: memoryview,
+    *,
     expand_altrep: bool = True,
     altrep_constructor_dict: AltRepConstructorMap = DEFAULT_ALTREP_MAP,
-    extension: str | None = None,
+    extension: str | None = None,  # noqa: ARG001
 ) -> RData:
     """Select the appropiate parser and parse all the info."""
     format_type = rdata_format(data)
@@ -1278,15 +1240,24 @@ def parse_rdata_binary(
     if format_type:
         data = data[len(format_dict[format_type]):]
 
-    if format_type is RdataFormats.XDR:
-        parser = ParserXDR(
-            data,
-            expand_altrep=expand_altrep,
-            altrep_constructor_dict=altrep_constructor_dict,
-        )
-        return parser.parse_all()
+    Parser: type[ParserXDR | ParserASCII]  # noqa: N806
 
-    raise NotImplementedError("Unknown file format")
+    if format_type is RdataFormats.XDR:
+        from ._xdr import ParserXDR as Parser
+    elif format_type in (RdataFormats.ASCII, RdataFormats.ASCII_CRLF):
+        from ._ascii import ParserASCII as Parser
+    else:
+        msg = "Unknown file format"
+        raise NotImplementedError(msg)
+
+    parser = Parser(
+        data,
+        expand_altrep=expand_altrep,
+        altrep_constructor_dict=altrep_constructor_dict,
+    )
+    r_data = parser.parse_all()
+    parser.check_complete()
+    return r_data
 
 
 def bits(data: int, start: int, stop: int) -> int:
@@ -1320,11 +1291,11 @@ def parse_r_object_info(info_int: int) -> RObjectInfo:
     else:
         object_flag = bool(bits(info_int, 8, 9))
         attributes = bool(bits(info_int, 9, 10))
-        tag = bool(bits(info_int, 10, 11))  # noqa: WPS432
-        gp = bits(info_int, 12, 28)  # noqa: WPS432
+        tag = bool(bits(info_int, 10, 11))
+        gp = bits(info_int, 12, 28)
 
     if type_exp == RObjectType.REF:
-        reference = bits(info_int, 8, 32)  # noqa: WPS432
+        reference = bits(info_int, 8, 32)
 
     return RObjectInfo(
         type=type_exp,

@@ -15,6 +15,7 @@ import rdata
 
 @interact(files=FileUpload(accept="*.rd*", multiple=True))
 def convert_from_file(files):
+    """Open a rds or rdata file and display its contents as Python objects."""
     for f in files:
         parsed = rdata.parser.parse_data(f.content)
         converted = rdata.conversion.convert(parsed)

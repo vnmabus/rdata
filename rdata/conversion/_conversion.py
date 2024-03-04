@@ -2,32 +2,21 @@ from __future__ import annotations
 
 import abc
 import warnings
+from collections import ChainMap
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from fractions import Fraction
 from types import MappingProxyType, SimpleNamespace
-from typing import (
-    Any,
-    Callable,
-    ChainMap,
-    Final,
-    Mapping,
-    MutableMapping,
-    NamedTuple,
-    Optional,
-    Sequence,
-    Union,
-    cast,
-)
+from typing import Any, Final, NamedTuple, Union, cast
 
 import numpy as np
-import pandas
+import pandas as pd
 import xarray
+from typing_extensions import override
 
 from .. import parser
-from ..parser import RObject
 
 ConversionFunction = Callable[[Union[parser.RData, parser.RObject]], Any]
-StrMap = Mapping[Union[str, bytes], Any]
 
 
 class RLanguage(NamedTuple):
@@ -55,9 +44,9 @@ class RFunction:
     """R function."""
 
     environment: Mapping[str, Any]
-    formals: Optional[Mapping[str, Any]]
+    formals: Mapping[str, Any] | None
     body: RLanguage
-    attributes: StrMap
+    attributes: Mapping[str, Any]
 
     @property
     def source(self) -> str:
@@ -78,16 +67,16 @@ class RBytecode:
 
     code: xarray.DataArray
     constants: Sequence[Any]
-    attributes: StrMap
+    attributes: Mapping[str, Any]
 
 
-class REnvironment(ChainMap[Union[str, bytes], Any]):
+class REnvironment(ChainMap[str, Any]):
     """R environment."""
 
     def __init__(
         self,
-        *maps: MutableMapping[str | bytes, Any],
-        frame: StrMap | None = None,
+        *maps: MutableMapping[str, Any],
+        frame: Mapping[str, Any] | None = None,
     ) -> None:
         super().__init__(*maps)
         self.frame = frame
@@ -96,41 +85,34 @@ class REnvironment(ChainMap[Union[str, bytes], Any]):
 def convert_list(
     r_list: parser.RObject,
     conversion_function: ConversionFunction,
-) -> StrMap | list[Any]:
+) -> Mapping[str, Any] | list[Any]:
     """
     Expand a tagged R pairlist to a Python dictionary.
 
-    Parameters
-    ----------
-    r_list: RObject
-        Pairlist R object, with tags.
-    conversion_function: Callable
-        Conversion function to apply to the elements of the list. By default
-        is the identity function.
+    Args:
+        r_list: Pairlist R object, with tags.
+        conversion_function: Conversion function to apply to the elements of
+            the list. By default is the identity function.
 
-    Returns
-    -------
-    dictionary: dict
+    Returns:
         A dictionary with the tags of the pairwise list as keys and their
         corresponding values as values.
 
-    See Also
-    --------
-    convert_vector
+    See Also:
+        convert_vector
 
     """
     if r_list.info.type is parser.RObjectType.NILVALUE:
         return {}
-    elif r_list.info.type not in {
+
+    if r_list.info.type not in {
         parser.RObjectType.LIST,
         parser.RObjectType.LANG,
     }:
-        raise TypeError("Must receive a LIST, LANG or NILVALUE object")
+        msg = "Must receive a LIST, LANG or NILVALUE object"
+        raise TypeError(msg)
 
-    if r_list.tag is None:
-        tag = None
-    else:
-        tag = conversion_function(r_list.tag)
+    tag = None if r_list.tag is None else conversion_function(r_list.tag)
 
     cdr = conversion_function(r_list.value[1])
 
@@ -152,7 +134,8 @@ def convert_env(
 ) -> REnvironment:
     """Convert environment objects."""
     if r_env.info.type is not parser.RObjectType.ENV:
-        raise TypeError("Must receive a ENV object")
+        msg = "Must receive a ENV object"
+        raise TypeError(msg)
 
     frame = conversion_function(r_env.value.frame)
     enclosure = conversion_function(r_env.value.enclosure)
@@ -170,32 +153,26 @@ def convert_env(
 def convert_attrs(
     r_obj: parser.RObject,
         conversion_function: ConversionFunction,
-) -> StrMap:
+) -> Mapping[str, Any]:
     """
     Return the attributes of an object as a Python dictionary.
 
-    Parameters
-    ----------
-    r_obj: RObject
-        R object.
-    conversion_function: Callable
-        Conversion function to apply to the elements of the attribute list. By
-        default is the identity function.
+    Args:
+        r_obj: R object.
+        conversion_function: Conversion function to apply to the elements of
+            the attribute list. By default is the identity function.
 
-    Returns
-    -------
-    dictionary: dict
+    Returns:
         A dictionary with the names of the attributes as keys and their
         corresponding values as values.
 
-    See Also
-    --------
-    convert_list
+    See Also:
+        convert_list
 
     """
     if r_obj.attributes:
         attrs = cast(
-            StrMap,
+            Mapping[str, Any],
             conversion_function(r_obj.attributes),
         )
     else:
@@ -206,32 +183,27 @@ def convert_attrs(
 def convert_vector(
     r_vec: parser.RObject,
     conversion_function: ConversionFunction,
-    attrs: StrMap | None = None,
-) -> list[Any] | StrMap:
+    attrs: Mapping[str, Any] | None = None,
+) -> list[Any] | Mapping[str, Any]:
     """
     Convert a R vector to a Python list or dictionary.
 
     If the vector has a ``names`` attribute, the result is a dictionary with
     the names as keys. Otherwise, the result is a Python list.
 
-    Parameters
-    ----------
-    r_vec: RObject
-        R vector.
-    conversion_function: Callable
-        Conversion function to apply to the elements of the vector. By default
-        is the identity function.
+    Args:
+        r_vec: R vector.
+        conversion_function: Conversion function to apply to the elements of
+            the vector. By default is the identity function.
+        attrs: Attributes of the vector.
 
-    Returns
-    -------
-    vector: dict or list
+    Returns:
         A dictionary with the ``names`` of the vector as keys and their
-        corresponding values as values. If the vector does not have an argument
-        ``names``, then a normal Python list is returned.
+        corresponding values as values. If the vector does not have an
+        argument ``names``, then a normal Python list is returned.
 
-    See Also
-    --------
-    convert_list
+    See Also:
+        convert_list
 
     """
     if attrs is None:
@@ -241,26 +213,27 @@ def convert_vector(
         parser.RObjectType.VEC,
         parser.RObjectType.EXPR,
     }:
-        raise TypeError("Must receive a VEC or EXPR object")
+        msg = "Must receive a VEC or EXPR object"
+        raise TypeError(msg)
 
-    value: list[Any] | StrMap = [
+    value: list[Any] | Mapping[str, Any] = [
         conversion_function(o) for o in r_vec.value
     ]
 
     # If it has the name attribute, use a dict instead
-    field_names = attrs.get('names')
+    field_names = attrs.get("names")
     if field_names is not None:
         value = dict(zip(field_names, value))
 
     return value
 
 
-def safe_decode(byte_str: bytes, encoding: str) -> Union[str, bytes]:
+def safe_decode(byte_str: bytes, encoding: str) -> str | bytes:
     """Decode a (possibly malformed) string."""
     try:
         return byte_str.decode(encoding)
     except UnicodeDecodeError as e:
-        warnings.warn(
+        warnings.warn(  # noqa: B028
             f"Exception while decoding {byte_str!r}: {e}",
         )
         return byte_str
@@ -268,6 +241,7 @@ def safe_decode(byte_str: bytes, encoding: str) -> Union[str, bytes]:
 
 def convert_char(
     r_char: parser.RObject,
+    *,
     default_encoding: str | None = None,
     force_default_encoding: bool = False,
 ) -> str | bytes | None:
@@ -278,23 +252,22 @@ def convert_char(
     string can be encoded in UTF8, LATIN1 or ASCII, or can be a sequence
     of bytes.
 
-    Parameters
-    ----------
-    r_char: RObject
-        R character array.
+    Args:
+        r_char: R character array.
+        default_encoding: Default encoding to apply when encoding info
+            is not available.
+        force_default_encoding: Always use the default encoding.
 
-    Returns
-    -------
-    string: str or bytes
+    Returns:
         Decoded string.
 
-    See Also
-    --------
-    convert_symbol
+    See Also:
+        convert_symbol
 
     """
     if r_char.info.type is not parser.RObjectType.CHAR:
-        raise TypeError("Must receive a CHAR object")
+        msg = "Must receive a CHAR object"
+        raise TypeError(msg)
 
     if r_char.value is None:
         return None
@@ -318,7 +291,7 @@ def convert_char(
             encoding = default_encoding
         else:
             # Assume ASCII if no encoding is marked
-            warnings.warn("Unknown encoding. Assumed ASCII.")
+            warnings.warn("Unknown encoding. Assumed ASCII.")  # noqa: B028
             encoding = "ascii"
 
     return (
@@ -335,59 +308,46 @@ def convert_symbol(
     """
     Decode a R symbol to a Python string or bytes.
 
-    Parameters
-    ----------
-    r_symbol: RObject
-        R symbol.
-    conversion_function: Callable
-        Conversion function to apply to the char element of the symbol.
-        By default is the identity function.
+    Args:
+        r_symbol: R symbol.
+        conversion_function: Conversion function to apply to the char element
+            of the symbol. By default is the identity function.
 
-    Returns
-    -------
-    string: str or bytes
+    Returns:
         Decoded string.
 
-    See Also
-    --------
-    convert_char
+    See Also:
+        convert_char
 
     """
     if r_symbol.info.type is parser.RObjectType.SYM:
         symbol = conversion_function(r_symbol.value)
-        assert isinstance(symbol, (str, bytes))
+        assert isinstance(symbol, str)
         return symbol
 
-    raise TypeError("Must receive a SYM object")
+    msg = "Must receive a SYM object"
+    raise TypeError(msg)
 
 
 def convert_array(
-    r_array: RObject,
-    conversion_function: ConversionFunction,
-    attrs: StrMap | None = None,
-) -> np.ndarray | xarray.DataArray:
+    r_array: parser.RObject,
+    attrs: Mapping[str, Any] | None = None,
+) -> np.ndarray[Any, Any] | xarray.DataArray:
     """
     Convert a R array to a Numpy ndarray or a Xarray DataArray.
 
     If the array has attribute ``dimnames`` the output will be a
     Xarray DataArray, preserving the dimension names.
 
-    Parameters
-    ----------
-    r_array: RObject
-        R array.
-    conversion_function: Callable
-        Conversion function to apply to the attributes of the array.
-        By default is the identity function.
+    Args:
+        r_array: R array.
+        attrs: Attributes of the array.
 
-    Returns
-    -------
-    array: ndarray or DataArray
+    Returns:
         Array.
 
-    See Also
-    --------
-    convert_vector
+    See Also:
+        convert_vector
 
     """
     if attrs is None:
@@ -399,19 +359,20 @@ def convert_array(
         parser.RObjectType.REAL,
         parser.RObjectType.CPLX,
     }:
-        raise TypeError("Must receive an array object")
+        msg = "Must receive an array object"
+        raise TypeError(msg)
 
     value = r_array.value
 
-    shape = attrs.get('dim')
+    shape = attrs.get("dim")
     if shape is not None:
         # R matrix order is like FORTRAN
-        value = np.reshape(value, shape, order='F')
+        value = np.reshape(value, shape, order="F")
 
     dimension_names = None
     coords = None
 
-    dimnames = attrs.get('dimnames')
+    dimnames = attrs.get("dimnames")
     if dimnames:
         if isinstance(dimnames, Mapping):
             dimension_names = list(dimnames.keys())
@@ -430,87 +391,91 @@ def convert_array(
             coords=coords,
         )
 
-    return value
+    return value  # type: ignore [no-any-return]
 
 
-R_INT_MIN = -2**31  # noqa: WPS432
+R_INT_MIN = -2**31
 
 
-def _dataframe_column_transform(source: Any) -> Any:
+def _dataframe_column_transform(source: Any) -> Any:  # noqa: ANN401
 
     if isinstance(source, np.ndarray):
         if np.issubdtype(source.dtype, np.integer):
-            return pandas.Series(source, dtype=pandas.Int32Dtype()).values
-        elif np.issubdtype(source.dtype, np.bool_):
-            return pandas.Series(source, dtype=pandas.BooleanDtype()).values
-        elif np.issubdtype(source.dtype, np.str_):
-            return pandas.Series(source, dtype=pandas.StringDtype()).values
+            return pd.Series(source, dtype=pd.Int32Dtype()).array
+
+        if np.issubdtype(source.dtype, np.bool_):
+            return pd.Series(source, dtype=pd.BooleanDtype()).array
+
+        if np.issubdtype(source.dtype, np.str_):
+            return pd.Series(source, dtype=pd.StringDtype()).array
 
     return source
 
 
 def dataframe_constructor(
-    obj: Any,
-    attrs: StrMap,
-) -> pandas.DataFrame:
+    obj: Mapping[str, Any],
+    attrs: Mapping[str, Any],
+) -> pd.DataFrame:
 
     row_names = attrs["row.names"]
 
     obj = {key: _dataframe_column_transform(val) for key, val in obj.items()}
 
     # Default row names are stored as [R_INT_NA, -len]
-    index = (
-        pandas.RangeIndex(1, abs(row_names[1]) + 1)
+    default_row_names_len = 2
+    index: pd.RangeIndex | tuple[str, ...] = (
+        pd.RangeIndex(1, abs(row_names[1]) + 1)
         if (
-            len(row_names) == 2
+            len(row_names) == default_row_names_len
             and isinstance(row_names, np.ma.MaskedArray)
             and row_names.mask[0]
         )
         else tuple(row_names)
     )
 
-    return pandas.DataFrame(obj, columns=obj, index=index)
+    return pd.DataFrame(obj, columns=obj, index=index)
 
 
 def _factor_constructor_internal(
-    obj: Any,
-    attrs: StrMap,
+    obj: np.ndarray[Any, np.dtype[np.integer[Any]]],
+    attrs: Mapping[str, Any],
+    *,
     ordered: bool,
-) -> pandas.Categorical:
-    values = [attrs['levels'][i - 1] if i >= 0 else None for i in obj]
+) -> pd.Categorical:
+    values = [attrs["levels"][i - 1] if i >= 0 else None for i in obj]
 
-    return pandas.Categorical(values, attrs['levels'], ordered=ordered)
+    return pd.Categorical(values, attrs["levels"], ordered=ordered)
 
 
 def factor_constructor(
-    obj: Any,
-    attrs: StrMap,
-) -> pandas.Categorical:
+    obj: np.ndarray[Any, np.dtype[np.integer[Any]]],
+    attrs: Mapping[str, Any],
+) -> pd.Categorical:
     """Construct a factor objects."""
     return _factor_constructor_internal(obj, attrs, ordered=False)
 
 
 def ordered_constructor(
-    obj: Any,
-    attrs: StrMap,
-) -> pandas.Categorical:
+    obj: np.ndarray[Any, np.dtype[np.integer[Any]]],
+    attrs: Mapping[str, Any],
+) -> pd.Categorical:
     """Contruct an ordered factor."""
     return _factor_constructor_internal(obj, attrs, ordered=True)
 
 
 def ts_constructor(
-    obj: Any,
-    attrs: StrMap,
-) -> pandas.Series:
+    obj: np.ndarray[Any, Any],
+    attrs: Mapping[str, Any],
+) -> pd.Series[Any]:
     """Construct a time series object."""
-    start, end, frequency = attrs['tsp']
+    start, end, frequency = attrs["tsp"]
 
     frequency = int(frequency)
 
     real_start = Fraction(int(round(start * frequency)), frequency)
     real_end = Fraction(int(round(end * frequency)), frequency)
 
-    index = np.arange(
+    index: np.ndarray[Any, Any] = np.arange(
         real_start,
         real_end + Fraction(1, frequency),
         Fraction(1, frequency),
@@ -519,11 +484,12 @@ def ts_constructor(
     if frequency == 1:
         index = index.astype(int)
 
-    return pandas.Series(obj, index=index)
+    return pd.Series(obj, index=index)
 
 
 @dataclass
 class SrcRef:
+    """Reference to a source file location."""
     first_line: int
     first_byte: int
     last_line: int
@@ -536,27 +502,30 @@ class SrcRef:
 
 
 def srcref_constructor(
-    obj: Any,
-    attrs: StrMap,
+    obj: tuple[int, int, int, int, int, int, int, int],
+    attrs: Mapping[str, Any],
 ) -> SrcRef:
     return SrcRef(*obj, srcfile=attrs["srcfile"])
 
 
 @dataclass
 class SrcFile:
+    """Source file."""
     filename: str
     file_encoding: str | None
     string_encoding: str | None
 
 
 def srcfile_constructor(
-    obj: Any,
-    attrs: StrMap,
+    obj: REnvironment,
+    attrs: Mapping[str, Any],  # noqa: ARG001
 ) -> SrcFile:
 
-    filename = obj.frame["filename"][0]
-    file_encoding = obj.frame.get("encoding")
-    string_encoding = obj.frame.get("Enc")
+    frame = obj.frame
+    assert frame is not None
+    filename = frame["filename"][0]
+    file_encoding = frame.get("encoding")
+    string_encoding = frame.get("Enc")
 
     return SrcFile(
         filename=filename,
@@ -567,18 +536,21 @@ def srcfile_constructor(
 
 @dataclass
 class SrcFileCopy(SrcFile):
+    """Source file with a copy of its lines."""
     lines: Sequence[str]
 
 
 def srcfilecopy_constructor(
-    obj: Any,
-    attrs: StrMap,
-) -> SrcFile:
+    obj: REnvironment,
+    attrs: Mapping[str, Any],  # noqa: ARG001
+) -> SrcFileCopy:
 
-    filename = obj.frame["filename"][0]
-    file_encoding = obj.frame.get("encoding", (None,))[0]
-    string_encoding = obj.frame.get("Enc", (None,))[0]
-    lines = obj.frame["lines"]
+    frame = obj.frame
+    assert frame is not None
+    filename = frame["filename"][0]
+    file_encoding = frame.get("encoding", (None,))[0]
+    string_encoding = frame.get("Enc", (None,))[0]
+    lines = frame["lines"]
 
     return SrcFileCopy(
         filename=filename,
@@ -588,13 +560,13 @@ def srcfilecopy_constructor(
     )
 
 
-Constructor = Callable[[Any, Mapping], Any]
+Constructor = Callable[[Any, Mapping[str, Any]], Any]
 ConstructorDict = Mapping[
     Union[str, bytes],
     Constructor,
 ]
 
-default_class_map_dict: Final[Mapping[Union[str, bytes], Constructor]] = {
+default_class_map_dict: Final[ConstructorDict] = {
     "data.frame": dataframe_constructor,
     "factor": factor_constructor,
     "ordered": ordered_constructor,
@@ -604,34 +576,20 @@ default_class_map_dict: Final[Mapping[Union[str, bytes], Constructor]] = {
     "srcfilecopy": srcfilecopy_constructor,
 }
 
+#: Default mapping of constructor functions.
 DEFAULT_CLASS_MAP: Final = MappingProxyType(default_class_map_dict)
-"""
-Default mapping of constructor functions.
-
-It has support for converting several commonly used R classes:
-
-- Converts R \"data.frame\" objects into Pandas :class:`~pandas.DataFrame`
-  objects.
-- Converts R \"factor\" objects into unordered Pandas
-  :class:`~pandas.Categorical` objects.
-- Converts R \"ordered\" objects into ordered Pandas
-  :class:`~pandas.Categorical` objects.
-- Converts R \"ts\" objects into Pandas :class:`~pandas.Series` objects.
-
-"""
 
 
 class Converter(abc.ABC):
     """Interface of a class converting R objects in Python objects."""
 
     @abc.abstractmethod
-    def convert(self, data: parser.RData | parser.RObject) -> Any:
+    def convert(self, data: parser.RData | parser.RObject) -> Any:  # noqa: ANN401
         """Convert a R object to a Python one."""
-        pass
 
 
 @dataclass
-class UnresolvedReference():
+class UnresolvedReference:
     references: MutableMapping[int, Any]
     index: int
 
@@ -640,25 +598,30 @@ class SimpleConverter(Converter):
     """
     Class converting R objects to Python objects.
 
-    Parameters
-    ----------
-    constructor_dict:
-        Dictionary mapping names of R classes to constructor functions with
-        the following prototype:
+    Args:
+        constructor_dict:
+            Dictionary mapping names of R classes to constructor functions with
+            the following prototype:
 
-        .. code-block :: python
+            .. code-block :: python
 
-            def constructor(obj, attrs):
+                def constructor(obj, attrs):
+                    ...
 
-        This dictionary can be used to support custom R classes. By default,
-        the dictionary used is
-        :data:`~rdata.conversion._conversion.DEFAULT_CLASS_MAP`
-        which has support for several common classes.
-    default_encoding:
-        Default encoding used for strings with unknown encoding. If `None`,
-        the one stored in the file will be used, or ASCII as a fallback.
-    force_default_encoding:
-        Use the default encoding even if the strings specify other encoding.
+            This dictionary can be used to support custom R classes. By
+            default, the dictionary used is
+            :data:`~rdata.conversion._conversion.DEFAULT_CLASS_MAP`
+            which has support for several common classes.
+        default_encoding:
+            Default encoding used for strings with unknown encoding. If `None`,
+            the one stored in the file will be used, or ASCII as a fallback.
+        force_default_encoding:
+            Use the default encoding even if the strings specify other
+            encoding.
+        global_environment: Global environment to use. By default is an empty
+            environment.
+        base_environment: Base environment to use. By default is an empty
+            environment.
 
     """
 
@@ -668,8 +631,8 @@ class SimpleConverter(Converter):
         *,
         default_encoding: str | None = None,
         force_default_encoding: bool = False,
-        global_environment: MutableMapping[str | bytes, Any] | None = None,
-        base_environment: MutableMapping[str | bytes, Any] | None = None,
+        global_environment: MutableMapping[str, Any] | None = None,
+        base_environment: MutableMapping[str, Any] | None = None,
     ) -> None:
 
         self.constructor_dict = constructor_dict
@@ -683,7 +646,7 @@ class SimpleConverter(Converter):
             {} if base_environment is None
             else base_environment,
         )
-        self.empty_environment: StrMap = REnvironment({})
+        self.empty_environment: Mapping[str, Any] = REnvironment({})
 
         self._reset()
 
@@ -691,16 +654,20 @@ class SimpleConverter(Converter):
         self.references: MutableMapping[int, Any] = {}
         self.default_encoding_used = self.default_encoding
 
-    def convert(  # noqa: D102
+    @override
+    def convert(
         self,
         data: parser.RData | parser.RObject,
     ) -> Any:
         self._reset()
         return self._convert_next(data)
 
-    def _convert_next(self, data: parser.RData | parser.RObject) -> Any:
+    def _convert_next(  # noqa: C901, PLR0912, PLR0915
+        self,
+        data: parser.RData | parser.RObject,
+    ) -> Any:  # noqa: ANN401
         """Convert a R object to a Python one."""
-        obj: RObject
+        obj: parser.RObject
         if isinstance(data, parser.RData):
             obj = data.object
             if self.default_encoding is None:
@@ -783,7 +750,7 @@ class SimpleConverter(Converter):
         }:
 
             # Return the internal array
-            value = convert_array(obj, self._convert_next, attrs=attrs)
+            value = convert_array(obj, attrs=attrs)
 
         elif obj.info.type == parser.RObjectType.STR:
 
@@ -854,7 +821,8 @@ class SimpleConverter(Converter):
             value = None
 
         else:
-            raise NotImplementedError(f"Type {obj.info.type} not implemented")
+            msg = f"Type {obj.info.type} not implemented"
+            raise NotImplementedError(msg)
 
         if obj.info.object and attrs is not None:
             classname = attrs.get("class", ())
@@ -862,10 +830,11 @@ class SimpleConverter(Converter):
 
                 constructor = self.constructor_dict.get(c, None)
 
-                if constructor:
-                    new_value = constructor(value, attrs)
-                else:
-                    new_value = NotImplemented
+                new_value = (
+                    constructor(value, attrs)
+                    if constructor
+                    else NotImplemented
+                )
 
                 if new_value is NotImplemented:
                     missing_msg = (
@@ -899,11 +868,40 @@ class SimpleConverter(Converter):
 
 def convert(
     data: parser.RData | parser.RObject,
-    *args: Any,
-    **kwargs: Any,
-) -> Any:
+    constructor_dict: ConstructorDict = DEFAULT_CLASS_MAP,
+    *,
+    default_encoding: str | None = None,
+    force_default_encoding: bool = False,
+    global_environment: MutableMapping[str, Any] | None = None,
+    base_environment: MutableMapping[str, Any] | None = None,
+) -> Any:  # noqa: ANN401
     """
     Use the default converter (:func:`SimpleConverter`) to convert the data.
+
+    Args:
+        data: Parsed data.
+        constructor_dict: Dictionary mapping names of R classes to constructor
+            functions with the following prototype:
+
+            .. code-block :: python
+
+                def constructor(obj, attrs):
+                    ...
+
+            This dictionary can be used to support custom R classes. By
+            default, the dictionary used is
+            :data:`~rdata.conversion._conversion.DEFAULT_CLASS_MAP`
+            which has support for several common classes.
+        default_encoding: Default encoding used for strings with unknown
+            encoding. If `None`, the one stored in the file will be used, or
+            ASCII as a fallback.
+        force_default_encoding:
+            Use the default encoding even if the strings specify other
+            encoding.
+        global_environment: Global environment to use. By default is an empty
+            environment.
+        base_environment: Base environment to use. By default is an empty
+            environment.
 
     Examples:
         Parse one of the included examples, containing a vector
@@ -930,4 +928,10 @@ def convert(
         3     b      3}
 
     """
-    return SimpleConverter(*args, **kwargs).convert(data)
+    return SimpleConverter(
+        constructor_dict=constructor_dict,
+        default_encoding=default_encoding,
+        force_default_encoding=force_default_encoding,
+        global_environment=global_environment,
+        base_environment=base_environment,
+    ).convert(data)

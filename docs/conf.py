@@ -1,6 +1,5 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-#
+"""Configuration of the Sphinx documentation."""
+
 # rdata documentation build configuration file, created by
 # sphinx-quickstart on Tue Aug 7 12:49:32 2018.
 #
@@ -17,19 +16,17 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
+import importlib.metadata
 import os
 import sys
 import textwrap
-import warnings
-
-import pkg_resources
 
 import rdata
 
 # General information about the project.
 project = "rdata"
 author = "Carlos Ramos Carreño"
-copyright = "2018, Carlos Ramos Carreño"
+copyright = "2018, Carlos Ramos Carreño"  # noqa: A001
 github_url = "https://github.com/vnmabus/rdata"
 rtd_version = os.environ.get("READTHEDOCS_VERSION")
 rtd_version_type = os.environ.get("READTHEDOCS_VERSION_TYPE")
@@ -44,29 +41,28 @@ rtd_branch = os.environ.get(" READTHEDOCS_GIT_IDENTIFIER", "develop")
 language = "en"
 
 try:
-    release = pkg_resources.get_distribution("rdata").version
-except pkg_resources.DistributionNotFound:
-    print(
+    release = importlib.metadata.version("rdata")
+except importlib.metadata.PackageNotFoundError:
+    print(  # noqa: T201
         f"To build the documentation, The distribution information of\n"
         f"{project} has to be available.  Either install the package\n"
         f"into your development environment or run 'setup.py develop'\n"
         f"to setup the metadata.  A virtualenv is recommended!\n",
     )
     sys.exit(1)
-del pkg_resources
 
 version = ".".join(release.split(".")[:2])
 
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-#
-# needs_sphinx = '1.0'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "myst_parser",
+    "sphinx_codeautolink",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.intersphinx",
@@ -168,7 +164,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, "rdata", "rdata Documentation", [author], 1)
+    (master_doc, "rdata", "rdata Documentation", [author], 1),
 ]
 
 # -- Options for Texinfo output -------------------------------------------
@@ -196,15 +192,6 @@ epub_author = author
 epub_publisher = author
 epub_copyright = copyright
 
-# The unique identifier of the text. This can be a ISBN number
-# or the project homepage.
-#
-# epub_identifier = ''
-
-# A unique identification for the text.
-#
-# epub_uid = ''
-
 # A list of files that should not be packed into the epub file.
 epub_exclude_files = ["search.html"]
 
@@ -220,13 +207,14 @@ autosummary_generate = True
 # -- Options for "sphinx.ext.intersphinx" --
 
 intersphinx_mapping = {
+    "igraph": ("https://python.igraph.org/en/stable/api", None),
     "matplotlib": ("https://matplotlib.org/stable", None),
     "numpy": ("https://numpy.org/doc/stable", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable", None),
     "python": (f"https://docs.python.org/{sys.version_info.major}", None),
     "scipy": ("https://docs.scipy.org/doc/scipy", None),
     "sklearn": ("https://scikit-learn.org/stable", None),
-    "igraph": ("https://python.igraph.org/en/stable/api", None),
+    "xarray": ("http://xarray.pydata.org/en/stable/", None),
 }
 
 # -- Options for "sphinx.ext.todo" --

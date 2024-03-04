@@ -41,7 +41,7 @@ with urlopen(dataset_url) as dataset:
 # We can omit this warning by passing manually the extension of the file
 # instead.
 with urlopen(dataset_url) as dataset:
-    parsed = rdata.parser.parse_file(dataset, extension="rds")
+    parsed = rdata.parser.parse_file(dataset, extension=".rds")
 
 # %%
 # This parsed object contains a lossless representation of the internal data
@@ -65,3 +65,12 @@ converted = rdata.conversion.convert(parsed)
 # In this particular case, it is a R dataframe object, that will be converted
 # to a Pandas dataframe by default.
 converted
+
+# %%
+# As usually we just want to parse and convert a given dataset, the convenience
+# functions :func:`rdata.read_rds` and :func:`rdata.read_rda` can be used with
+# that purpose.
+with urlopen(dataset_url) as dataset:
+    data = rdata.read_rds(dataset)
+
+data

@@ -2,10 +2,13 @@
 from __future__ import annotations
 
 from importlib.resources import files
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
-from . import conversion, parser
-from .parser._parser import Traversable
+from . import conversion as conversion, parser as parser, testing as testing
+from ._read import read_rda as read_rda, read_rds as read_rds
+
+if TYPE_CHECKING:
+    from .parser._parser import Traversable
 
 
 def _get_test_data_path() -> Traversable:
@@ -18,4 +21,4 @@ Path of the test data.
 
 """
 
-__version__ = "0.10.0"
+__version__ = "0.11.0"

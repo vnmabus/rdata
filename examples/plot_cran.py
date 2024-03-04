@@ -24,18 +24,18 @@ the CRAN repository of R packages that include custom R types.
 # the package rdata.
 # The package is a tar file so we need also to import the
 # :external+python:mod:`tarfile` module.
-# We will use the package `igraph <https://networkx.org/>`_ for
+# We will use the package `igraph <https://python.igraph.org/en/stable/>`_ for
 # constructing the graph in Python.
 # Finally, we will import some plotting routines from Matplotlib.
 
 import tarfile
 from urllib.request import urlopen
 
+import igraph
+import igraph.drawing
 import matplotlib.pyplot as plt
 from matplotlib.colors import to_hex
 
-import igraph
-import igraph.drawing
 import rdata
 
 # %%
@@ -63,7 +63,9 @@ with urlopen(pkg_url) as package:
     with tarfile.open(fileobj=package, mode="r|gz") as package_tar:
         for member in package_tar:
             if member.name == data_path:
-                with package_tar.extractfile(member) as dataset:
+                dataset = package_tar.extractfile(member)
+                assert dataset
+                with dataset:
                     parsed = rdata.parser.parse_file(dataset)
                 break
 
@@ -105,6 +107,7 @@ print(converted)
 
 
 def graph_constructor(obj, attrs):
+    """Construct graph object from R representation."""
     n_vertices = int(obj[0][0])
     is_directed = obj[1]
     edge_from = obj[2].astype(int)
@@ -119,7 +122,7 @@ def graph_constructor(obj, attrs):
     vertex_attrs = obj[8][2]
     edge_attrs = obj[8][3]
 
-    graph = igraph.Graph(
+    return igraph.Graph(
         n=n_vertices,
         directed=is_directed,
         edges=list(zip(edge_from, edge_to)),
@@ -127,8 +130,6 @@ def graph_constructor(obj, attrs):
         vertex_attrs=vertex_attrs,
         edge_attrs=edge_attrs,
     )
-
-    return graph
 
 
 # %%

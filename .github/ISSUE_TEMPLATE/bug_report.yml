@@ -1,0 +1,101 @@
+name: Bug report
+description: Create a report to help us reproduce and fix a bug
+labels: [bug]
+
+body:
+- type: markdown
+  attributes:
+    value: >
+      #### Please check that the bug has not been previously notified before submitting, by searching through the [issues list](https://github.com/vnmabus/rdata/issues).
+- type: textarea
+  attributes:
+    label: Bug description summary
+    description: >
+      Please describe the bug in a brief paragraph(s). Be clear and concise.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Code to reproduce the bug
+    description: |
+      Please add a minimal code example that can reproduce the error. If the bug does not require more code than loading a data file you can leave this empty. This will be automatically converted to a Python block.
+    placeholder: |
+      import rdata
+
+      parsed = rdata.parser.parse_file("data.rda")
+      converted = rdata.conversion.convert(parsed)
+      converted
+    render: Python
+- type: textarea
+  attributes:
+    label: Data file(s)
+    description: >
+      If the bug was caused by loading a particular data file, please attach it or paste a link to it here.
+- type: textarea
+  attributes:
+    label: Expected result
+    description: >
+      Paste or describe the result that you expected here.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Actual result
+    description: >
+      Paste or describe the result that you obtained here. If the code raises an error, you can past it in the next field.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Traceback (if an exception is raised)
+    description: |
+      If an exception is raised, copy and paste the traceback here.
+    placeholder: |
+      FileNotFoundError                         Traceback (most recent call last)
+      Cell In[5], line 3
+            1 import rdata
+      ----> 3 parsed = rdata.parser.parse_file("data.rda")
+            4 converted = rdata.conversion.convert(parsed)
+            5 converted
+      
+      File .../rdata/parser/_parser.py:1139, in parse_file(file_or_path, expand_altrep, altrep_constructor_dict, extension)
+         1137     if extension is None:
+         1138         extension = getattr(path, "suffix", None)
+      -> 1139     data = path.read_bytes()
+         1141 return parse_data(
+         1142     data,
+         1143     expand_altrep=expand_altrep,
+         1144     altrep_constructor_dict=altrep_constructor_dict,
+         1145     extension=extension,
+         1146 )
+      
+      File .../pathlib.py:1050, in Path.read_bytes(self)
+         1046 def read_bytes(self):
+         1047     """
+         1048     Open the file in bytes mode, read it, and close the file.
+         1049     """
+      -> 1050     with self.open(mode='rb') as f:
+         1051         return f.read()
+      
+      File .../pathlib.py:1044, in Path.open(self, mode, buffering, encoding, errors, newline)
+         1042 if "b" not in mode:
+         1043     encoding = io.text_encoding(encoding)
+      -> 1044 return io.open(self, mode, buffering, encoding, errors, newline)
+      
+      FileNotFoundError: [Errno 2] No such file or directory: 'data.rda'
+    render: Python
+- type: textarea
+  attributes:
+    label: Software versions
+    description: >
+      Include the version of the library used (obtained with `rdata.__version__`). If relevant, you can include here the OS version and versions of related software.
+    placeholder: |
+      rdata version: 0.10.0
+      OS: Windows 10
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Additional context
+    description: >
+      Add any other context about the problem here.

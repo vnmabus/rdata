@@ -9,6 +9,9 @@ keywords = [
 	"r",
 	"dataset",
 ]
+authors = [
+  {name = "Carlos Ramos Carreño", email = "vnmabus@gmail.com"},
+]
 maintainers = [
   {name = "Carlos Ramos Carreño", email = "vnmabus@gmail.com"},
 ]
@@ -21,6 +24,9 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: File Formats",
     "Topic :: Scientific/Engineering :: Mathematics",
     "Topic :: Software Development :: Libraries :: Python Modules",
@@ -33,6 +39,7 @@ dependencies = [
 	"numpy",
 	"xarray",
 	"pandas",
+	"typing_extensions>4.4",
 ]
 
 [project.optional-dependencies]
@@ -42,9 +49,16 @@ docs = [
   "jupyterlite-sphinx",
   "jupyterlite-pyodide-kernel",
   "matplotlib",
+  "myst-parser",
   "pydata-sphinx-theme",
   "sphinx>=3.1",
+  "sphinx-codeautolink",
   "sphinx-gallery",
+]
+typing = [
+  "matplotlib>=3.8",
+  "mypy",
+  "pandas-stubs",
 ]
 test = [
   "pytest",
@@ -60,6 +74,71 @@ repository = "https://github.com/vnmabus/rdata"
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.isort]
+multi_line_output = 3
+include_trailing_comma = true
+use_parentheses = true
+combine_as_imports = true
+skip_glob = "**/plot_*.py plot_*.py"
+
+[tool.mypy]
+strict = true
+strict_equality = true
+implicit_reexport = true
+
+[[tool.mypy.overrides]]
+module = [
+	"igraph.*",
+	"ipywidgets.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "examples.*"
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+addopts = "--doctest-modules --doctest-glob='*.rst'"
+doctest_optionflags = "NORMALIZE_WHITESPACE ELLIPSIS"
+norecursedirs = ".* build dist *.egg venv .svn _build docs/auto_examples examples asv_benchmarks"
+
+[tool.ruff.lint]
+select = [
+    "ALL",
+]
+ignore = [
+	"ANN101", # self does not need to be typed
+	"D212", # incompatible with D213, which is our preferred style for multiline docstrings
+	"Q003", # do not change quotation marks to avoid escaping
+	"PLC0414", # allow explicit re-exports
+	"S101", # assert is allowed
+	"TID252", # relative imports allowed
+]
+
+[tool.ruff.lint.per-file-ignores]
+"plot_*.py" = [
+	"ANN", # no type hints in examples
+	"ARG001", # Some unused args are needed
+	"B018", # single object expressions are not useless in examples (they display the object)
+	"D205", # examples do not have a blank line in docstring
+	"D415", # first line in examples does not end with period
+	"ERA001", # Commented code may be useful for the reader
+	"S310", # URLs in examples have been validated
+	"T201", # print allowed in examples
+]
+"plot_cran.py" = [
+	"SIM117", # multiple with necessary for now
+]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.pylint]
+max-args = 7
 
 [tool.setuptools.packages.find]
 include = ["rdata*"]

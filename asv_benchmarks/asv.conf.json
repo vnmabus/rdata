@@ -1,0 +1,10 @@
+{
+    "version": 1,
+
+    "project": "rdata",
+    "project_url": "https://rdata.readthedocs.io/",
+    "repo": "..",
+    "branches": ["develop"],
+    "environment_type": "conda",
+    "show_commit_url": "http://github.com/vnmabus/rdata/commit/"
+}

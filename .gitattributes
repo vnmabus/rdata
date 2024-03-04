@@ -1,0 +1,5 @@
+# Mark rda and rds files as binary.
+# Otherwise git might change the line endings of
+# ascii-formatted files, which breaks the tests
+*.rda -text
+*.rds -text

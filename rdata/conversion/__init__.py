@@ -1,12 +1,18 @@
+"""Utilities for converting R objects to Python ones."""
 from ._conversion import (
     DEFAULT_CLASS_MAP as DEFAULT_CLASS_MAP,
     Converter as Converter,
     RBuiltin as RBuiltin,
     RBytecode as RBytecode,
+    REnvironment as REnvironment,
     RExpression as RExpression,
+    RExternalPointer as RExternalPointer,
     RFunction as RFunction,
     RLanguage as RLanguage,
     SimpleConverter as SimpleConverter,
+    SrcFile as SrcFile,
+    SrcFileCopy as SrcFileCopy,
+    SrcRef as SrcRef,
     convert as convert,
     convert_array as convert_array,
     convert_attrs as convert_attrs,
