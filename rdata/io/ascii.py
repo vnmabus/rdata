@@ -27,7 +27,7 @@ class WriterASCII(Writer):
         r"""Write a line with trailing \n."""
         self.file.write(f"{line}\n")
 
-    def write_magic(self, rda_version: int) -> None:
+    def write_magic(self, rda_version: int | None) -> None:
         """Write magic bits."""
         if rda_version is not None:
             self._writeline(f"RDA{rda_version}")
@@ -46,7 +46,7 @@ class WriterASCII(Writer):
         # Write data
         for value in array:
             if np.issubdtype(array.dtype, np.integer):
-                line = "NA" if value is None or np.ma.is_masked(value) else str(value)
+                line = "NA" if value is None or np.ma.is_masked(value) else str(value)  # type: ignore [no-untyped-call]
 
             elif np.issubdtype(array.dtype, np.floating):
                 line = str(value)
@@ -68,7 +68,7 @@ class WriterASCII(Writer):
         # This would produce byte representation in hex such as '\xc3\xa4',
         # but we need to have the equivalent octal presentation '\303\244'.
         # So, we do somewhat manual conversion instead:
-        value = "".join(chr(byte) if chr(byte) in string.printable else rf"\{byte:03o}"
-                        for byte in value)
+        s = "".join(chr(byte) if chr(byte) in string.printable else rf"\{byte:03o}"
+                    for byte in value)
 
-        self._writeline(value)
+        self._writeline(s)

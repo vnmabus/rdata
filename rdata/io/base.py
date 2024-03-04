@@ -38,14 +38,14 @@ def pack_r_object_info(info: RObjectInfo) -> np.int32:
     bits += f"{info.type.value:8b}"
     bits = bits.replace(" ", "0")
     assert len(bits) == 32  # noqa: PLR2004
-    return np.packbits([int(b) for b in bits]).view(">i4").astype("=i4")[0]
+    return np.packbits([int(b) for b in bits]).view(">i4").astype("=i4")[0]  # type: ignore [no-any-return]
 
 
 class Writer(abc.ABC):
     """Writer interface for a R file."""
 
     @abc.abstractmethod
-    def write_magic(self, rda_version: int) -> None:
+    def write_magic(self, rda_version: int | None) -> None:
         """Write magic bits."""
 
     def write_header(self, versions: RVersions, extra: RExtraInfo) -> None:
@@ -55,13 +55,14 @@ class Writer(abc.ABC):
         self.write_int(versions.minimum)
         minimum_version_with_encoding = 3
         if versions.format >= minimum_version_with_encoding:
+            assert extra.encoding is not None
             self.write_string(extra.encoding.encode("ascii"))
 
     def write_bool(self, value: bool) -> None:  # noqa: FBT001
         """Write a boolean value."""
         self.write_int(int(value))
 
-    def write_int(self, value: int) -> None:
+    def write_int(self, value: int | np.int32) -> None:
         """Write an integer value."""
         self._write_array_values(np.array([value]))
 
@@ -121,10 +122,12 @@ class Writer(abc.ABC):
             # RObjectType.ATTRLANG,
         }:
             if info.attributes:
+                assert obj.attributes is not None
                 self.write_r_object(obj.attributes)
                 attributes_written = True
 
             if info.tag:
+                assert obj.tag is not None
                 self.write_r_object(obj.tag)
                 tag_written = True
 
@@ -163,6 +166,7 @@ class Writer(abc.ABC):
 
         # Write attributes if it has not been written yet
         if info.attributes and not attributes_written:
+            assert obj.attributes is not None
             self.write_r_object(obj.attributes)
 
         # Write tag if it has not been written yet

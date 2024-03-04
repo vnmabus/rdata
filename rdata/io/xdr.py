@@ -26,7 +26,7 @@ class WriterXDR(Writer):
         """Writer for files in XDR format."""
         self.file = file
 
-    def write_magic(self, rda_version: int) -> None:
+    def write_magic(self, rda_version: int | None) -> None:
         """Write magic bits."""
         if rda_version is not None:
             self.file.write(f"RDX{rda_version}\n".encode("ascii"))
@@ -39,9 +39,9 @@ class WriterXDR(Writer):
 
         # Flatten masked values and convert int arrays to int32
         if np.issubdtype(array.dtype, np.integer):
-            if np.ma.is_masked(array):
-                mask = np.ma.getmask(array)
-                array = np.ma.getdata(array).copy()
+            if np.ma.is_masked(array):  # type: ignore [no-untyped-call]
+                mask = np.ma.getmask(array)  # type: ignore [no-untyped-call]
+                array = np.ma.getdata(array).copy()  # type: ignore [no-untyped-call]
                 array[mask] = R_INT_NA
             if not np.all([np.can_cast(val, np.int32) for val in array]):
                 msg = "Integer array not castable to int32"

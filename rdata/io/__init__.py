@@ -9,6 +9,9 @@ if TYPE_CHECKING:
 
     from rdata.parser import RData
 
+    from .ascii import WriterASCII
+    from .xdr import WriterXDR
+
 
 def write(
         path: os.PathLike[Any] | str,
@@ -29,6 +32,8 @@ def write(
         RData object
     format:
         File format (ascii or xdr)
+    rds:
+        Whether to write RDS or RDA file
     compression:
         Compression (gzip, bzip2, xz, or none)
     """
@@ -40,15 +45,14 @@ def write(
         msg = f"Unknown format: {format}"
         raise ValueError(msg)
 
-    if compression == "gzip":
-        from gzip import open
+    if compression == "none":
+        from builtins import open  # noqa: UP029
     elif compression == "bzip2":
-        from bz2 import open
+        from bz2 import open  # type: ignore [no-redef]
+    elif compression == "gzip":
+        from gzip import open  # type: ignore [no-redef]
     elif compression == "xz":
-        from lzma import open
-    elif compression == "none":
-        import builtins
-        open = builtins.open  # noqa: A001
+        from lzma import open  # type: ignore [no-redef]
     else:
         msg = f"Unknown compression: {compression}"
         if compression is None:
@@ -60,7 +64,7 @@ def write(
 
 
 def write_file(
-        fileobj: IO[str | bytes],
+        fileobj: IO[Any],
         r_data: RData,
         *,
         format: str = "xdr",  # noqa: A002
@@ -78,6 +82,8 @@ def write_file(
     format:
         File format (ascii or xdr)
     """
+    Writer: type[WriterXDR | WriterASCII]  # noqa: N806
+
     if format == "ascii":
         from .ascii import WriterASCII as Writer
     elif format == "xdr":
@@ -86,5 +92,5 @@ def write_file(
         msg = f"Unknown format: {format}"
         raise ValueError(msg)
 
-    w = Writer(fileobj)
+    w = Writer(fileobj)  # type: ignore [arg-type]
     w.write_r_data(r_data, rds=rds)

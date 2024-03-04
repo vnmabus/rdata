@@ -1,5 +1,7 @@
 """Tests of writing and Python-to-R conversion."""
 
+from __future__ import annotations
+
 import io
 
 import pytest
@@ -10,7 +12,7 @@ import rdata.io
 TESTDATA_PATH = rdata.TESTDATA_PATH
 
 
-def decompress_data(data: bytes) -> bytes:
+def decompress_data(data: memoryview) -> bytes:
     """Decompress bytes."""
     from rdata.parser._parser import FileTypes, file_type
 
@@ -21,9 +23,9 @@ def decompress_data(data: bytes) -> bytes:
     elif filetype is FileTypes.gzip:
         from gzip import decompress
     elif filetype is FileTypes.xz:
-        from xz import decompress
+        from lzma import decompress
     else:
-        decompress = lambda x: x  # noqa: E731
+        return data
 
     return decompress(data)
 
@@ -34,6 +36,8 @@ fnames = sorted([fpath.name for fpath in TESTDATA_PATH.glob("*.rd?")])
 def test_write(fname: str) -> None:
     """Test writing RData object to a file."""
     with (TESTDATA_PATH / fname).open("rb") as f:
+        data: bytes | str
+        fd: io.BytesIO | io.StringIO
         data = decompress_data(f.read())
         rds = data[:2] != b"RD"
         fmt = "ascii" if data.isascii() else "xdr"

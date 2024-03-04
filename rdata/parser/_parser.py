@@ -52,7 +52,9 @@ class BinaryBufferFileLike(Protocol):
 AcceptableFile = Union[BinaryFileLike, BinaryBufferFileLike]
 
 try:
-    from importlib.resources.abc import Traversable as Traversable
+    from importlib.resources.abc import (  # type: ignore [import-not-found]
+        Traversable as Traversable,
+    )
 except ImportError:
 
     @runtime_checkable
@@ -355,9 +357,11 @@ class RObject:
     tag: RObject | None = None
     referenced_object: RObject | None = None
 
-    def __eq__(self, other: RObject) -> bool:
+    def __eq__(self, other: object) -> bool:
         # Custom equality operator to compare equality of numpy arrays
         # in the value field
+        if not isinstance(other, RObject):
+            return False
 
         # Compare value field
         if isinstance(self.value, np.ndarray):

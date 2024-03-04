@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import string
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 import numpy as np
 
@@ -21,6 +21,11 @@ from . import (
     RExpression,
     RLanguage,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from mypy_extensions import NamedArg
 
 
 def build_r_object(
@@ -75,10 +80,11 @@ def build_r_object(
 
 
 def build_r_list(
-        data: dict[str, Any] | list[Any],
+        data: Mapping[str, Any] | list[Any],
         *,
         encoding: str,
-        convert_value: Callable[[Any, str], RObject] | None = None,
+        convert_value: Callable[[Any, NamedArg(str, "encoding")], RObject] \
+            | None = None,
 ) -> RObject:
     """
     Build R object representing named linked list.
@@ -153,7 +159,7 @@ def convert_to_r_data(
         *,
         encoding: str = "UTF-8",
         rds: bool = True,
-        versions: RVersions = None,
+        versions: RVersions | None = None,
 ) -> RData:
     """
     Convert Python data to RData object.
@@ -222,7 +228,8 @@ def convert_to_r_object(  # noqa: C901, PLR0912, PLR0915
 
     # Default args for most types (None/False/0)
     r_type = None
-    r_value = None
+    values: list[Any] | tuple[Any, ...]
+    r_value: Any = None
     gp = 0
     attributes = None
     tag = None
@@ -240,7 +247,7 @@ def convert_to_r_object(  # noqa: C901, PLR0912, PLR0915
     elif isinstance(data, RLanguage):
         r_type = RObjectType.LANG
         values = data.elements
-        r_value = (build_r_sym(values[0], encoding=encoding),
+        r_value = (build_r_sym(str(values[0]), encoding=encoding),
                    build_r_list(values[1:], encoding=encoding,
                                 convert_value=build_r_sym))
 
@@ -250,7 +257,7 @@ def convert_to_r_object(  # noqa: C901, PLR0912, PLR0915
     elif isinstance(data, (list, tuple, dict)):
         r_type = RObjectType.VEC
 
-        values = data.values() if isinstance(data, dict) else data
+        values = list(data.values()) if isinstance(data, dict) else data
 
         r_value = []
         for element in values:
