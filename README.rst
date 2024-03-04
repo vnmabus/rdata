@@ -59,13 +59,13 @@ Documentation
 =============
 
 The documentation of rdata is in
-`ReadTheDocs <https://rdata.readthedocs.io/>`_.
+`ReadTheDocs <https://rdata.readthedocs.io/>`__.
 
 Examples
 ========
 
 Examples of use are available in
-`ReadTheDocs <https://rdata.readthedocs.io/en/stable/auto_examples/>`_.
+`ReadTheDocs <https://rdata.readthedocs.io/en/stable/auto_examples/>`__.
 	
 Simple usage
 ============
