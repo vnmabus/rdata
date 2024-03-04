@@ -66,7 +66,7 @@ class Writer(abc.ABC):
         """Write an integer value."""
         self._write_array_values(np.array([value]))
 
-    def _write_array(self, array: npt.NDArray[Any]) -> None:
+    def write_array(self, array: npt.NDArray[Any]) -> None:
         """Write an array of values."""
         # Expect only 1D arrays here
         assert array.ndim == 1
@@ -75,7 +75,7 @@ class Writer(abc.ABC):
 
     @abc.abstractmethod
     def _write_array_values(self, array: npt.NDArray[Any]) -> None:
-        """Write magic bits."""
+        """Write the values of an array."""
 
     @abc.abstractmethod
     def write_string(self, value: bytes) -> None:
@@ -137,7 +137,7 @@ class Writer(abc.ABC):
         elif info.type in {
             RObjectType.CHAR,
             RObjectType.BUILTIN,
-            # Parser treats the following equal to LIST.
+            # Parser treats the following equal to CHAR.
             # Not tested if they work
             # RObjectType.SPECIAL,
         }:
@@ -149,7 +149,7 @@ class Writer(abc.ABC):
             RObjectType.REAL,
             RObjectType.CPLX,
         }:
-            self._write_array(value)
+            self.write_array(value)
 
         elif info.type in {
             RObjectType.STR,
