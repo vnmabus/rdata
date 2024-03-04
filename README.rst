@@ -1,7 +1,7 @@
 rdata
 =====
 
-|build-status| |docs| |coverage| |repostatus| |versions| |pypi| |conda| |zenodo|
+|build-status| |docs| |coverage| |repostatus| |versions| |pypi| |conda| |zenodo| |pyOpenSci|
 
 Read R datasets from Python.
 
@@ -227,3 +227,8 @@ found in the
     :alt: Zenodo DOI
     :scale: 100%
     :target: https://doi.org/10.5281/zenodo.6382237
+    
+.. |pyOpenSci| image:: https://tinyurl.com/y22nb8up
+    :alt: pyOpenSci: Peer reviewed
+    :scale: 100%
+    :target: https://github.com/pyOpenSci/software-submission/issues/144
