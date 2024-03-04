@@ -18,7 +18,7 @@ Its main advantages are:
 - It is a pure Python implementation, with no dependencies on the R language or
   related libraries.
   Thus, it can be used anywhere where Python is supported, including the web
-  using `Pyodide <https://pyodide.org/>`_.
+  using `Pyodide <https://pyodide.org/>`__.
 - It attempt to support all R objects that can be meaningfully translated.
   As opposed to other solutions, you are no limited to import dataframes or
   data with a particular structure.
@@ -101,14 +101,14 @@ Under the hood, this is equivalent to the following code:
 This consists on two steps: 
 
 #. First, the file is parsed using the function
-   `rdata.parser.parse_file <https://rdata.readthedocs.io/en/latest/modules/rdata.parser.parse_file.html>`_.
+   `rdata.parser.parse_file <https://rdata.readthedocs.io/en/latest/modules/rdata.parser.parse_file.html>`__.
    This provides a literal description of the
    file contents as a hierarchy of Python objects representing the basic R
    objects. This step is unambiguous and always the same.
 #. Then, each object must be converted to an appropriate Python object. In this
    step there are several choices on which Python type is the most appropriate
    as the conversion for a given R object. Thus, we provide a default
-   `rdata.conversion.convert <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.convert.html>`_
+   `rdata.conversion.convert <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.convert.html>`__
    routine, which tries to select Python objects that preserve most information
    of the original R object. For custom R classes, it is also possible to
    specify conversion routines to Python objects.
@@ -117,40 +117,40 @@ Convert custom R classes
 ------------------------
 
 The basic
-`convert <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.convert.html>`_
+`convert <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.convert.html>`__
 routine only constructs a
-`SimpleConverter <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.SimpleConverter.html>`_
+`SimpleConverter <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.SimpleConverter.html>`__
 object and calls its
-`convert <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.SimpleConverter.html#rdata.conversion.SimpleConverter.convert>`_
+`convert <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.SimpleConverter.html#rdata.conversion.SimpleConverter.convert>`__
 method. All arguments of
-`convert <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.convert.html>`_
+`convert <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.convert.html>`__
 are directly passed to the
-`SimpleConverter <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.SimpleConverter.html>`_
+`SimpleConverter <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.SimpleConverter.html>`__
 initialization method.
 
 It is possible, although not trivial, to make a custom
-`Converter <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.Converter.html>`_
+`Converter <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.Converter.html>`__
 object to change the way in which the
 basic R objects are transformed to Python objects. However, a more common
 situation is that one does not want to change how basic R objects are
 converted, but instead wants to provide conversions for specific R classes.
 This can be done by passing a dictionary to the
-`SimpleConverter <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.SimpleConverter.html>`_
+`SimpleConverter <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.SimpleConverter.html>`__
 initialization method, containing
 as keys the names of R classes and as values, callables that convert a
 R object of that class to a Python object. By default, the dictionary used
 is
-`DEFAULT_CLASS_MAP <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.DEFAULT_CLASS_MAP.html>`_,
+`DEFAULT_CLASS_MAP <https://rdata.readthedocs.io/en/latest/modules/rdata.conversion.DEFAULT_CLASS_MAP.html>`__,
 which can convert commonly used R classes such as
-`data.frame <https://www.rdocumentation.org/packages/base/topics/data.frame>`_
-and `factor <https://www.rdocumentation.org/packages/base/topics/factor>`_.
+`data.frame <https://www.rdocumentation.org/packages/base/topics/data.frame>`__
+and `factor <https://www.rdocumentation.org/packages/base/topics/factor>`__.
 
 As an example, here is how we would implement a conversion routine for the
 factor class to
-`bytes <https://docs.python.org/3/library/stdtypes.html#bytes>`_
+`bytes <https://docs.python.org/3/library/stdtypes.html#bytes>`__
 objects, instead of the default conversion to
 Pandas
-`Categorical <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Categorical.html#pandas.Categorical>`_ objects:
+`Categorical <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Categorical.html#pandas.Categorical>`__ objects:
 
 .. code:: python
 
@@ -187,7 +187,7 @@ Additional examples
 
 Additional examples illustrating the functionalities of this package can be
 found in the
-`ReadTheDocs documentation <https://rdata.readthedocs.io/en/latest/auto_examples/index.html>`_.
+`ReadTheDocs documentation <https://rdata.readthedocs.io/en/latest/auto_examples/index.html>`__.
 
 
 .. |build-status| image:: https://github.com/vnmabus/rdata/actions/workflows/main.yml/badge.svg?branch=master
