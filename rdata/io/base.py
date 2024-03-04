@@ -63,10 +63,7 @@ class Writer(abc.ABC):
 
     def write_int(self, value: int) -> None:
         """Write an integer value."""
-        if not np.can_cast(value, np.int32):
-            msg = f"Integer {value} not castable to int32"
-            raise ValueError(msg)
-        self._write_array_values(np.array([value], np.int32))
+        self._write_array_values(np.array([value]))
 
     def _write_array(self, array: npt.NDArray[Any]) -> None:
         """Write an array of values."""

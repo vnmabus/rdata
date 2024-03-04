@@ -37,13 +37,16 @@ class WriterXDR(Writer):
         if np.issubdtype(array.dtype, np.bool_):
             array = array.astype(np.int32)
 
-        # Convert int arrays to int32 and flatten masked values
+        # Flatten masked values and convert int arrays to int32
         if np.issubdtype(array.dtype, np.integer):
-            array = array.astype(np.int32)
             if np.ma.is_masked(array):
                 mask = np.ma.getmask(array)
                 array = np.ma.getdata(array).copy()
                 array[mask] = R_INT_NA
+            if not np.all([np.can_cast(val, np.int32) for val in array]):
+                msg = "Integer array not castable to int32"
+                raise ValueError(msg)
+            array = array.astype(np.int32)
 
         # Convert to big endian if needed
         array = array.astype(array.dtype.newbyteorder(">"))
