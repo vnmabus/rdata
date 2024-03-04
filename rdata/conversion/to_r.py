@@ -243,10 +243,7 @@ def convert_to_r_object(  # noqa: C901, PLR0912, PLR0915
 
     elif isinstance(data, RExpression):
         r_type = RObjectType.EXPR
-        values = data.elements
-        r_value = []
-        for element in values:
-            r_value.append(convert_to_r_object(element, encoding=encoding))
+        r_value = [convert_to_r_object(el, encoding=encoding) for el in data.elements]
 
     elif isinstance(data, RLanguage):
         r_type = RObjectType.LANG
@@ -260,12 +257,8 @@ def convert_to_r_object(  # noqa: C901, PLR0912, PLR0915
 
     elif isinstance(data, (list, tuple, dict)):
         r_type = RObjectType.VEC
-
         values = list(data.values()) if isinstance(data, dict) else data
-
-        r_value = []
-        for element in values:
-            r_value.append(convert_to_r_object(element, encoding=encoding))
+        r_value = [convert_to_r_object(el, encoding=encoding) for el in values]
 
         if isinstance(data, dict):
             attributes = build_r_list({"names": np.array(list(data.keys()))},
@@ -281,9 +274,7 @@ def convert_to_r_object(  # noqa: C901, PLR0912, PLR0915
         elif data.dtype.kind in ["S"]:
             assert data.ndim == 1
             r_type = RObjectType.STR
-            r_value = []
-            for element in data:
-                r_value.append(convert_to_r_object(element, encoding=encoding))
+            r_value = [convert_to_r_object(el, encoding=encoding) for el in data]
 
         elif data.dtype.kind in ["U"]:
             assert data.ndim == 1
