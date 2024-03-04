@@ -367,7 +367,7 @@ class RObject:
             return False
 
         # Compare other fields
-        for key in ('info', 'attributes', 'tag', 'referenced_object'):
+        for key in ("info", "attributes", "tag", "referenced_object"):
             if getattr(self, key) != getattr(other, key):
                 return False
 

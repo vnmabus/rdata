@@ -1,19 +1,28 @@
+"""Abstract base class for writers."""
+
 from __future__ import annotations
 
 import abc
 import warnings
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
-from rdata.parser._parser import (
+from rdata.parser import (
+    RData,
     RExtraInfo,
+    RObject,
     RObjectInfo,
     RObjectType,
     RVersions,
 )
 
+if TYPE_CHECKING:
+    import numpy.typing as npt
+
 
 def pack_r_object_info(info: RObjectInfo) -> np.int32:
+    """Pack RObjectInfo to an integer."""
     if info.type == RObjectType.NILVALUE:
         bits = f"{0:24b}"
     elif info.type == RObjectType.REF:
@@ -28,57 +37,60 @@ def pack_r_object_info(info: RObjectInfo) -> np.int32:
                 )
     bits += f"{info.type.value:8b}"
     bits = bits.replace(" ", "0")
-    assert len(bits) == 32
-    info_int = np.packbits([int(b) for b in bits]).view(">i4").astype("=i4")[0]
-    return info_int
+    assert len(bits) == 32  # noqa: PLR2004
+    return np.packbits([int(b) for b in bits]).view(">i4").astype("=i4")[0]
 
 
 class Writer(abc.ABC):
     """Writer interface for a R file."""
 
-    def __init__(self):
-        pass
-
     @abc.abstractmethod
-    def write_magic(self, rda_version):
-        pass
+    def write_magic(self, rda_version: int) -> None:
+        """Write magic bits."""
 
-    def write_header(self, versions: RVersions, extra: RExtraInfo):
+    def write_header(self, versions: RVersions, extra: RExtraInfo) -> None:
         """Write header."""
         self.write_int(versions.format)
         self.write_int(versions.serialized)
         self.write_int(versions.minimum)
-        if versions.format >= 3:
+        minimum_version_with_encoding = 3
+        if versions.format >= minimum_version_with_encoding:
             self.write_string(extra.encoding.encode("ascii"))
 
-    def write_bool(self, value):
+    def write_bool(self, value: bool) -> None:  # noqa: FBT001
+        """Write a boolean value."""
         self.write_int(int(value))
 
-    def write_int(self, value):
-        if not isinstance(value, (int, np.int32)):
-            raise RuntimeError(f"Not valid integer: {value} ({type(value)})")
+    def write_int(self, value: int) -> None:
+        """Write an integer value."""
+        if not np.can_cast(value, np.int32):
+            msg = f"Integer {value} not castable to int32"
+            raise ValueError(msg)
         self._write_array_values(np.array([value], np.int32))
 
-    def _write_array(self, array):
+    def _write_array(self, array: npt.NDArray[Any]) -> None:
+        """Write an array of values."""
         # Expect only 1D arrays here
         assert array.ndim == 1
         self.write_int(array.size)
         self._write_array_values(array)
 
     @abc.abstractmethod
-    def _write_array_values(self, array):
-        pass
+    def _write_array_values(self, array: npt.NDArray[Any]) -> None:
+        """Write magic bits."""
 
     @abc.abstractmethod
-    def write_string(self, value):
-        pass
+    def write_string(self, value: bytes) -> None:
+        """Write a string."""
 
-    def write_r_data(self, r_data, *, rds=True):
+    def write_r_data(self, r_data: RData, *, rds: bool = True) -> None:
+        """Write an RData object."""
         self.write_magic(None if rds else r_data.versions.format)
         self.write_header(r_data.versions, r_data.extra)
-        self.write_R_object(r_data.object)
+        self.write_r_object(r_data.object)
 
-    def write_R_object(self, obj):
+    def write_r_object(self, obj: RObject) -> None:  # noqa: C901, PLR0912
+        """Write an RObject object."""
         # Some types write attributes and tag with data while some write them
         # later. These booleans keep track of whether attributes or tag
         # has been written already
@@ -99,34 +111,34 @@ class Writer(abc.ABC):
             assert value is None
 
         elif info.type == RObjectType.SYM:
-            self.write_R_object(value)
+            self.write_r_object(value)
 
         elif info.type in {
             RObjectType.LIST,
             RObjectType.LANG,
-            # XXX Parser treats these equally as LIST.
-            #     Not tested if they work
+            # Parser treats the following equal to LIST.
+            # Not tested if they work
             # RObjectType.CLO,
             # RObjectType.PROM,
             # RObjectType.DOT,
             # RObjectType.ATTRLANG,
         }:
             if info.attributes:
-                self.write_R_object(obj.attributes)
+                self.write_r_object(obj.attributes)
                 attributes_written = True
 
             if info.tag:
-                self.write_R_object(obj.tag)
+                self.write_r_object(obj.tag)
                 tag_written = True
 
             for element in value:
-                self.write_R_object(element)
+                self.write_r_object(element)
 
         elif info.type in {
             RObjectType.CHAR,
             RObjectType.BUILTIN,
-            # XXX Parser treats this equal to BUILTIN.
-            #     Not tested if it works
+            # Parser treats the following equal to LIST.
+            # Not tested if they work
             # RObjectType.SPECIAL,
         }:
             self.write_string(value)
@@ -146,18 +158,19 @@ class Writer(abc.ABC):
         }:
             self.write_int(len(value))
             for element in value:
-                self.write_R_object(element)
+                self.write_r_object(element)
 
         else:
-            raise NotImplementedError(f"{info.type}")
+            msg = f"{info.type}"
+            raise NotImplementedError(msg)
 
         # Write attributes if it has not been written yet
         if info.attributes and not attributes_written:
-            self.write_R_object(obj.attributes)
+            self.write_r_object(obj.attributes)
 
         # Write tag if it has not been written yet
         if info.tag and not tag_written:
-            warnings.warn(
+            warnings.warn(  # noqa: B028
                 f"Tag not implemented for type {info.type} "
                 "and ignored",
             )

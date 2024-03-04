@@ -1,15 +1,18 @@
+"""Tests of writing and Python-to-R conversion."""
+
 import io
+
 import pytest
 
 import rdata
 import rdata.io
 
-
 TESTDATA_PATH = rdata.TESTDATA_PATH
 
 
-def decompress_data(data):
-    from rdata.parser._parser import file_type, FileTypes
+def decompress_data(data: bytes) -> bytes:
+    """Decompress bytes."""
+    from rdata.parser._parser import FileTypes, file_type
 
     filetype = file_type(data)
 
@@ -20,7 +23,7 @@ def decompress_data(data):
     elif filetype is FileTypes.xz:
         from xz import decompress
     else:
-        decompress = lambda x: x
+        decompress = lambda x: x  # noqa: E731
 
     return decompress(data)
 
@@ -28,23 +31,24 @@ def decompress_data(data):
 fnames = sorted([fpath.name for fpath in TESTDATA_PATH.glob("*.rd?")])
 
 @pytest.mark.parametrize("fname", fnames, ids=fnames)
-def test_write(fname):
+def test_write(fname: str) -> None:
+    """Test writing RData object to a file."""
     with (TESTDATA_PATH / fname).open("rb") as f:
         data = decompress_data(f.read())
-        rds = data[:2] != b'RD'
-        format = 'ascii' if data.isascii() else 'xdr'
+        rds = data[:2] != b"RD"
+        fmt = "ascii" if data.isascii() else "xdr"
 
         r_data = rdata.parser.parse_data(data, expand_altrep=False)
 
-        if format == 'ascii':
+        if fmt == "ascii":
             fd = io.StringIO()
-            data = data.decode('ascii')
-            data = data.replace('\r\n', '\n')
+            data = data.decode("ascii")
+            data = data.replace("\r\n", "\n")
         else:
             fd = io.BytesIO()
 
         try:
-            rdata.io.write_file(fd, r_data, format=format, rds=rds)
+            rdata.io.write_file(fd, r_data, format=fmt, rds=rds)
         except NotImplementedError as e:
             pytest.xfail(str(e))
 
@@ -52,16 +56,17 @@ def test_write(fname):
 
         if data != out_data:
             print(r_data)
-            print('in')
+            print("in")
             print(data)
-            print('out')
+            print("out")
             print(out_data)
 
         assert data == out_data
 
 
 @pytest.mark.parametrize("fname", fnames, ids=fnames)
-def test_convert_to_r(fname):
+def test_convert_to_r(fname: str) -> None:
+    """Test converting Python data to RData object."""
     with (TESTDATA_PATH / fname).open("rb") as f:
         # Skip test files without unique R->py->R transformation
         if fname in [
@@ -73,7 +78,7 @@ def test_convert_to_r(fname):
             pytest.skip("ambiguous R->py->R transformation")
 
         data = decompress_data(f.read())
-        rds = data[:2] != b'RD'
+        rds = data[:2] != b"RD"
 
         r_data = rdata.parser.parse_data(data, expand_altrep=False)
 
@@ -84,22 +89,21 @@ def test_convert_to_r(fname):
 
         encoding = r_data.extra.encoding
         if encoding is None:
-            if "win" in fname:
-                encoding = "CP1252"
-            else:
-                encoding = "UTF-8"
+            encoding = "CP1252" if "win" in fname else "UTF-8"
 
         try:
-            new_r_data = rdata.conversion.convert_to_r_data(py_data, rds=rds, versions=r_data.versions, encoding=encoding)
+            new_r_data = rdata.conversion.convert_to_r_data(
+                py_data, rds=rds, versions=r_data.versions, encoding=encoding,
+                )
         except NotImplementedError as e:
             pytest.xfail(str(e))
 
         if r_data != new_r_data:
-            print('ref')
+            print("ref")
             print(r_data)
-            print('py')
+            print("py")
             print(py_data)
-            print('new')
+            print("new")
             print(new_r_data)
 
         assert r_data == new_r_data

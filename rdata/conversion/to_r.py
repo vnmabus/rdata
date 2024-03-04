@@ -1,14 +1,13 @@
+"""Conversion functions from Python object to RData object."""
+
 from __future__ import annotations
 
 import string
-from typing import (
-    Any,
-    Optional,
-)
+from typing import Any, Callable
 
 import numpy as np
 
-from rdata.parser._parser import (
+from rdata.parser import (
     CharFlags,
     RData,
     RExtraInfo,
@@ -27,9 +26,9 @@ from . import (
 def build_r_object(
         r_type: RObjectType,
         *,
-        value: Any = None,
-        attributes: Optional[RObject] = None,
-        tag: Optional[RObject] = None,
+        value: Any = None,  # noqa: ANN401
+        attributes: RObject | None = None,
+        tag: RObject | None = None,
         gp: int = 0,
 ) -> RObject:
     """
@@ -59,24 +58,27 @@ def build_r_object(
     RObjectInfo
     """
     assert r_type is not None
-    r_object = RObject(RObjectInfo(r_type,
-                                   object=False,
-                                   attributes=attributes is not None,
-                                   tag=tag is not None,
-                                   gp=int(gp),
-                                   reference=0),
-                       value,
-                       attributes,
-                       tag,
-                       None)
-    return r_object
+    return RObject(
+        RObjectInfo(
+            r_type,
+            object=False,
+            attributes=attributes is not None,
+            tag=tag is not None,
+            gp=int(gp),
+            reference=0,
+         ),
+         value,
+         attributes,
+         tag,
+         None,
+     )
 
 
 def build_r_list(
         data: dict[str, Any] | list[Any],
         *,
         encoding: str,
-        convert_value = None,
+        convert_value: Callable[[Any, str], RObject] | None = None,
 ) -> RObject:
     """
     Build R object representing named linked list.
@@ -114,12 +116,11 @@ def build_r_list(
     else:
         value2 = build_r_list(data, encoding=encoding, convert_value=convert_value)
 
-    r_list = build_r_object(
+    return build_r_object(
         RObjectType.LIST,
         value=(value1, value2),
         tag=tag,
         )
-    return r_list
 
 
 def build_r_sym(
@@ -148,7 +149,7 @@ def build_r_sym(
 
 
 def convert_to_r_data(
-        data: Any,
+        data: Any,  # noqa: ANN401
         *,
         encoding: str = "UTF-8",
         rds: bool = True,
@@ -175,23 +176,24 @@ def convert_to_r_data(
     """
     if versions is None:
         versions = RVersions(3, 262657, 197888)
-    if versions.format == 2:
-        extra = RExtraInfo(None)
-    else:
-        extra = RExtraInfo(encoding)
+
+    minimum_version_with_encoding = 3
+    extra = RExtraInfo(encoding) if versions.format >= minimum_version_with_encoding \
+            else RExtraInfo(None)
 
     if rds:
         obj = convert_to_r_object(data, encoding=encoding)
     else:
         if not isinstance(data, dict):
-            raise ValueError("For RDA file, data must be a dictionary.")
+            msg = "For RDA file, data must be a dictionary."
+            raise ValueError(msg)
         obj = build_r_list(data, encoding=encoding)
 
     return RData(versions, extra, obj)
 
 
-def convert_to_r_object(
-        data: Any,
+def convert_to_r_object(  # noqa: C901, PLR0912, PLR0915
+        data: Any,  # noqa: ANN401
         *,
         encoding: str,
 ) -> RObject:
@@ -215,7 +217,8 @@ def convert_to_r_object(
     convert_to_r_data
     """
     if encoding not in ["UTF-8", "CP1252"]:
-        raise ValueError(f"Unknown encoding: {encoding}")
+        msg = f"Unknown encoding: {encoding}"
+        raise ValueError(msg)
 
     # Default args for most types (None/False/0)
     r_type = None
@@ -238,7 +241,8 @@ def convert_to_r_object(
         r_type = RObjectType.LANG
         values = data.elements
         r_value = (build_r_sym(values[0], encoding=encoding),
-                   build_r_list(values[1:], encoding=encoding, convert_value=build_r_sym))
+                   build_r_list(values[1:], encoding=encoding,
+                                convert_value=build_r_sym))
 
         if len(data.attributes) > 0:
             attributes = build_r_list(data.attributes, encoding=encoding)
@@ -246,10 +250,7 @@ def convert_to_r_object(
     elif isinstance(data, (list, tuple, dict)):
         r_type = RObjectType.VEC
 
-        if isinstance(data, dict):
-            values = data.values()
-        else:
-            values = data
+        values = data.values() if isinstance(data, dict) else data
 
         r_value = []
         for element in values:
@@ -310,15 +311,18 @@ def convert_to_r_object(
         elif encoding == "UTF-8":
             gp = CharFlags.UTF8
         elif encoding == "CP1252":
-            # XXX CP1252 and Latin1 are not the same
-            #     Check if CharFlags.LATIN1 means actually CP1252
-            #     as R on Windows mentions CP1252 as encoding
+            # Note!
+            # CP1252 and Latin1 are not the same
+            # Does CharFlags.LATIN1 mean actually CP1252
+            # as R on Windows mentions CP1252 as encoding?
             gp = CharFlags.LATIN1
         else:
-            raise NotImplementedError("unknown what gp value to use")
+            msg = "unknown what gp value to use"
+            raise NotImplementedError(msg)
         r_value = data
 
     else:
-        raise NotImplementedError(f"{type(data)}")
+        msg = f"{type(data)}"
+        raise NotImplementedError(msg)
 
     return build_r_object(r_type, value=r_value, attributes=attributes, tag=tag, gp=gp)

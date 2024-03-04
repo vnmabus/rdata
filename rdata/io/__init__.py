@@ -1,16 +1,20 @@
+"""Utilities for writing a rdata file."""
+
 from __future__ import annotations
 
-import os
-from typing import Any
+from typing import IO, TYPE_CHECKING, Any
 
-from rdata.parser import RData
+if TYPE_CHECKING:
+    import os
+
+    from rdata.parser import RData
 
 
 def write(
         path: os.PathLike[Any] | str,
         r_data: RData,
         *,
-        format: str = "xdr",
+        format: str = "xdr",  # noqa: A002
         rds: bool = False,
         compression: str = "gzip",
 ) -> None:
@@ -33,7 +37,8 @@ def write(
     elif format == "xdr":
         mode = "wb"
     else:
-        raise ValueError(f"Unknown format: {format}")
+        msg = f"Unknown format: {format}"
+        raise ValueError(msg)
 
     if compression == "gzip":
         from gzip import open
@@ -43,7 +48,7 @@ def write(
         from lzma import open
     elif compression == "none":
         import builtins
-        open = builtins.open
+        open = builtins.open  # noqa: A001
     else:
         msg = f"Unknown compression: {compression}"
         if compression is None:
@@ -55,10 +60,10 @@ def write(
 
 
 def write_file(
-        fileobj,
+        fileobj: IO[str | bytes],
         r_data: RData,
         *,
-        format: str = "xdr",
+        format: str = "xdr",  # noqa: A002
         rds: bool = False,
 ) -> None:
     """
@@ -78,7 +83,8 @@ def write_file(
     elif format == "xdr":
         from .xdr import WriterXDR as Writer
     else:
-        raise ValueError(f"Unknown format: {format}")
+        msg = f"Unknown format: {format}"
+        raise ValueError(msg)
 
     w = Writer(fileobj)
     w.write_r_data(r_data, rds=rds)
