@@ -170,6 +170,10 @@ def convert_to_r_data(
         Any Python object.
     encoding:
         Encoding to be used for strings within data.
+    rds:
+        Whether to write RDS or RDA file.
+    versions:
+        File version information.
 
     Returns:
     -------
