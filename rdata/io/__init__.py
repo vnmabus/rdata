@@ -18,7 +18,7 @@ def write(
         r_data: RData,
         *,
         format: str = "xdr",  # noqa: A002
-        rds: bool = False,
+        rds: bool = True,
         compression: str = "gzip",
 ) -> None:
     """
@@ -68,7 +68,7 @@ def write_file(
         r_data: RData,
         *,
         format: str = "xdr",  # noqa: A002
-        rds: bool = False,
+        rds: bool = True,
 ) -> None:
     """
     Write RData object to a file object.
