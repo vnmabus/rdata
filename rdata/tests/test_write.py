@@ -103,3 +103,4 @@ def test_convert_to_r(fname):
             print(new_r_data)
 
         assert r_data == new_r_data
+        assert str(r_data) == str(new_r_data)
