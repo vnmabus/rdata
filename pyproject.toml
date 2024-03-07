@@ -127,6 +127,9 @@ ignore = [
 	"S310", # URLs in examples have been validated
 	"T201", # print allowed in examples
 ]
+"rdata/tests/*.py" = [
+	"T201", # debug print allowed in tests
+]
 "plot_cran.py" = [
 	"SIM117", # multiple with necessary for now
 ]
