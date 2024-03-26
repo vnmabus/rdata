@@ -58,13 +58,6 @@ def test_write(fname: str) -> None:
 
         out_data = fd.getvalue()
 
-        if data != out_data:
-            print(r_data)
-            print("in")
-            print(data)
-            print("out")
-            print(out_data)
-
         assert data == out_data
 
 
@@ -101,14 +94,6 @@ def test_convert_to_r(fname: str) -> None:
                 )
         except NotImplementedError as e:
             pytest.xfail(str(e))
-
-        if r_data != new_r_data:
-            print("ref")
-            print(r_data)
-            print("py")
-            print(py_data)
-            print("new")
-            print(new_r_data)
 
         assert r_data == new_r_data
         assert str(r_data) == str(new_r_data)
