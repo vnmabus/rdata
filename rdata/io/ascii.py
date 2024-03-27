@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import string
-from typing import TYPE_CHECKING, Any, TextIO
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
 from .base import Writer
 
 if TYPE_CHECKING:
+    import io
+
     import numpy.typing as npt
 
 
@@ -18,14 +20,16 @@ class WriterASCII(Writer):
 
     def __init__(
         self,
-        file: TextIO,
+        file: io.BytesIO,
     ) -> None:
         """Writer for files in ASCII format."""
         self.file = file
 
     def _writeline(self, line: str) -> None:
         r"""Write a line with trailing \n."""
-        self.file.write(f"{line}\n")
+        # Write in binary mode to be compatible with
+        # compression (e.g. when file = gzip.open())
+        self.file.write(f"{line}\n".encode("ascii"))
 
     def write_magic(self, rda_version: int | None) -> None:
         """Write magic bits."""

@@ -37,14 +37,6 @@ def write(
     compression:
         Compression (gzip, bzip2, xz, or none)
     """
-    if format == "ascii":
-        mode = "w"
-    elif format == "xdr":
-        mode = "wb"
-    else:
-        msg = f"Unknown format: {format}"
-        raise ValueError(msg)
-
     if compression == "none":
         from builtins import open  # noqa: UP029
     elif compression == "bzip2":
@@ -59,7 +51,7 @@ def write(
             msg += ". Use 'none' for no compression."
         raise ValueError(msg)
 
-    with open(path, mode) as f:
+    with open(path, "wb") as f:
         write_file(f, r_data, format=format, rds=rds)
 
 

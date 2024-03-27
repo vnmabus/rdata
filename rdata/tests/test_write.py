@@ -52,27 +52,22 @@ fnames = sorted([fpath.name for fpath in TESTDATA_PATH.glob("*.rd?")])
 def test_write(fname: str) -> None:
     """Test writing RData object to a file."""
     with (TESTDATA_PATH / fname).open("rb") as f:
-        data: bytes | str
-        fd: io.BytesIO | io.StringIO
         data = decompress_data(f.read())
         rds = data[:2] != b"RD"
         fmt = "ascii" if data.isascii() else "xdr"
 
         r_data = rdata.parser.parse_data(data, expand_altrep=False)
 
-        if fmt == "ascii":
-            fd = io.StringIO()
-            data = data.decode("ascii")
-            data = data.replace("\r\n", "\n")
-        else:
-            fd = io.BytesIO()
-
+        fd = io.BytesIO()
         try:
             rdata.io.write_file(fd, r_data, format=fmt, rds=rds)
         except NotImplementedError as e:
             pytest.xfail(str(e))
 
         out_data = fd.getvalue()
+
+        if fmt == "ascii":
+            data = data.replace(b"\r\n", b"\n")
 
         assert data == out_data
 
