@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import io
+import tempfile
+from contextlib import contextmanager
+from typing import Callable
 
 import pytest
 
@@ -10,6 +13,19 @@ import rdata
 import rdata.io
 
 TESTDATA_PATH = rdata.TESTDATA_PATH
+
+valid_compressions = ["none", "bzip2", "gzip", "xz"]
+valid_formats = ["xdr", "ascii"]
+
+
+@contextmanager
+def no_error() -> Callable:
+    """Context manager that does nothing but returns no_error.
+
+    This context manager can be used like pytest.raises()
+    when no error is expected.
+    """
+    yield no_error
 
 
 def decompress_data(data: memoryview) -> bytes:
@@ -97,3 +113,28 @@ def test_convert_to_r(fname: str) -> None:
 
         assert r_data == new_r_data
         assert str(r_data) == str(new_r_data)
+
+
+@pytest.mark.parametrize("compression", [*valid_compressions, None, "fail"])
+@pytest.mark.parametrize("fmt", [*valid_formats, None, "fail"])
+@pytest.mark.parametrize("rds", [True, False])
+def test_write_real_file(compression: str, fmt: str, rds: bool) -> None:  # noqa: FBT001
+    """Test writing RData object to a real file with compression."""
+    expectation = no_error()
+    if fmt not in valid_formats:
+        expectation = pytest.raises(ValueError, match="(?i)unknown format")
+    if compression not in valid_compressions:
+        expectation = pytest.raises(ValueError, match="(?i)unknown compression")
+
+    py_data = "Hello"
+    r_data = rdata.conversion.convert_to_r_data(py_data)
+    suffix = ".rds" if rds else ".rda"
+    with tempfile.NamedTemporaryFile(mode="wb", suffix=suffix) as f:
+        fpath = f.name
+
+        with expectation as status:
+            rdata.io.write(fpath, r_data, format=fmt, compression=compression, rds=rds)
+
+        if status is no_error:
+            new_py_data = rdata.read_rds(fpath) if rds else rdata.read_rda(fpath)
+            assert py_data == new_py_data
