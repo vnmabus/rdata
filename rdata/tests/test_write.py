@@ -5,12 +5,15 @@ from __future__ import annotations
 import io
 import tempfile
 from contextlib import contextmanager
-from typing import Callable
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
 import rdata
 import rdata.io
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 TESTDATA_PATH = rdata.TESTDATA_PATH
 
@@ -19,7 +22,7 @@ valid_formats = ["xdr", "ascii"]
 
 
 @contextmanager
-def no_error() -> Callable:
+def no_error() -> Generator[Any, Any, Any]:
     """Context manager that does nothing but returns no_error.
 
     This context manager can be used like pytest.raises()
@@ -117,9 +120,9 @@ def test_write_real_file(compression: str, fmt: str, rds: bool) -> None:  # noqa
     """Test writing RData object to a real file with compression."""
     expectation = no_error()
     if fmt not in valid_formats:
-        expectation = pytest.raises(ValueError, match="(?i)unknown format")
+        expectation = pytest.raises(ValueError, match="(?i)unknown format")  # type: ignore [assignment]
     if compression not in valid_compressions:
-        expectation = pytest.raises(ValueError, match="(?i)unknown compression")
+        expectation = pytest.raises(ValueError, match="(?i)unknown compression")  # type: ignore [assignment]
 
     py_data = "Hello"
     r_data = rdata.conversion.convert_to_r_data(py_data)
