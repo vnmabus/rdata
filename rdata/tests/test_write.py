@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 import tempfile
 from contextlib import contextmanager
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pytest
@@ -127,8 +128,8 @@ def test_write_real_file(compression: str, fmt: str, rds: bool) -> None:  # noqa
     py_data = "Hello"
     r_data = rdata.conversion.convert_to_r_data(py_data)
     suffix = ".rds" if rds else ".rda"
-    with tempfile.NamedTemporaryFile(mode="wb", suffix=suffix) as f:
-        fpath = f.name
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fpath = Path(tmpdir) / f"file{suffix}"
 
         with expectation as status:
             rdata.io.write(fpath, r_data, format=fmt, compression=compression, rds=rds)
