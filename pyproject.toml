@@ -10,7 +10,8 @@ keywords = [
 	"dataset",
 ]
 authors = [
-  {name = "Carlos Ramos Carreño", email = "vnmabus@gmail.com"},
+  {name = "Carlos Ramos Carreño"},
+  {name = "Tuomas Rossi"},
 ]
 maintainers = [
   {name = "Carlos Ramos Carreño", email = "vnmabus@gmail.com"},
