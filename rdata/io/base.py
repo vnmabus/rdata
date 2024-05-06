@@ -58,10 +58,6 @@ class Writer(abc.ABC):
             assert extra.encoding is not None
             self.write_string(extra.encoding.encode("ascii"))
 
-    def write_bool(self, value: bool) -> None:  # noqa: FBT001
-        """Write a boolean value."""
-        self.write_int(int(value))
-
     def write_int(self, value: int | np.int32) -> None:
         """Write an integer value."""
         self._write_array_values(np.array([value]))
