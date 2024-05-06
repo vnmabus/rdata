@@ -226,10 +226,6 @@ def convert_to_r_object(  # noqa: C901, PLR0912, PLR0915
     --------
     convert_to_r_data
     """
-    if encoding not in ["UTF-8", "CP1252"]:
-        msg = f"Unknown encoding: {encoding}"
-        raise ValueError(msg)
-
     # Default args for most types (None/False/0)
     r_type = None
     values: list[Any] | tuple[Any, ...]
@@ -314,13 +310,14 @@ def convert_to_r_object(  # noqa: C901, PLR0912, PLR0915
             gp = CharFlags.UTF8
         elif encoding == "CP1252":
             # Note!
-            # CP1252 and Latin1 are not the same
+            # CP1252 and Latin1 are not the same.
             # Does CharFlags.LATIN1 mean actually CP1252
             # as R on Windows mentions CP1252 as encoding?
+            # Or does CP1252 change to e.g. CP1250 depending on localization?
             gp = CharFlags.LATIN1
         else:
-            msg = "unknown what gp value to use"
-            raise NotImplementedError(msg)
+            msg = "unsupported encoding"
+            raise ValueError(msg)
         r_value = data
 
     else:

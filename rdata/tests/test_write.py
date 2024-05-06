@@ -121,6 +121,18 @@ def test_convert_to_r_bad_rda() -> None:
         rdata.conversion.convert_to_r_data(py_data, rds=False)
 
 
+def test_convert_to_r_bad_encoding() -> None:
+    """Test checking encoding."""
+    with pytest.raises(LookupError, match="(?i)unknown encoding"):
+        rdata.conversion.convert_to_r_data("ä", encoding="non-existent")
+
+
+def test_convert_to_r_unsupported_encoding() -> None:
+    """Test checking encoding."""
+    with pytest.raises(ValueError, match="(?i)unsupported encoding"):
+        rdata.conversion.convert_to_r_data("ä", encoding="CP1250")
+
+
 @pytest.mark.parametrize("compression", [*valid_compressions, None, "fail"])
 @pytest.mark.parametrize("fmt", [*valid_formats, None, "fail"])
 @pytest.mark.parametrize("rds", [True, False])
