@@ -125,16 +125,15 @@ def test_write_real_file(compression: str, fmt: str, rds: bool) -> None:  # noqa
     if compression not in valid_compressions:
         expectation = pytest.raises(ValueError, match="(?i)unknown compression")  # type: ignore [assignment]
 
-    py_data = "Hello"
-    r_data = rdata.conversion.convert_to_r_data(py_data)
+    py_data = {"key": "Hello"}
     suffix = ".rds" if rds else ".rda"
+    read = rdata.read_rds if rds else rdata.read_rda
+    write = rdata.write_rds if rds else rdata.write_rda
     with tempfile.TemporaryDirectory() as tmpdir:
         fpath = Path(tmpdir) / f"file{suffix}"
 
         with expectation as status:
-            rdata.io.write(fpath, r_data, file_format=fmt,
-                           compression=compression, rds=rds)
+            write(fpath, py_data, file_format=fmt, compression=compression)
 
         if status is no_error:
-            new_py_data = rdata.read_rds(fpath) if rds else rdata.read_rda(fpath)
-            assert py_data == new_py_data
+            assert py_data == read(fpath)
