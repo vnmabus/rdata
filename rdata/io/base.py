@@ -167,7 +167,5 @@ class Writer(abc.ABC):
 
         # Write tag if it has not been written yet
         if info.tag and not tag_written:
-            warnings.warn(  # noqa: B028
-                f"Tag not implemented for type {info.type} "
-                "and ignored",
-            )
+            msg = f"Tag not implemented for type {info.type}"
+            raise NotImplementedError(msg)
