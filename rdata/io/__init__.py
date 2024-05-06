@@ -17,7 +17,7 @@ def write(
         path: os.PathLike[Any] | str,
         r_data: RData,
         *,
-        format: str = "xdr",  # noqa: A002
+        file_format: str = "xdr",
         rds: bool = True,
         compression: str = "gzip",
 ) -> None:
@@ -30,7 +30,7 @@ def write(
         File path to be written
     r_data:
         RData object
-    format:
+    file_format:
         File format (ascii or xdr)
     rds:
         Whether to write RDS or RDA file
@@ -52,14 +52,14 @@ def write(
         raise ValueError(msg)
 
     with open(path, "wb") as f:
-        write_file(f, r_data, format=format, rds=rds)
+        write_file(f, r_data, file_format=file_format, rds=rds)
 
 
 def write_file(
         fileobj: IO[Any],
         r_data: RData,
         *,
-        format: str = "xdr",  # noqa: A002
+        file_format: str = "xdr",
         rds: bool = True,
 ) -> None:
     """
@@ -71,17 +71,17 @@ def write_file(
         File object
     r_data:
         RData object
-    format:
+    file_format:
         File format (ascii or xdr)
     """
     Writer: type[WriterXDR | WriterASCII]  # noqa: N806
 
-    if format == "ascii":
+    if file_format == "ascii":
         from .ascii import WriterASCII as Writer
-    elif format == "xdr":
+    elif file_format == "xdr":
         from .xdr import WriterXDR as Writer
     else:
-        msg = f"Unknown format: {format}"
+        msg = f"Unknown file format: {file_format}"
         raise ValueError(msg)
 
     w = Writer(fileobj)  # type: ignore [arg-type]

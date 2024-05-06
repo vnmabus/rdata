@@ -32,7 +32,7 @@ def write_rdata(
         path,
         r_data,
         rds=rds,
-        format=file_format,
+        file_format=file_format,
         compression=compression,
     )
 

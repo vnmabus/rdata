@@ -64,7 +64,7 @@ def test_write(fname: str) -> None:
 
         fd = io.BytesIO()
         try:
-            rdata.io.write_file(fd, r_data, format=fmt, rds=rds)
+            rdata.io.write_file(fd, r_data, file_format=fmt, rds=rds)
         except NotImplementedError as e:
             pytest.xfail(str(e))
 
@@ -121,7 +121,7 @@ def test_write_real_file(compression: str, fmt: str, rds: bool) -> None:  # noqa
     """Test writing RData object to a real file with compression."""
     expectation = no_error()
     if fmt not in valid_formats:
-        expectation = pytest.raises(ValueError, match="(?i)unknown format")  # type: ignore [assignment]
+        expectation = pytest.raises(ValueError, match="(?i)unknown file format")  # type: ignore [assignment]
     if compression not in valid_compressions:
         expectation = pytest.raises(ValueError, match="(?i)unknown compression")  # type: ignore [assignment]
 
@@ -132,7 +132,8 @@ def test_write_real_file(compression: str, fmt: str, rds: bool) -> None:  # noqa
         fpath = Path(tmpdir) / f"file{suffix}"
 
         with expectation as status:
-            rdata.io.write(fpath, r_data, format=fmt, compression=compression, rds=rds)
+            rdata.io.write(fpath, r_data, file_format=fmt,
+                           compression=compression, rds=rds)
 
         if status is no_error:
             new_py_data = rdata.read_rds(fpath) if rds else rdata.read_rda(fpath)
