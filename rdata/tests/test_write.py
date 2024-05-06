@@ -133,6 +133,15 @@ def test_convert_to_r_unsupported_encoding() -> None:
         rdata.conversion.convert_to_r_data("ä", encoding="CP1250")
 
 
+def test_write_big_int() -> None:
+    """Test checking too large integers."""
+    big_int = 2**32
+    r_data = rdata.conversion.convert_to_r_data(big_int)
+    fd = io.BytesIO()
+    with pytest.raises(ValueError, match="(?i)not castable"):
+        rdata.io.write_file(fd, r_data, file_format="xdr")
+
+
 @pytest.mark.parametrize("compression", [*valid_compressions, None, "fail"])
 @pytest.mark.parametrize("fmt", [*valid_formats, None, "fail"])
 @pytest.mark.parametrize("rds", [True, False])
