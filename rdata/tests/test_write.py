@@ -144,7 +144,7 @@ def test_write_real_file(compression: str, fmt: str, rds: bool) -> None:  # noqa
     if compression not in valid_compressions:
         expectation = pytest.raises(ValueError, match="(?i)unknown compression")  # type: ignore [assignment]
 
-    py_data = {"key": "Hello"}
+    py_data = {"key": "Hello", "none": None}
     suffix = ".rds" if rds else ".rda"
     read = rdata.read_rds if rds else rdata.read_rda
     write = rdata.write_rds if rds else rdata.write_rda
