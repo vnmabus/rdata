@@ -114,6 +114,13 @@ def test_convert_to_r(fname: str) -> None:
         assert str(r_data) == str(new_r_data)
 
 
+def test_convert_to_r_bad_rda() -> None:
+    """Test checking that data for RDA has variable names."""
+    py_data = "hello"
+    with pytest.raises(ValueError, match="(?i)data must be a dictionary"):
+        rdata.conversion.convert_to_r_data(py_data, rds=False)
+
+
 @pytest.mark.parametrize("compression", [*valid_compressions, None, "fail"])
 @pytest.mark.parametrize("fmt", [*valid_formats, None, "fail"])
 @pytest.mark.parametrize("rds", [True, False])
