@@ -249,7 +249,10 @@ def convert_to_r_object(  # noqa: C901, PLR0912, PLR0915
                                 convert_value=build_r_sym))
 
         if len(data.attributes) > 0:
-            attributes = build_r_list(data.attributes, encoding=encoding)
+            # The following might work here (untested)
+            # attributes = build_r_list(data.attributes, encoding=encoding)  # noqa: ERA001,E501
+            msg = f"type {r_type} with attributes not implemented"
+            raise NotImplementedError(msg)
 
     elif isinstance(data, (list, tuple, dict)):
         r_type = RObjectType.VEC
