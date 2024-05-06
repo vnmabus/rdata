@@ -161,7 +161,7 @@ class Writer(abc.ABC):
                 self.write_r_object(element)
 
         else:
-            msg = f"{info.type}"
+            msg = f"type {info.type} not implemented"
             raise NotImplementedError(msg)
 
         # Write attributes if it has not been written yet
