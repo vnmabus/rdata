@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
-from .base import Writer
+from ._unparser import Writer
 
 if TYPE_CHECKING:
     import io

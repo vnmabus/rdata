@@ -9,8 +9,8 @@ if TYPE_CHECKING:
 
     from rdata.parser import RData
 
-    from .ascii import WriterASCII
-    from .xdr import WriterXDR
+    from ._ascii import WriterASCII
+    from ._xdr import WriterXDR
 
 
 def write(
@@ -77,9 +77,9 @@ def write_file(
     Writer: type[WriterXDR | WriterASCII]  # noqa: N806
 
     if file_format == "ascii":
-        from .ascii import WriterASCII as Writer
+        from ._ascii import WriterASCII as Writer
     elif file_format == "xdr":
-        from .xdr import WriterXDR as Writer
+        from ._xdr import WriterXDR as Writer
     else:
         msg = f"Unknown file format: {file_format}"
         raise ValueError(msg)

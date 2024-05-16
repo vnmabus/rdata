@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from .conversion import convert_to_r_data
-from .io import write
+from .unparser import write
 from .parser import RVersions
 
 if TYPE_CHECKING:

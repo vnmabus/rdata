@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 import rdata
-import rdata.io
+from rdata.unparser import write_file
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -64,7 +64,7 @@ def test_write(fname: str) -> None:
 
         fd = io.BytesIO()
         try:
-            rdata.io.write_file(fd, r_data, file_format=fmt, rds=rds)
+            write_file(fd, r_data, file_format=fmt, rds=rds)
         except NotImplementedError as e:
             pytest.xfail(str(e))
 
@@ -139,7 +139,7 @@ def test_write_big_int() -> None:
     r_data = rdata.conversion.convert_to_r_data(big_int)
     fd = io.BytesIO()
     with pytest.raises(ValueError, match="(?i)not castable"):
-        rdata.io.write_file(fd, r_data, file_format="xdr")
+        write_file(fd, r_data, file_format="xdr")
 
 
 @pytest.mark.parametrize("compression", [*valid_compressions, None, "fail"])
