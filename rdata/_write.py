@@ -50,7 +50,7 @@ def write_rds(
     Write an RDS file.
 
     This is a convenience function that wraps
-    :func:`rdata.conversion.convert_to_r_data` and :func:`rdata.io.write`,
+    :func:`rdata.conversion.convert_to_r_data` and :func:`rdata.unparser.unparse_file`,
     as it is the common use case.
 
     Args:
@@ -97,7 +97,7 @@ def write_rda(
     Write an RDA or RDATA file.
 
     This is a convenience function that wraps
-    :func:`rdata.conversion.convert_to_r_data` and :func:`rdata.io.write`,
+    :func:`rdata.conversion.convert_to_r_data` and :func:`rdata.unparser.unparse_file`,
     as it is the common use case.
 
     Args:
