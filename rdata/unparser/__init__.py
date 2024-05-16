@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import io
 from typing import IO, TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -52,10 +53,10 @@ def unparse_file(
         raise ValueError(msg)
 
     with open(path, "wb") as f:
-        unparse_data(f, r_data, file_format=file_format, rds=rds)
+        unparse_fileobj(f, r_data, file_format=file_format, rds=rds)
 
 
-def unparse_data(
+def unparse_fileobj(
         fileobj: IO[Any],
         r_data: RData,
         *,
@@ -73,6 +74,8 @@ def unparse_data(
         RData object
     file_format:
         File format (ascii or xdr)
+    rds:
+        Whether to create RDS or RDA file
     """
     Unparser: type[UnparserXDR | UnparserASCII]  # noqa: N806
 
@@ -86,3 +89,31 @@ def unparse_data(
 
     unparser = Unparser(fileobj)  # type: ignore [arg-type]
     unparser.unparse_r_data(r_data, rds=rds)
+
+
+def unparse_data(
+        r_data: RData,
+        *,
+        file_format: str = "xdr",
+        rds: bool = True,
+) -> bytes:
+    """
+    Unparse RData object to a bytestring.
+
+    Parameters
+    ----------
+    r_data:
+        RData object
+    file_format:
+        File format (ascii or xdr)
+    rds:
+        Whether to create RDS or RDA file
+
+    Returns:
+    -------
+    data:
+        Bytestring of data
+    """
+    fd = io.BytesIO()
+    unparse_fileobj(fd, r_data, file_format=file_format, rds=rds)
+    return fd.getvalue()

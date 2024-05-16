@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import io
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
@@ -62,13 +61,10 @@ def test_unparse(fname: str) -> None:
 
         r_data = rdata.parser.parse_data(data, expand_altrep=False)
 
-        fd = io.BytesIO()
         try:
-            unparse_data(fd, r_data, file_format=fmt, rds=rds)
+            out_data = unparse_data(r_data, file_format=fmt, rds=rds)
         except NotImplementedError as e:
             pytest.xfail(str(e))
-
-        out_data = fd.getvalue()
 
         if fmt == "ascii":
             data = data.replace(b"\r\n", b"\n")
@@ -137,9 +133,8 @@ def test_unparse_big_int() -> None:
     """Test checking too large integers."""
     big_int = 2**32
     r_data = rdata.conversion.convert_to_r_data(big_int)
-    fd = io.BytesIO()
     with pytest.raises(ValueError, match="(?i)not castable"):
-        unparse_data(fd, r_data, file_format="xdr")
+        unparse_data(r_data, file_format="xdr")
 
 
 @pytest.mark.parametrize("compression", [*valid_compressions, None, "fail"])
