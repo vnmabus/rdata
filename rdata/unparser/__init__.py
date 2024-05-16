@@ -1,4 +1,4 @@
-"""Utilities for writing a rdata file."""
+"""Utilities for unparsing a rdata file."""
 
 from __future__ import annotations
 
@@ -9,11 +9,11 @@ if TYPE_CHECKING:
 
     from rdata.parser import RData
 
-    from ._ascii import WriterASCII
-    from ._xdr import WriterXDR
+    from ._ascii import UnparserASCII
+    from ._xdr import UnparserXDR
 
 
-def write(
+def unparse_file(
         path: os.PathLike[Any] | str,
         r_data: RData,
         *,
@@ -22,18 +22,18 @@ def write(
         compression: str = "gzip",
 ) -> None:
     """
-    Write RData object to a file.
+    Unparse RData object to a file.
 
     Parameters
     ----------
     path:
-        File path to be written
+        File path to be created
     r_data:
         RData object
     file_format:
         File format (ascii or xdr)
     rds:
-        Whether to write RDS or RDA file
+        Whether to create RDS or RDA file
     compression:
         Compression (gzip, bzip2, xz, or none)
     """
@@ -52,10 +52,10 @@ def write(
         raise ValueError(msg)
 
     with open(path, "wb") as f:
-        write_file(f, r_data, file_format=file_format, rds=rds)
+        unparse_data(f, r_data, file_format=file_format, rds=rds)
 
 
-def write_file(
+def unparse_data(
         fileobj: IO[Any],
         r_data: RData,
         *,
@@ -63,7 +63,7 @@ def write_file(
         rds: bool = True,
 ) -> None:
     """
-    Write RData object to a file object.
+    Unparse RData object to a file object.
 
     Parameters
     ----------
@@ -74,15 +74,15 @@ def write_file(
     file_format:
         File format (ascii or xdr)
     """
-    Writer: type[WriterXDR | WriterASCII]  # noqa: N806
+    Unparser: type[UnparserXDR | UnparserASCII]  # noqa: N806
 
     if file_format == "ascii":
-        from ._ascii import WriterASCII as Writer
+        from ._ascii import UnparserASCII as Unparser
     elif file_format == "xdr":
-        from ._xdr import WriterXDR as Writer
+        from ._xdr import UnparserXDR as Unparser
     else:
         msg = f"Unknown file format: {file_format}"
         raise ValueError(msg)
 
-    w = Writer(fileobj)  # type: ignore [arg-type]
-    w.write_r_data(r_data, rds=rds)
+    unparser = Unparser(fileobj)  # type: ignore [arg-type]
+    unparser.unparse_r_data(r_data, rds=rds)

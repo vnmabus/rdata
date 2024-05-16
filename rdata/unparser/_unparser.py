@@ -1,9 +1,8 @@
-"""Abstract base class for writers."""
+"""Abstract base class for unparsers."""
 
 from __future__ import annotations
 
 import abc
-import warnings
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -41,61 +40,61 @@ def pack_r_object_info(info: RObjectInfo) -> np.int32:
     return np.packbits([int(b) for b in bits]).view(">i4").astype("=i4")[0]  # type: ignore [no-any-return]
 
 
-class Writer(abc.ABC):
-    """Writer interface for a R file."""
+class Unparser(abc.ABC):
+    """Unparser interface for a R file."""
 
     @abc.abstractmethod
-    def write_magic(self, rda_version: int | None) -> None:
-        """Write magic bits."""
+    def unparse_magic(self, rda_version: int | None) -> None:
+        """Unparse magic bits."""
 
-    def write_header(self, versions: RVersions, extra: RExtraInfo) -> None:
-        """Write header."""
-        self.write_int(versions.format)
-        self.write_int(versions.serialized)
-        self.write_int(versions.minimum)
+    def unparse_header(self, versions: RVersions, extra: RExtraInfo) -> None:
+        """Unparse header."""
+        self.unparse_int(versions.format)
+        self.unparse_int(versions.serialized)
+        self.unparse_int(versions.minimum)
         minimum_version_with_encoding = 3
         if versions.format >= minimum_version_with_encoding:
             assert extra.encoding is not None
-            self.write_string(extra.encoding.encode("ascii"))
+            self.unparse_string(extra.encoding.encode("ascii"))
 
-    def write_int(self, value: int | np.int32) -> None:
-        """Write an integer value."""
-        self._write_array_values(np.array([value]))
+    def unparse_int(self, value: int | np.int32) -> None:
+        """Unparse an integer value."""
+        self._unparse_array_values(np.array([value]))
 
-    def write_array(self, array: npt.NDArray[Any]) -> None:
-        """Write an array of values."""
+    def unparse_array(self, array: npt.NDArray[Any]) -> None:
+        """Unparse an array of values."""
         # Expect only 1D arrays here
         assert array.ndim == 1
-        self.write_int(array.size)
-        self._write_array_values(array)
+        self.unparse_int(array.size)
+        self._unparse_array_values(array)
 
     @abc.abstractmethod
-    def _write_array_values(self, array: npt.NDArray[Any]) -> None:
-        """Write the values of an array."""
+    def _unparse_array_values(self, array: npt.NDArray[Any]) -> None:
+        """Unparse the values of an array."""
 
     @abc.abstractmethod
-    def write_string(self, value: bytes) -> None:
-        """Write a string."""
+    def unparse_string(self, value: bytes) -> None:
+        """Unparse a string."""
 
-    def write_r_data(self, r_data: RData, *, rds: bool = True) -> None:
-        """Write an RData object."""
-        self.write_magic(None if rds else r_data.versions.format)
-        self.write_header(r_data.versions, r_data.extra)
-        self.write_r_object(r_data.object)
+    def unparse_r_data(self, r_data: RData, *, rds: bool = True) -> None:
+        """Unparse an RData object."""
+        self.unparse_magic(None if rds else r_data.versions.format)
+        self.unparse_header(r_data.versions, r_data.extra)
+        self.unparse_r_object(r_data.object)
 
-    def write_r_object(self, obj: RObject) -> None:  # noqa: C901, PLR0912
-        """Write an RObject object."""
-        # Some types write attributes and tag with data while some write them
+    def unparse_r_object(self, obj: RObject) -> None:  # noqa: C901, PLR0912
+        """Unparse an RObject object."""
+        # Some types include attributes and tag with data while some add them
         # later. These booleans keep track of whether attributes or tag
-        # has been written already
-        attributes_written = False
-        tag_written = False
+        # has been done already
+        attributes_done = False
+        tag_done = False
 
-        # Write info bytes
+        # Unparse info bytes
         info = obj.info
-        self.write_int(pack_r_object_info(info))
+        self.unparse_int(pack_r_object_info(info))
 
-        # Write data
+        # Unparse data
         value = obj.value
         if info.type in {
            RObjectType.NIL,
@@ -105,7 +104,7 @@ class Writer(abc.ABC):
             assert value is None
 
         elif info.type == RObjectType.SYM:
-            self.write_r_object(value)
+            self.unparse_r_object(value)
 
         elif info.type in {
             RObjectType.LIST,
@@ -119,16 +118,16 @@ class Writer(abc.ABC):
         }:
             if info.attributes:
                 assert obj.attributes is not None
-                self.write_r_object(obj.attributes)
-                attributes_written = True
+                self.unparse_r_object(obj.attributes)
+                attributes_done = True
 
             if info.tag:
                 assert obj.tag is not None
-                self.write_r_object(obj.tag)
-                tag_written = True
+                self.unparse_r_object(obj.tag)
+                tag_done = True
 
             for element in value:
-                self.write_r_object(element)
+                self.unparse_r_object(element)
 
         elif info.type in {
             RObjectType.CHAR,
@@ -137,7 +136,7 @@ class Writer(abc.ABC):
             # Not tested if they work
             # RObjectType.SPECIAL,
         }:
-            self.write_string(value)
+            self.unparse_string(value)
 
         elif info.type in {
             RObjectType.LGL,
@@ -145,27 +144,27 @@ class Writer(abc.ABC):
             RObjectType.REAL,
             RObjectType.CPLX,
         }:
-            self.write_array(value)
+            self.unparse_array(value)
 
         elif info.type in {
             RObjectType.STR,
             RObjectType.VEC,
             RObjectType.EXPR,
         }:
-            self.write_int(len(value))
+            self.unparse_int(len(value))
             for element in value:
-                self.write_r_object(element)
+                self.unparse_r_object(element)
 
         else:
             msg = f"type {info.type} not implemented"
             raise NotImplementedError(msg)
 
-        # Write attributes if it has not been written yet
-        if info.attributes and not attributes_written:
+        # Unparse attributes if it has not been done yet
+        if info.attributes and not attributes_done:
             assert obj.attributes is not None
-            self.write_r_object(obj.attributes)
+            self.unparse_r_object(obj.attributes)
 
-        # Write tag if it has not been written yet
-        if info.tag and not tag_written:
+        # Unparse tag if it has not been done yet
+        if info.tag and not tag_done:
             msg = f"Tag not implemented for type {info.type}"
             raise NotImplementedError(msg)

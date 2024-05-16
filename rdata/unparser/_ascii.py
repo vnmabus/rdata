@@ -1,4 +1,4 @@
-"""Writer for files in ASCII format."""
+"""Unparser for files in ASCII format."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
-from ._unparser import Writer
+from ._unparser import Unparser
 
 if TYPE_CHECKING:
     import io
@@ -15,29 +15,29 @@ if TYPE_CHECKING:
     import numpy.typing as npt
 
 
-class WriterASCII(Writer):
-    """Writer for files in ASCII format."""
+class UnparserASCII(Unparser):
+    """Unparser for files in ASCII format."""
 
     def __init__(
         self,
         file: io.BytesIO,
     ) -> None:
-        """Writer for files in ASCII format."""
+        """Unparser for files in ASCII format."""
         self.file = file
 
-    def _writeline(self, line: str) -> None:
+    def _add_line(self, line: str) -> None:
         r"""Write a line with trailing \n."""
         # Write in binary mode to be compatible with
         # compression (e.g. when file = gzip.open())
         self.file.write(f"{line}\n".encode("ascii"))
 
-    def write_magic(self, rda_version: int | None) -> None:
-        """Write magic bits."""
+    def unparse_magic(self, rda_version: int | None) -> None:
+        """Unparse magic bits."""
         if rda_version is not None:
-            self._writeline(f"RDA{rda_version}")
-        self._writeline("A")
+            self._add_line(f"RDA{rda_version}")
+        self._add_line("A")
 
-    def _write_array_values(self, array: npt.NDArray[Any]) -> None:
+    def _unparse_array_values(self, array: npt.NDArray[Any]) -> None:
         # Convert boolean to int
         if np.issubdtype(array.dtype, np.bool_):
             array = array.astype(np.int32)
@@ -47,7 +47,7 @@ class WriterASCII(Writer):
             assert array.dtype == np.complex128
             array = array.view(np.float64)
 
-        # Write data
+        # Unparse data
         for value in array:
             if np.issubdtype(array.dtype, np.integer):
                 line = "NA" if value is None or np.ma.is_masked(value) else str(value)  # type: ignore [no-untyped-call]
@@ -61,11 +61,11 @@ class WriterASCII(Writer):
                 msg = f"Unknown dtype: {array.dtype}"
                 raise ValueError(msg)
 
-            self._writeline(line)
+            self._add_line(line)
 
-    def write_string(self, value: bytes) -> None:
-        """Write a string."""
-        self.write_int(len(value))
+    def unparse_string(self, value: bytes) -> None:
+        """Unparse a string."""
+        self.unparse_int(len(value))
 
         # Ideally we could do here the reverse of parsing,
         # i.e., value = value.decode('latin1').encode('unicode_escape').decode('ascii')
@@ -75,4 +75,4 @@ class WriterASCII(Writer):
         s = "".join(chr(byte) if chr(byte) in string.printable else rf"\{byte:03o}"
                     for byte in value)
 
-        self._writeline(s)
+        self._add_line(s)

@@ -4,8 +4,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from .conversion import convert_to_r_data
-from .unparser import write
 from .parser import RVersions
+from .unparser import unparse_file
 
 if TYPE_CHECKING:
     import os
@@ -28,7 +28,7 @@ def write_rdata(
         encoding=encoding,
         versions=None if versions is None else RVersions(*versions),
     )
-    write(
+    unparse_file(
         path,
         r_data,
         rds=rds,

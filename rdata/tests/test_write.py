@@ -1,4 +1,4 @@
-"""Tests of writing and Python-to-R conversion."""
+"""Tests of writing, unparsing, and Python-to-R conversion."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 import rdata
-from rdata.unparser import write_file
+from rdata.unparser import unparse_data
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -53,8 +53,8 @@ def decompress_data(data: memoryview) -> bytes:
 fnames = sorted([fpath.name for fpath in TESTDATA_PATH.glob("*.rd?")])
 
 @pytest.mark.parametrize("fname", fnames, ids=fnames)
-def test_write(fname: str) -> None:
-    """Test writing RData object to a file."""
+def test_unparse(fname: str) -> None:
+    """Test unparsing RData object to a file."""
     with (TESTDATA_PATH / fname).open("rb") as f:
         data = decompress_data(f.read())
         rds = data[:2] != b"RD"
@@ -64,7 +64,7 @@ def test_write(fname: str) -> None:
 
         fd = io.BytesIO()
         try:
-            write_file(fd, r_data, file_format=fmt, rds=rds)
+            unparse_data(fd, r_data, file_format=fmt, rds=rds)
         except NotImplementedError as e:
             pytest.xfail(str(e))
 
@@ -133,19 +133,19 @@ def test_convert_to_r_unsupported_encoding() -> None:
         rdata.conversion.convert_to_r_data("ä", encoding="CP1250")
 
 
-def test_write_big_int() -> None:
+def test_unparse_big_int() -> None:
     """Test checking too large integers."""
     big_int = 2**32
     r_data = rdata.conversion.convert_to_r_data(big_int)
     fd = io.BytesIO()
     with pytest.raises(ValueError, match="(?i)not castable"):
-        write_file(fd, r_data, file_format="xdr")
+        unparse_data(fd, r_data, file_format="xdr")
 
 
 @pytest.mark.parametrize("compression", [*valid_compressions, None, "fail"])
 @pytest.mark.parametrize("fmt", [*valid_formats, None, "fail"])
 @pytest.mark.parametrize("rds", [True, False])
-def test_write_real_file(compression: str, fmt: str, rds: bool) -> None:  # noqa: FBT001
+def test_write_file(compression: str, fmt: str, rds: bool) -> None:  # noqa: FBT001
     """Test writing RData object to a real file with compression."""
     expectation = no_error()
     if fmt not in valid_formats:
