@@ -15,7 +15,8 @@ from rdata.unparser import unparse_data
 if TYPE_CHECKING:
     from collections.abc import Generator
 
-    from rdata.unparser import FileFormatType
+    from rdata.unparser import CompressionType, FileFormatType
+
 
 TESTDATA_PATH = rdata.TESTDATA_PATH
 
@@ -142,7 +143,11 @@ def test_unparse_big_int() -> None:
 @pytest.mark.parametrize("compression", [*valid_compressions, None, "fail"])
 @pytest.mark.parametrize("fmt", [*valid_formats, None, "fail"])
 @pytest.mark.parametrize("rds", [True, False])
-def test_write_file(compression: str, fmt: FileFormatType, rds: bool) -> None:  # noqa: FBT001
+def test_write_file(
+    compression: CompressionType,
+    fmt: FileFormatType,
+    rds: bool,  # noqa: FBT001
+) -> None:
     """Test writing RData object to a real file with compression."""
     expectation = no_error()
     if fmt not in valid_formats:

@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     import os
     from typing import Any
 
-    from .unparser import FileFormatType
+    from .unparser import CompressionType, FileFormatType
 
 
 def write_rdata(
@@ -20,7 +20,7 @@ def write_rdata(
     *,
     file_format: FileFormatType = "xdr",
     rds: bool = True,
-    compression: str = "gzip",
+    compression: CompressionType = "gzip",
     encoding: str = "UTF-8",
     versions: tuple[int, int, int] | None = None,
 ) -> None:
@@ -44,7 +44,7 @@ def write_rds(
     data: Any,  # noqa: ANN401
     *,
     file_format: FileFormatType = "xdr",
-    compression: str = "gzip",
+    compression: CompressionType = "gzip",
     encoding: str = "UTF-8",
     versions: tuple[int, int, int] | None = None,
 ) -> None:
@@ -59,7 +59,7 @@ def write_rds(
         path: File path to be written.
         data: Python data object.
         file_format: File format.
-        compression: Compression (gzip, bzip2, xz, or none).
+        compression: Compression.
         encoding: Encoding to be used for strings within data.
         versions: Tuple of file version information
             (format_version, r_version, minimum_r_version).
@@ -91,7 +91,7 @@ def write_rda(
     data: dict[str, Any],
     *,
     file_format: FileFormatType = "xdr",
-    compression: str = "gzip",
+    compression: CompressionType = "gzip",
     encoding: str = "UTF-8",
     versions: tuple[int, int, int] | None = None,
 ) -> None:
@@ -106,7 +106,7 @@ def write_rda(
         path: File path to be written.
         data: Python dictionary with data and variable names.
         file_format: File format.
-        compression: Compression (gzip, bzip2, xz, or none).
+        compression: Compression.
         encoding: Encoding to be used for strings within data.
         versions: Tuple of file version information
             (format_version, r_version, minimum_r_version).

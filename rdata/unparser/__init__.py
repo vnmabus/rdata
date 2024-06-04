@@ -15,6 +15,8 @@ if TYPE_CHECKING:
     from ._xdr import UnparserXDR
 
     FileFormatType = Literal["xdr", "ascii"]
+    CompressionType = Literal["gzip", "bzip2", "xz", "none"]
+
 
 def unparse_file(
         path: os.PathLike[Any] | str,
@@ -22,7 +24,7 @@ def unparse_file(
         *,
         file_format: FileFormatType = "xdr",
         rds: bool = True,
-        compression: str = "gzip",
+        compression: CompressionType = "gzip",
 ) -> None:
     """
     Unparse RData object to a file.
@@ -38,7 +40,7 @@ def unparse_file(
     rds:
         Whether to create RDS or RDA file
     compression:
-        Compression (gzip, bzip2, xz, or none)
+        Compression
     """
     if compression == "none":
         from builtins import open  # noqa: UP029
