@@ -44,7 +44,7 @@ class Unparser(abc.ABC):
     """Unparser interface for a R file."""
 
     @abc.abstractmethod
-    def unparse_magic(self, rda_version: int | None) -> None:
+    def unparse_magic(self) -> None:
         """Unparse magic bits."""
 
     def unparse_header(self, versions: RVersions, extra: RExtraInfo) -> None:
@@ -76,9 +76,9 @@ class Unparser(abc.ABC):
     def unparse_string(self, value: bytes) -> None:
         """Unparse a string."""
 
-    def unparse_r_data(self, r_data: RData, *, rds: bool = True) -> None:
+    def unparse_r_data(self, r_data: RData) -> None:
         """Unparse an RData object."""
-        self.unparse_magic(None if rds else r_data.versions.format)
+        self.unparse_magic()
         self.unparse_header(r_data.versions, r_data.extra)
         self.unparse_r_object(r_data.object)
 

@@ -84,14 +84,20 @@ def unparse_fileobj(
 
     if file_format == "ascii":
         from ._ascii import UnparserASCII as Unparser
+        rda_magic = "RDA"
     elif file_format == "xdr":
         from ._xdr import UnparserXDR as Unparser
+        rda_magic = "RDX"
     else:
         msg = f"Unknown file format: {file_format}"
         raise ValueError(msg)
 
+    # Write rda-specific magic
+    if file_type == "rda":
+        fileobj.write(f"{rda_magic}{r_data.versions.format}\n".encode("ascii"))
+
     unparser = Unparser(fileobj)  # type: ignore [arg-type]
-    unparser.unparse_r_data(r_data, rds=file_type == "rds")
+    unparser.unparse_r_data(r_data)
 
 
 def unparse_data(

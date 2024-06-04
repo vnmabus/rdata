@@ -26,10 +26,8 @@ class UnparserXDR(Unparser):
         """Unparser for files in XDR format."""
         self.file = file
 
-    def unparse_magic(self, rda_version: int | None) -> None:
+    def unparse_magic(self) -> None:
         """Unparse magic bits."""
-        if rda_version is not None:
-            self.file.write(f"RDX{rda_version}\n".encode("ascii"))
         self.file.write(b"X\n")
 
     def _unparse_array_values(self, array: npt.NDArray[Any]) -> None:

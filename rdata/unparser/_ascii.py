@@ -31,10 +31,8 @@ class UnparserASCII(Unparser):
         # compression (e.g. when file = gzip.open())
         self.file.write(f"{line}\n".encode("ascii"))
 
-    def unparse_magic(self, rda_version: int | None) -> None:
+    def unparse_magic(self) -> None:
         """Unparse magic bits."""
-        if rda_version is not None:
-            self._add_line(f"RDA{rda_version}")
         self._add_line("A")
 
     def _unparse_array_values(self, array: npt.NDArray[Any]) -> None:
