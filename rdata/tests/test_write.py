@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 TESTDATA_PATH = rdata.TESTDATA_PATH
 
-valid_compressions = ["none", "bzip2", "gzip", "xz"]
+valid_compressions = [None, "bzip2", "gzip", "xz"]
 valid_formats = ["xdr", "ascii"]
 
 
@@ -140,7 +140,7 @@ def test_unparse_big_int() -> None:
         unparse_data(r_data, file_format="xdr")
 
 
-@pytest.mark.parametrize("compression", [*valid_compressions, None, "fail"])
+@pytest.mark.parametrize("compression", [*valid_compressions, "fail"])
 @pytest.mark.parametrize("fmt", [*valid_formats, None, "fail"])
 @pytest.mark.parametrize("rds", [True, False])
 def test_write_file(

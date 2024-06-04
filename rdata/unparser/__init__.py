@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from ._xdr import UnparserXDR
 
     FileFormatType = Literal["xdr", "ascii"]
-    CompressionType = Literal["gzip", "bzip2", "xz", "none"]
+    CompressionType = Literal["gzip", "bzip2", "xz", None]
 
 
 def unparse_file(
@@ -42,7 +42,7 @@ def unparse_file(
     compression:
         Compression
     """
-    if compression == "none":
+    if compression is None:
         from builtins import open  # noqa: UP029
     elif compression == "bzip2":
         from bz2 import open  # type: ignore [no-redef]
@@ -52,8 +52,6 @@ def unparse_file(
         from lzma import open  # type: ignore [no-redef]
     else:
         msg = f"Unknown compression: {compression}"
-        if compression is None:
-            msg += ". Use 'none' for no compression."
         raise ValueError(msg)
 
     with open(path, "wb") as f:
