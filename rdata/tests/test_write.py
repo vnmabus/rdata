@@ -15,7 +15,7 @@ from rdata.unparser import unparse_data
 if TYPE_CHECKING:
     from collections.abc import Generator
 
-    from rdata.unparser import CompressionType, FileFormatType
+    from rdata.unparser import CompressionType, FileFormatType, FileTypeType
 
 
 TESTDATA_PATH = rdata.TESTDATA_PATH
@@ -59,13 +59,13 @@ def test_unparse(fname: str) -> None:
     """Test unparsing RData object to a file."""
     with (TESTDATA_PATH / fname).open("rb") as f:
         data = decompress_data(f.read())
-        rds = data[:2] != b"RD"
+        file_type: FileTypeType = "rda" if data[:2] == b"RD" else "rds"
         fmt: FileFormatType = "ascii" if data.isascii() else "xdr"
 
         r_data = rdata.parser.parse_data(data, expand_altrep=False)
 
         try:
-            out_data = unparse_data(r_data, file_format=fmt, rds=rds)
+            out_data = unparse_data(r_data, file_format=fmt, file_type=file_type)
         except NotImplementedError as e:
             pytest.xfail(str(e))
 

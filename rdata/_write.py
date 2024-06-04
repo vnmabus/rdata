@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     import os
     from typing import Any
 
-    from .unparser import CompressionType, FileFormatType
+    from .unparser import CompressionType, FileFormatType, FileTypeType
 
 
 def write_rdata(
@@ -19,21 +19,21 @@ def write_rdata(
     data: Any,  # noqa: ANN401
     *,
     file_format: FileFormatType = "xdr",
-    rds: bool = True,
+    file_type: FileTypeType = "rds",
     compression: CompressionType = "gzip",
     encoding: str = "UTF-8",
     versions: tuple[int, int, int] | None = None,
 ) -> None:
     r_data = convert_to_r_data(
         data,
-        rds=rds,
+        rds=file_type == "rds",
         encoding=encoding,
         versions=None if versions is None else RVersions(*versions),
     )
     unparse_file(
         path,
         r_data,
-        rds=rds,
+        file_type=file_type,
         file_format=file_format,
         compression=compression,
     )
@@ -79,7 +79,7 @@ def write_rds(
         path=path,
         data=data,
         file_format=file_format,
-        rds=True,
+        file_type="rds",
         compression=compression,
         encoding=encoding,
         versions=versions,
@@ -126,7 +126,7 @@ def write_rda(
         path=path,
         data=data,
         file_format=file_format,
-        rds=False,
+        file_type="rda",
         compression=compression,
         encoding=encoding,
         versions=versions,

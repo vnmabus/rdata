@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from ._xdr import UnparserXDR
 
     FileFormatType = Literal["xdr", "ascii"]
+    FileTypeType = Literal["rds", "rda"]
     CompressionType = Literal["gzip", "bzip2", "xz", None]
 
 
@@ -23,7 +24,7 @@ def unparse_file(
         r_data: RData,
         *,
         file_format: FileFormatType = "xdr",
-        rds: bool = True,
+        file_type: FileTypeType = "rds",
         compression: CompressionType = "gzip",
 ) -> None:
     """
@@ -37,8 +38,8 @@ def unparse_file(
         RData object
     file_format:
         File format
-    rds:
-        Whether to create RDS or RDA file
+    file_type:
+        File type
     compression:
         Compression
     """
@@ -55,7 +56,7 @@ def unparse_file(
         raise ValueError(msg)
 
     with open(path, "wb") as f:
-        unparse_fileobj(f, r_data, file_format=file_format, rds=rds)
+        unparse_fileobj(f, r_data, file_format=file_format, file_type=file_type)
 
 
 def unparse_fileobj(
@@ -63,7 +64,7 @@ def unparse_fileobj(
         r_data: RData,
         *,
         file_format: FileFormatType = "xdr",
-        rds: bool = True,
+        file_type: FileTypeType = "rds",
 ) -> None:
     """
     Unparse RData object to a file object.
@@ -76,8 +77,8 @@ def unparse_fileobj(
         RData object
     file_format:
         File format
-    rds:
-        Whether to create RDS or RDA file
+    file_type:
+        File type
     """
     Unparser: type[UnparserXDR | UnparserASCII]  # noqa: N806
 
@@ -90,14 +91,14 @@ def unparse_fileobj(
         raise ValueError(msg)
 
     unparser = Unparser(fileobj)  # type: ignore [arg-type]
-    unparser.unparse_r_data(r_data, rds=rds)
+    unparser.unparse_r_data(r_data, rds=file_type == "rds")
 
 
 def unparse_data(
         r_data: RData,
         *,
         file_format: FileFormatType = "xdr",
-        rds: bool = True,
+        file_type: FileTypeType = "rds",
 ) -> bytes:
     """
     Unparse RData object to a bytestring.
@@ -108,8 +109,8 @@ def unparse_data(
         RData object
     file_format:
         File format
-    rds:
-        Whether to create RDS or RDA file
+    file_type:
+        File type
 
     Returns:
     -------
@@ -117,5 +118,5 @@ def unparse_data(
         Bytestring of data
     """
     fd = io.BytesIO()
-    unparse_fileobj(fd, r_data, file_format=file_format, rds=rds)
+    unparse_fileobj(fd, r_data, file_format=file_format, file_type=file_type)
     return fd.getvalue()
