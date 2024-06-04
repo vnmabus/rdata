@@ -3,22 +3,24 @@
 from __future__ import annotations
 
 import io
-from typing import IO, TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import os
+    from typing import IO, Any, Literal
 
     from rdata.parser import RData
 
     from ._ascii import UnparserASCII
     from ._xdr import UnparserXDR
 
+    FileFormatType = Literal["xdr", "ascii"]
 
 def unparse_file(
         path: os.PathLike[Any] | str,
         r_data: RData,
         *,
-        file_format: str = "xdr",
+        file_format: FileFormatType = "xdr",
         rds: bool = True,
         compression: str = "gzip",
 ) -> None:
@@ -32,7 +34,7 @@ def unparse_file(
     r_data:
         RData object
     file_format:
-        File format (ascii or xdr)
+        File format
     rds:
         Whether to create RDS or RDA file
     compression:
@@ -60,7 +62,7 @@ def unparse_fileobj(
         fileobj: IO[Any],
         r_data: RData,
         *,
-        file_format: str = "xdr",
+        file_format: FileFormatType = "xdr",
         rds: bool = True,
 ) -> None:
     """
@@ -73,7 +75,7 @@ def unparse_fileobj(
     r_data:
         RData object
     file_format:
-        File format (ascii or xdr)
+        File format
     rds:
         Whether to create RDS or RDA file
     """
@@ -94,7 +96,7 @@ def unparse_fileobj(
 def unparse_data(
         r_data: RData,
         *,
-        file_format: str = "xdr",
+        file_format: FileFormatType = "xdr",
         rds: bool = True,
 ) -> bytes:
     """
@@ -105,7 +107,7 @@ def unparse_data(
     r_data:
         RData object
     file_format:
-        File format (ascii or xdr)
+        File format
     rds:
         Whether to create RDS or RDA file
 
