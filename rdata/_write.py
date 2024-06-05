@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from .conversion import convert_to_r_data
+from .conversion import build_r_data, convert_to_r_object, convert_to_r_object_for_rda
 from .parser import RVersions
 from .unparser import unparse_file
 
@@ -11,32 +11,7 @@ if TYPE_CHECKING:
     import os
     from typing import Any
 
-    from .unparser import CompressionType, FileFormatType, FileTypeType
-
-
-def write_rdata(
-    path: os.PathLike[Any] | str,
-    data: Any,  # noqa: ANN401
-    *,
-    file_format: FileFormatType = "xdr",
-    file_type: FileTypeType = "rds",
-    compression: CompressionType = "gzip",
-    encoding: str = "UTF-8",
-    versions: tuple[int, int, int] | None = None,
-) -> None:
-    r_data = convert_to_r_data(
-        data,
-        rds=file_type == "rds",
-        encoding=encoding,
-        versions=None if versions is None else RVersions(*versions),
-    )
-    unparse_file(
-        path,
-        r_data,
-        file_type=file_type,
-        file_format=file_format,
-        compression=compression,
-    )
+    from .unparser import CompressionType, FileFormatType
 
 
 def write_rds(
@@ -52,7 +27,9 @@ def write_rds(
     Write an RDS file.
 
     This is a convenience function that wraps
-    :func:`rdata.conversion.convert_to_r_data` and :func:`rdata.unparser.unparse_file`,
+    :func:`rdata.conversion.convert_to_r_object`,
+    :func:`rdata.conversion.build_r_data`,
+    and :func:`rdata.unparser.unparse_file`,
     as it is the common use case.
 
     Args:
@@ -75,14 +52,21 @@ def write_rds(
         >>> data = ["hello", 1, 2.2, 3.3+4.4j]
         >>> rdata.write_rds("test.rds", data)
     """
-    return write_rdata(
-        path=path,
-        data=data,
-        file_format=file_format,
-        file_type="rds",
-        compression=compression,
+    r_object = convert_to_r_object(
+        data,
         encoding=encoding,
-        versions=versions,
+    )
+    r_data = build_r_data(
+        r_object,
+        encoding=encoding,
+        versions=None if versions is None else RVersions(*versions),
+    )
+    unparse_file(
+        path,
+        r_data,
+        file_type="rds",
+        file_format=file_format,
+        compression=compression,
     )
 
 
@@ -99,7 +83,9 @@ def write_rda(
     Write an RDA or RDATA file.
 
     This is a convenience function that wraps
-    :func:`rdata.conversion.convert_to_r_data` and :func:`rdata.unparser.unparse_file`,
+    :func:`rdata.conversion.convert_to_r_object_for_rda`,
+    :func:`rdata.conversion.build_r_data`,
+    and :func:`rdata.unparser.unparse_file`,
     as it is the common use case.
 
     Args:
@@ -122,13 +108,19 @@ def write_rda(
         >>> data = {"name": "hello", "values": [1, 2.2, 3.3+4.4j]}
         >>> rdata.write_rda("test.rda", data)
     """
-    return write_rdata(
-        path=path,
-        data=data,
-        file_format=file_format,
-        file_type="rda",
-        compression=compression,
+    r_object = convert_to_r_object_for_rda(
+        data,
         encoding=encoding,
-        versions=versions,
     )
-
+    r_data = build_r_data(
+        r_object,
+        encoding=encoding,
+        versions=None if versions is None else RVersions(*versions),
+    )
+    unparse_file(
+        path,
+        r_data,
+        file_type="rda",
+        file_format=file_format,
+        compression=compression,
+    )

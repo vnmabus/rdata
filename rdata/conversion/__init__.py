@@ -25,6 +25,7 @@ from ._conversion import (
     ts_constructor as ts_constructor,
 )
 from .to_r import (
-    convert_to_r_data as convert_to_r_data,
+    build_r_data as build_r_data,
     convert_to_r_object as convert_to_r_object,
+    convert_to_r_object_for_rda as convert_to_r_object_for_rda,
 )

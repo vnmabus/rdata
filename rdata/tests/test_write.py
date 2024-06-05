@@ -103,8 +103,14 @@ def test_convert_to_r(fname: str) -> None:
             encoding = "CP1252" if "win" in fname else "UTF-8"
 
         try:
-            new_r_data = rdata.conversion.convert_to_r_data(
-                py_data, rds=rds, versions=r_data.versions, encoding=encoding,
+            if rds:
+                r_obj = rdata.conversion.convert_to_r_object(
+                    py_data, encoding=encoding)
+            else:
+                r_obj = rdata.conversion.convert_to_r_object_for_rda(
+                    py_data, encoding=encoding)
+            new_r_data = rdata.conversion.build_r_data(
+                r_obj, versions=r_data.versions, encoding=encoding,
                 )
         except NotImplementedError as e:
             pytest.xfail(str(e))
@@ -116,26 +122,27 @@ def test_convert_to_r(fname: str) -> None:
 def test_convert_to_r_bad_rda() -> None:
     """Test checking that data for RDA has variable names."""
     py_data = "hello"
-    with pytest.raises(ValueError, match="(?i)data must be a dictionary"):
-        rdata.conversion.convert_to_r_data(py_data, rds=False)
+    with pytest.raises(TypeError, match="(?i)data must be a dictionary"):
+        rdata.conversion.convert_to_r_object_for_rda(py_data)  # type: ignore [arg-type]
 
 
 def test_convert_to_r_bad_encoding() -> None:
     """Test checking encoding."""
     with pytest.raises(LookupError, match="(?i)unknown encoding"):
-        rdata.conversion.convert_to_r_data("ä", encoding="non-existent")
+        rdata.conversion.convert_to_r_object("ä", encoding="non-existent")
 
 
 def test_convert_to_r_unsupported_encoding() -> None:
     """Test checking encoding."""
     with pytest.raises(ValueError, match="(?i)unsupported encoding"):
-        rdata.conversion.convert_to_r_data("ä", encoding="CP1250")
+        rdata.conversion.convert_to_r_object("ä", encoding="CP1250")
 
 
 def test_unparse_big_int() -> None:
     """Test checking too large integers."""
     big_int = 2**32
-    r_data = rdata.conversion.convert_to_r_data(big_int)
+    r_obj = rdata.conversion.convert_to_r_object(big_int)
+    r_data = rdata.conversion.build_r_data(r_obj)
     with pytest.raises(ValueError, match="(?i)not castable"):
         unparse_data(r_data, file_format="xdr")
 

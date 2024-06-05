@@ -5,6 +5,11 @@ from __future__ import annotations
 import io
 from typing import TYPE_CHECKING
 
+from rdata.parser import (
+    RData,
+    RObjectType,
+)
+
 if TYPE_CHECKING:
     import os
     from typing import IO, Any, Literal
@@ -91,6 +96,15 @@ def unparse_fileobj(
     else:
         msg = f"Unknown file format: {file_format}"
         raise ValueError(msg)
+
+    # Check that RData object for rda file is of correct kind
+    if file_type == "rda":
+        r_object = r_data.object
+        if not (r_object.info.type is RObjectType.LIST
+                and r_object.tag is not None
+                and r_object.tag.info.type is RObjectType.SYM):
+            msg = "r_data object must be dictionary-like for rda file"
+            raise ValueError(msg)
 
     # Write rda-specific magic
     if file_type == "rda":

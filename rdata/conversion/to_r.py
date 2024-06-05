@@ -154,24 +154,21 @@ def build_r_sym(
     return build_r_object(r_type, value=r_value)
 
 
-def convert_to_r_data(
-        data: Any,  # noqa: ANN401
+def build_r_data(
+        r_object: RObject,
         *,
         encoding: str = "UTF-8",
-        rds: bool = True,
         versions: RVersions | None = None,
 ) -> RData:
     """
-    Convert Python data to RData object.
+    Build RData object from R object.
 
     Parameters
     ----------
-    data:
-        Any Python object.
+    r_object:
+        R object.
     encoding:
         Encoding to be used for strings within data.
-    rds:
-        Whether to write RDS or RDA file.
     versions:
         File version information.
 
@@ -191,21 +188,43 @@ def convert_to_r_data(
     extra = RExtraInfo(encoding) if versions.format >= minimum_version_with_encoding \
             else RExtraInfo(None)
 
-    if rds:
-        obj = convert_to_r_object(data, encoding=encoding)
-    else:
-        if not isinstance(data, dict):
-            msg = "For RDA file, data must be a dictionary."
-            raise ValueError(msg)
-        obj = build_r_list(data, encoding=encoding)
+    return RData(versions, extra, r_object)
 
-    return RData(versions, extra, obj)
+
+def convert_to_r_object_for_rda(
+        data: Mapping[str, Any],
+        *,
+        encoding: str = "UTF-8",
+) -> RObject:
+    """
+    Convert Python dictionary to R object for RDA file.
+
+    Parameters
+    ----------
+    data:
+        Python dictionary with data and variable names.
+    encoding:
+        Encoding to be used for strings within data.
+
+    Returns:
+    -------
+    r_object:
+        Corresponding R object.
+
+    See Also:
+    --------
+    convert_to_r_object
+    """
+    if not isinstance(data, dict):
+        msg = "For RDA file, data must be a dictionary."
+        raise TypeError(msg)
+    return build_r_list(data, encoding=encoding)
 
 
 def convert_to_r_object(  # noqa: C901, PLR0912, PLR0915
         data: Any,  # noqa: ANN401
         *,
-        encoding: str,
+        encoding: str = "UTF-8",
 ) -> RObject:
     """
     Convert Python data to R object.
