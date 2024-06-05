@@ -19,18 +19,18 @@ if TYPE_CHECKING:
     from ._ascii import UnparserASCII
     from ._xdr import UnparserXDR
 
-    FileFormatType = Literal["xdr", "ascii"]
-    FileTypeType = Literal["rds", "rda"]
-    CompressionType = Literal["gzip", "bzip2", "xz", None]
+    FileFormat = Literal["xdr", "ascii"]
+    FileType = Literal["rds", "rda"]
+    Compression = Literal["gzip", "bzip2", "xz", None]
 
 
 def unparse_file(
         path: os.PathLike[Any] | str,
         r_data: RData,
         *,
-        file_format: FileFormatType = "xdr",
-        file_type: FileTypeType = "rds",
-        compression: CompressionType = "gzip",
+        file_format: FileFormat = "xdr",
+        file_type: FileType = "rds",
+        compression: Compression = "gzip",
 ) -> None:
     """
     Unparse RData object to a file.
@@ -68,8 +68,8 @@ def unparse_fileobj(
         fileobj: IO[Any],
         r_data: RData,
         *,
-        file_format: FileFormatType = "xdr",
-        file_type: FileTypeType = "rds",
+        file_format: FileFormat = "xdr",
+        file_type: FileType = "rds",
 ) -> None:
     """
     Unparse RData object to a file object.
@@ -117,8 +117,8 @@ def unparse_fileobj(
 def unparse_data(
         r_data: RData,
         *,
-        file_format: FileFormatType = "xdr",
-        file_type: FileTypeType = "rds",
+        file_format: FileFormat = "xdr",
+        file_type: FileType = "rds",
 ) -> bytes:
     """
     Unparse RData object to a bytestring.

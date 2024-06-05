@@ -11,15 +11,15 @@ if TYPE_CHECKING:
     import os
     from typing import Any
 
-    from .unparser import CompressionType, FileFormatType
+    from .unparser import Compression, FileFormat
 
 
 def write_rds(
     path: os.PathLike[Any] | str,
     data: Any,  # noqa: ANN401
     *,
-    file_format: FileFormatType = "xdr",
-    compression: CompressionType = "gzip",
+    file_format: FileFormat = "xdr",
+    compression: Compression = "gzip",
     encoding: str = "UTF-8",
     versions: tuple[int, int, int] | None = None,
 ) -> None:
@@ -74,8 +74,8 @@ def write_rda(
     path: os.PathLike[Any] | str,
     data: dict[str, Any],
     *,
-    file_format: FileFormatType = "xdr",
-    compression: CompressionType = "gzip",
+    file_format: FileFormat = "xdr",
+    compression: Compression = "gzip",
     encoding: str = "UTF-8",
     versions: tuple[int, int, int] | None = None,
 ) -> None:
