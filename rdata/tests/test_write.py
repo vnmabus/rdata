@@ -126,6 +126,15 @@ def test_convert_to_r_bad_rda() -> None:
         rdata.conversion.convert_to_r_object_for_rda(py_data)  # type: ignore [arg-type]
 
 
+def test_unparse_bad_rda() -> None:
+    """Test checking that data for RDA has variable names."""
+    py_data = "hello"
+    r_obj = rdata.conversion.convert_to_r_object(py_data)
+    r_data = rdata.conversion.build_r_data(r_obj)
+    with pytest.raises(ValueError, match="(?i)must be dictionary-like"):
+        unparse_data(r_data, file_type="rda")
+
+
 def test_convert_to_r_bad_encoding() -> None:
     """Test checking encoding."""
     with pytest.raises(LookupError, match="(?i)unknown encoding"):
