@@ -262,7 +262,8 @@ def convert_to_r_object(  # noqa: C901, PLR0912, PLR0915
         r_value = [convert_to_r_object(el, encoding=encoding) for el in values]
 
         if isinstance(data, dict):
-            attributes = build_r_list({"names": np.array(list(data.keys()))},
+            names = np.array(list(data.keys()), dtype=np.dtype("U"))
+            attributes = build_r_list({"names": names},
                                       encoding=encoding)
 
     elif isinstance(data, np.ndarray):
@@ -279,7 +280,7 @@ def convert_to_r_object(  # noqa: C901, PLR0912, PLR0915
 
         elif data.dtype.kind in ["U"]:
             assert data.ndim == 1
-            data = np.array([s.encode(encoding) for s in data])
+            data = np.array([s.encode(encoding) for s in data], dtype=np.dtype("S"))
             return convert_to_r_object(data, encoding=encoding)
 
         else:
