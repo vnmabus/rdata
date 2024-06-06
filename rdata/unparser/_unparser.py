@@ -27,13 +27,14 @@ def pack_r_object_info(info: RObjectInfo) -> np.int32:
     elif info.type == RObjectType.REF:
         bits = f"{info.reference:24b}"
     else:
-        bits = (f"{0:4b}"
-                f"{info.gp:16b}"
-                f"{0:1b}"
-                f"{info.tag:1b}"
-                f"{info.attributes:1b}"
-                f"{info.object:1b}"
-                )
+        bits = (
+            f"{0:4b}"
+            f"{info.gp:16b}"
+            f"{0:1b}"
+            f"{info.tag:1b}"
+            f"{info.attributes:1b}"
+            f"{info.object:1b}"
+        )
     bits += f"{info.type.value:8b}"
     bits = bits.replace(" ", "0")
     assert len(bits) == 32  # noqa: PLR2004
