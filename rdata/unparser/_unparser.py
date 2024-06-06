@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     import numpy.typing as npt
 
 
-def pack_r_object_info(info: RObjectInfo) -> np.int32:
+def pack_r_object_info(info: RObjectInfo) -> int:
     """Pack RObjectInfo to an integer."""
     if info.type == RObjectType.NILVALUE:
         bits = f"{0:24b}"
@@ -38,7 +38,7 @@ def pack_r_object_info(info: RObjectInfo) -> np.int32:
     bits += f"{info.type.value:8b}"
     bits = bits.replace(" ", "0")
     assert len(bits) == 32  # noqa: PLR2004
-    return np.packbits([int(b) for b in bits]).view(">i4").astype("=i4")[0]  # type: ignore [no-any-return]
+    return int(f"0b{bits}", base=2)
 
 
 class Unparser(abc.ABC):
