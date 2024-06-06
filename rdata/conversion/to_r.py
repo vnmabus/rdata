@@ -25,9 +25,14 @@ from . import (
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
-    from typing import Any, Callable, Final
+    from typing import Any, Final, Protocol
 
-    from mypy_extensions import NamedArg
+    class Converter(Protocol):
+        """Protocol for Py-to-R conversion."""
+
+        def __call__(self, data: Any, *, encoding: str) -> RObject: # noqa: ANN401
+            """Convert Python object to R object."""
+
 
 
 # Default values for RVersions object
@@ -96,8 +101,7 @@ def build_r_list(
         data: Mapping[str, Any] | list[Any],
         *,
         encoding: str,
-        convert_value: Callable[[Any, NamedArg(str, "encoding")], RObject] \
-            | None = None,
+        convert_value: Converter | None = None,
 ) -> RObject:
     """
     Build R object representing named linked list.
