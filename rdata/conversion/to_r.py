@@ -209,7 +209,7 @@ def convert_to_r_object_for_rda(
         convert_to_r_object
     """
     if not isinstance(data, dict):
-        msg = "For RDA file, data must be a dictionary."
+        msg = f"for RDA file, data must be a dictionary, not type {type(data)}"
         raise TypeError(msg)
     return build_r_list(data, encoding=encoding)
 
