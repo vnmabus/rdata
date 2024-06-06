@@ -13,7 +13,6 @@ import rdata
 from rdata.unparser import unparse_data
 
 if TYPE_CHECKING:
-
     from rdata.unparser import Compression, FileFormat, FileType
 
 
@@ -45,12 +44,35 @@ fnames = sorted([fpath.name for fpath in Path(str(TESTDATA_PATH)).glob("*.rd?")]
 
 def parse_file_type_and_format(data: bytes) -> tuple[FileType, FileFormat]:
     """Parse file type and format from data."""
-    file_type: FileType = "rda" if data[:2] == b"RD" else "rds"
-    format_integer = data[0] if file_type == "rds" else data[data.find(b"\n") + 1]
-    format_byte = chr(format_integer).encode("ascii")
-    assert format_byte in {b"A", b"X"}
-    file_format: FileFormat = "xdr" if format_byte == b"X" else "ascii"
-    return file_type, file_format
+    from rdata.parser._parser import (
+        FileTypes,
+        RdataFormats,
+        file_type,
+        magic_dict,
+        rdata_format,
+    )
+    view = memoryview(data)
+
+    file_type_str: FileType
+    file_format_str: FileFormat
+
+    filetype = file_type(view)
+    if filetype in {
+            FileTypes.rdata_binary_v2,
+            FileTypes.rdata_binary_v3,
+            FileTypes.rdata_ascii_v2,
+            FileTypes.rdata_ascii_v3,
+            }:
+        file_type_str = "rda"
+        magic = magic_dict[filetype]
+        view = view[len(magic):]
+    else:
+        file_type_str = "rds"
+
+    rdataformat = rdata_format(view)
+    file_format_str = "xdr" if rdataformat is RdataFormats.XDR else "ascii"
+
+    return file_type_str, file_format_str
 
 
 @pytest.mark.parametrize("fname", fnames, ids=fnames)
