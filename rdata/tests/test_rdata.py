@@ -562,6 +562,16 @@ class SimpleTests(unittest.TestCase):
             "test_emptyenv": ChainMap({}),
         }
 
+    def test_empty_list(self) -> None:
+        """Test parsing the empty list."""
+        data = rdata.read_rds(TESTDATA_PATH / "test_empty_list.rds")
+        assert data == []
+
+    def test_empty_named_list(self) -> None:
+        """Test parsing the empty list."""
+        data = rdata.read_rds(TESTDATA_PATH / "test_empty_named_list.rds")
+        assert data == {}
+
     def test_list_attrs(self) -> None:
         """Test that lists accept attributes."""
         data = rdata.read_rda(TESTDATA_PATH / "test_list_attrs.rda")
