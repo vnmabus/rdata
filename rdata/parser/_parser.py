@@ -52,9 +52,7 @@ class BinaryBufferFileLike(Protocol):
 AcceptableFile = Union[BinaryFileLike, BinaryBufferFileLike]
 
 try:
-    from importlib.resources.abc import (  # type: ignore [import-not-found]
-        Traversable as Traversable,
-    )
+    from importlib.resources.abc import Traversable as Traversable
 except ImportError:
 
     @runtime_checkable
