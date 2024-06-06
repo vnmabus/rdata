@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import tempfile
-from contextlib import contextmanager
+from contextlib import nullcontext
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -13,7 +13,6 @@ import rdata
 from rdata.unparser import unparse_data
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
 
     from rdata.unparser import Compression, FileFormat, FileType
 
@@ -22,16 +21,6 @@ TESTDATA_PATH = rdata.TESTDATA_PATH
 
 valid_compressions = [None, "bzip2", "gzip", "xz"]
 valid_formats = ["xdr", "ascii"]
-
-
-@contextmanager
-def no_error() -> Generator[Any, Any, Any]:
-    """Context manager that does nothing but returns no_error.
-
-    This context manager can be used like pytest.raises()
-    when no error is expected.
-    """
-    yield no_error
 
 
 def decompress_data(data: bytes) -> bytes:
@@ -184,7 +173,7 @@ def test_write_file(
     file_type: FileType,
 ) -> None:
     """Test writing RData object to a real file with compression."""
-    expectation = no_error()
+    expectation = nullcontext()
     if file_format not in valid_formats:
         expectation = pytest.raises(ValueError, match="(?i)unknown file format")  # type: ignore [assignment]
     if compression not in valid_compressions:
@@ -197,8 +186,6 @@ def test_write_file(
     with tempfile.TemporaryDirectory() as tmpdir:
         fpath = Path(tmpdir) / f"file{suffix}"
 
-        with expectation as status:
+        with expectation:
             write(fpath, py_data, file_format=file_format, compression=compression)
-
-        if status is no_error:
             assert py_data == read(fpath)
