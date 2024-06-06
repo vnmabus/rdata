@@ -98,7 +98,7 @@ def build_r_list(
     Build R object representing named linked list.
 
     Args:
-        data: Dictionary or list.
+        data: Non-empty dictionary or list.
         encoding: Encoding to be used for strings within data.
         convert_value: Function used for converting value to R object
             (for example, convert_to_r_object).
@@ -108,6 +108,10 @@ def build_r_list(
     """
     if convert_value is None:
         convert_value = convert_to_r_object
+
+    if len(data) == 0:
+        msg = "data must not be empty"
+        raise ValueError(msg)
 
     if isinstance(data, dict):
         data = data.copy()
