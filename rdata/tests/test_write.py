@@ -54,22 +54,31 @@ def decompress_data(data: bytes) -> bytes:
 
 fnames = sorted([fpath.name for fpath in Path(str(TESTDATA_PATH)).glob("*.rd?")])
 
+def parse_file_type_and_format(data: bytes) -> tuple[FileType, FileFormat]:
+    """Parse file type and format from data."""
+    file_type: FileType = "rda" if data[:2] == b"RD" else "rds"
+    format_integer = data[0] if file_type == "rds" else data[data.find(b"\n") + 1]
+    format_byte = chr(format_integer).encode("ascii")
+    assert format_byte in {b"A", b"X"}
+    file_format: FileFormat = "xdr" if format_byte == b"X" else "ascii"
+    return file_type, file_format
+
+
 @pytest.mark.parametrize("fname", fnames, ids=fnames)
 def test_unparse(fname: str) -> None:
     """Test unparsing RData object to a file."""
     with (TESTDATA_PATH / fname).open("rb") as f:
         data = decompress_data(f.read())
-        file_type: FileType = "rda" if data[:2] == b"RD" else "rds"
-        fmt: FileFormat = "ascii" if data.isascii() else "xdr"
-
+        file_type, file_format = parse_file_type_and_format(data)
         r_data = rdata.parser.parse_data(data, expand_altrep=False)
 
         try:
-            out_data = unparse_data(r_data, file_format=fmt, file_type=file_type)
+            out_data = unparse_data(
+                r_data, file_format=file_format, file_type=file_type)
         except NotImplementedError as e:
             pytest.xfail(str(e))
 
-        if fmt == "ascii":
+        if file_format == "ascii":
             data = data.replace(b"\r\n", b"\n")
 
         assert data == out_data
