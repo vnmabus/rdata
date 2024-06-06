@@ -52,7 +52,7 @@ def decompress_data(data: memoryview) -> bytes:
     return decompress(data)
 
 
-fnames = sorted([fpath.name for fpath in TESTDATA_PATH.glob("*.rd?")])
+fnames = sorted([fpath.name for fpath in Path(str(TESTDATA_PATH)).glob("*.rd?")])
 
 @pytest.mark.parametrize("fname", fnames, ids=fnames)
 def test_unparse(fname: str) -> None:
