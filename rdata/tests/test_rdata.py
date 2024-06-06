@@ -703,6 +703,17 @@ class SimpleTests(unittest.TestCase):
                 np.testing.assert_equal(ma.get_fill_value(),
                                         ref_ma.get_fill_value())
 
+    def test_nan_inf(self) -> None:
+        """Test reading nan and inf."""
+        data = rdata.read_rds(TESTDATA_PATH / "test_nan_inf.rds")
+        np.testing.assert_equal(data, [0., np.nan, np.inf, -np.inf])
+
+    def test_ascii_nan_inf(self) -> None:
+        """Test reading nan and inf in ascii."""
+        data = rdata.read_rds(TESTDATA_PATH / "test_ascii_nan_inf.rds")
+        np.testing.assert_equal(data, [0., np.nan, np.inf, -np.inf])
+
+
 
 if __name__ == "__main__":
     unittest.main()
