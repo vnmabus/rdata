@@ -272,8 +272,10 @@ def convert_to_r_object(  # noqa: C901, PLR0912, PLR0915
 
     elif isinstance(data, np.ndarray):
         if data.dtype.kind in ["O"]:
-            assert data.size == 1
-            assert data[0] is None
+            # This is a special case handling only np.array([None])
+            if data.size != 1 or data[0] is not None:
+                msg = "general object array not implemented"
+                raise NotImplementedError(msg)
             r_type = RObjectType.STR
             r_value = [build_r_object(RObjectType.CHAR)]
 
