@@ -138,6 +138,13 @@ def test_convert_to_r_bad_rda() -> None:
         rdata.conversion.convert_to_r_object_for_rda(py_data)  # type: ignore [arg-type]
 
 
+def test_convert_to_r_empty_rda() -> None:
+    """Test checking that data for RDA has variable names."""
+    py_data: dict[str, Any] = {}
+    with pytest.raises(ValueError, match="(?i)data must not be empty"):
+        rdata.conversion.convert_to_r_object_for_rda(py_data)
+
+
 def test_unparse_bad_rda() -> None:
     """Test checking that data for RDA has variable names."""
     py_data = "hello"
