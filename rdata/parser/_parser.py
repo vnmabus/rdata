@@ -372,7 +372,7 @@ class RObject:
 
         # Compare value field
         if isinstance(self.value, np.ndarray):
-            if np.any(self.value != other.value):
+            if not np.array_equal(self.value, other.value, equal_nan=True):
                 return False
         elif self.value != other.value:
             return False
