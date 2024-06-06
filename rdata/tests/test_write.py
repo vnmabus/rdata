@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import tempfile
-from contextlib import nullcontext
+from contextlib import AbstractContextManager, nullcontext
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -195,11 +195,11 @@ def test_write_file(
     file_type: FileType,
 ) -> None:
     """Test writing RData object to a real file with compression."""
-    expectation = nullcontext()
+    expectation: AbstractContextManager[Any] = nullcontext()
     if file_format not in valid_formats:
-        expectation = pytest.raises(ValueError, match="(?i)unknown file format")  # type: ignore [assignment]
+        expectation = pytest.raises(ValueError, match="(?i)unknown file format")
     if compression not in valid_compressions:
-        expectation = pytest.raises(ValueError, match="(?i)unknown compression")  # type: ignore [assignment]
+        expectation = pytest.raises(ValueError, match="(?i)unknown compression")
 
     py_data = {"key": "Hello", "none": None}
     suffix = ".rds" if file_type == "rds" else ".rda"
