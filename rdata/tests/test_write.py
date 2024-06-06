@@ -34,11 +34,11 @@ def no_error() -> Generator[Any, Any, Any]:
     yield no_error
 
 
-def decompress_data(data: memoryview) -> bytes:
+def decompress_data(data: bytes) -> bytes:
     """Decompress bytes."""
     from rdata.parser._parser import FileTypes, file_type
 
-    filetype = file_type(data)
+    filetype = file_type(memoryview(data))
 
     if filetype is FileTypes.bzip2:
         from bz2 import decompress
