@@ -51,9 +51,16 @@ class UnparserASCII(Unparser):
                 line = "NA" if value is None or np.ma.is_masked(value) else str(value)  # type: ignore [no-untyped-call]
 
             elif np.issubdtype(array.dtype, np.floating):
-                line = str(value)
-                if line.endswith(".0"):
-                    line = line[:-2]
+                if np.isnan(value):
+                    line = "NaN"
+                elif value == np.inf:
+                    line = "Inf"
+                elif value == -np.inf:
+                    line = "-Inf"
+                else:
+                    line = str(value)
+                    if line.endswith(".0"):
+                        line = line[:-2]
 
             else:
                 msg = f"Unknown dtype: {array.dtype}"
