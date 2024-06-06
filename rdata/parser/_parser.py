@@ -224,6 +224,15 @@ class RVersions:
     serialized: int
     minimum: int
 
+    def __str__(self) -> str:
+        return (
+            "RVersions("
+            f"format={self.format}, "
+            f"serialized={self.serialized:#x}, "
+            f"minimum={self.minimum:#x}"
+            ")"
+        )
+
 
 @dataclass
 class RExtraInfo:
