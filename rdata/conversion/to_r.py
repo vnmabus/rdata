@@ -184,8 +184,8 @@ def build_r_data(
     )
 
     minimum_version_with_encoding = 3
-    extra = RExtraInfo(encoding) if versions.format >= minimum_version_with_encoding \
-            else RExtraInfo(None)
+    extra = (RExtraInfo(encoding) if versions.format >= minimum_version_with_encoding
+             else RExtraInfo(None))
 
     return RData(versions, extra, r_object)
 
