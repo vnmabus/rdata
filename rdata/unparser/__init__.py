@@ -43,18 +43,18 @@ def unparse_file(
         compression: Compression.
     """
     if compression is None:
-        from builtins import open  # noqa: UP029
+        open_with_compression = open
     elif compression == "bzip2":
-        from bz2 import open  # type: ignore [no-redef]
+        from bz2 import open as open_with_compression  # type: ignore [assignment]
     elif compression == "gzip":
-        from gzip import open  # type: ignore [no-redef]
+        from gzip import open as open_with_compression  # type: ignore [assignment]
     elif compression == "xz":
-        from lzma import open  # type: ignore [no-redef]
+        from lzma import open as open_with_compression  # type: ignore [assignment]
     else:
         msg = f"Unknown compression: {compression}"
         raise ValueError(msg)
 
-    with open(path, "wb") as f:
+    with open_with_compression(path, "wb") as f:
         unparse_fileobj(f, r_data, file_format=file_format, file_type=file_type)
 
 
