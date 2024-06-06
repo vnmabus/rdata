@@ -169,29 +169,29 @@ def test_unparse_big_int() -> None:
 
 
 @pytest.mark.parametrize("compression", [*valid_compressions, "fail"])
-@pytest.mark.parametrize("fmt", [*valid_formats, None, "fail"])
-@pytest.mark.parametrize("rds", [True, False])
+@pytest.mark.parametrize("file_format", [*valid_formats, None, "fail"])
+@pytest.mark.parametrize("file_type", ["rds", "rda"])
 def test_write_file(
     compression: Compression,
-    fmt: FileFormat,
-    rds: bool,  # noqa: FBT001
+    file_format: FileFormat,
+    file_type: FileType,
 ) -> None:
     """Test writing RData object to a real file with compression."""
     expectation = no_error()
-    if fmt not in valid_formats:
+    if file_format not in valid_formats:
         expectation = pytest.raises(ValueError, match="(?i)unknown file format")  # type: ignore [assignment]
     if compression not in valid_compressions:
         expectation = pytest.raises(ValueError, match="(?i)unknown compression")  # type: ignore [assignment]
 
     py_data = {"key": "Hello", "none": None}
-    suffix = ".rds" if rds else ".rda"
-    read = rdata.read_rds if rds else rdata.read_rda
-    write = rdata.write_rds if rds else rdata.write_rda
+    suffix = ".rds" if file_type == "rds" else ".rda"
+    read = rdata.read_rds if file_type == "rds" else rdata.read_rda
+    write = rdata.write_rds if file_type == "rds" else rdata.write_rda
     with tempfile.TemporaryDirectory() as tmpdir:
         fpath = Path(tmpdir) / f"file{suffix}"
 
         with expectation as status:
-            write(fpath, py_data, file_format=fmt, compression=compression)
+            write(fpath, py_data, file_format=file_format, compression=compression)
 
         if status is no_error:
             assert py_data == read(fpath)
