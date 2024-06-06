@@ -98,7 +98,7 @@ def test_convert_to_r(fname: str) -> None:
             pytest.skip("ambiguous R->py->R transformation")
 
         data = decompress_data(f.read())
-        rds = data[:2] != b"RD"
+        file_type, file_format = parse_file_type_and_format(data)
 
         r_data = rdata.parser.parse_data(data, expand_altrep=False)
 
@@ -112,7 +112,7 @@ def test_convert_to_r(fname: str) -> None:
             encoding = "CP1252" if "win" in fname else "UTF-8"
 
         try:
-            if rds:
+            if file_type == "rds":
                 r_obj = rdata.conversion.convert_to_r_object(
                     py_data, encoding=encoding)
             else:
