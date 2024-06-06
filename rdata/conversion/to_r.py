@@ -78,7 +78,7 @@ def build_r_object(
             object=False,
             attributes=attributes is not None,
             tag=tag is not None,
-            gp=int(gp),
+            gp=gp,
             reference=0,
          ),
          value,
