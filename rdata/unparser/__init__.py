@@ -35,18 +35,12 @@ def unparse_file(
     """
     Unparse RData object to a file.
 
-    Parameters
-    ----------
-    path:
-        File path to be created
-    r_data:
-        RData object
-    file_format:
-        File format
-    file_type:
-        File type
-    compression:
-        Compression
+    Args:
+        path: File path to be created.
+        r_data: RData object.
+        file_format: File format.
+        file_type: File type.
+        compression: Compression.
     """
     if compression is None:
         from builtins import open  # noqa: UP029
@@ -74,16 +68,11 @@ def unparse_fileobj(
     """
     Unparse RData object to a file object.
 
-    Parameters
-    ----------
-    fileobj:
-        File object
-    r_data:
-        RData object
-    file_format:
-        File format
-    file_type:
-        File type
+    Args:
+        fileobj: File object.
+        r_data: RData object.
+        file_format: File format.
+        file_type: File type.
     """
     Unparser: type[UnparserXDR | UnparserASCII]  # noqa: N806
 
@@ -123,19 +112,13 @@ def unparse_data(
     """
     Unparse RData object to a bytestring.
 
-    Parameters
-    ----------
-    r_data:
-        RData object
-    file_format:
-        File format
-    file_type:
-        File type
+    Args:
+        r_data: RData object.
+        file_format: File format.
+        file_type: File type.
 
     Returns:
-    -------
-    data:
-        Bytestring of data
+        Bytestring of data.
     """
     fd = io.BytesIO()
     unparse_fileobj(fd, r_data, file_format=file_format, file_type=file_type)

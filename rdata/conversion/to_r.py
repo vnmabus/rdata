@@ -57,28 +57,19 @@ def build_r_object(
     """
     Build R object.
 
-    Parameters
-    ----------
-    r_type:
-        Type indentifier
-    value:
-        Value
-    attributes:
-        Same as in RObject
-    tag:
-        Same as in RObject
-    gp:
-        Same as in RObjectInfo
+    Args:
+        r_type: Type indentifier.
+        value: Value for RObject.
+        attributes: Same as in RObject.
+        tag: Same as in RObject.
+        gp: Same as in RObjectInfo.
 
     Returns:
-    -------
-    r_object:
-        RObject object.
+        R object.
 
     See Also:
-    --------
-    RObject
-    RObjectInfo
+        RObject
+        RObjectInfo
     """
     assert r_type is not None
     return RObject(
@@ -106,20 +97,14 @@ def build_r_list(
     """
     Build R object representing named linked list.
 
-    Parameters
-    ----------
-    data:
-        Dictionary or list.
-    encoding:
-        Encoding to be used for strings within data.
-    convert_value:
-        Function used for converting value to R object
-        (for example, convert_to_r_object).
+    Args:
+        data: Dictionary or list.
+        encoding: Encoding to be used for strings within data.
+        convert_value: Function used for converting value to R object
+            (for example, convert_to_r_object).
 
     Returns:
-    -------
-    r_object:
-        RObject object.
+        R object.
     """
     if convert_value is None:
         convert_value = convert_to_r_object
@@ -154,17 +139,12 @@ def build_r_sym(
     """
     Build R object representing symbol.
 
-    Parameters
-    ----------
-    data:
-        String.
-    encoding:
-        Encoding to be used for strings within data.
+    Args:
+        data: String.
+        encoding: Encoding to be used for strings within data.
 
     Returns:
-    -------
-    r_object:
-        RObject object.
+        R object.
     """
     r_type = RObjectType.SYM
     r_value = convert_to_r_object(data.encode(encoding), encoding=encoding)
@@ -181,25 +161,17 @@ def build_r_data(
     """
     Build RData object from R object.
 
-    Parameters
-    ----------
-    r_object:
-        R object.
-    encoding:
-        Encoding to be used for strings within data.
-    format_version:
-        File format version.
-    r_version_serialized:
-        R version written as the creator of the object.
+    Args:
+        r_object: R object.
+        encoding: Encoding to be used for strings within data.
+        format_version: File format version.
+        r_version_serialized: R version written as the creator of the object.
 
     Returns:
-    -------
-    r_data:
         Corresponding RData object.
 
     See Also:
-    --------
-    convert_to_r_object
+        convert_to_r_object
     """
     versions = RVersions(
         format_version,
@@ -222,21 +194,15 @@ def convert_to_r_object_for_rda(
     """
     Convert Python dictionary to R object for RDA file.
 
-    Parameters
-    ----------
-    data:
-        Python dictionary with data and variable names.
-    encoding:
-        Encoding to be used for strings within data.
+    Args:
+        data: Python dictionary with data and variable names.
+        encoding: Encoding to be used for strings within data.
 
     Returns:
-    -------
-    r_object:
         Corresponding R object.
 
     See Also:
-    --------
-    convert_to_r_object
+        convert_to_r_object
     """
     if not isinstance(data, dict):
         msg = "For RDA file, data must be a dictionary."
@@ -252,21 +218,15 @@ def convert_to_r_object(  # noqa: C901, PLR0912, PLR0915
     """
     Convert Python data to R object.
 
-    Parameters
-    ----------
-    data:
-        Any Python object.
-    encoding:
-        Encoding to be used for strings within data.
+    Args:
+        data: Any Python object.
+        encoding: Encoding to be used for strings within data.
 
     Returns:
-    -------
-    r_object:
         Corresponding R object.
 
     See Also:
-    --------
-    convert_to_r_data
+        convert_to_r_data
     """
     # Default args for most types (None/False/0)
     r_type = None
