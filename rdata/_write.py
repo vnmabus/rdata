@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from .conversion import build_r_data, convert_to_r_object, convert_to_r_object_for_rda
-from .parser import RVersions
+from .conversion.to_r import DEFAULT_FORMAT_VERSION
 from .unparser import unparse_file
 
 if TYPE_CHECKING:
@@ -21,7 +21,7 @@ def write_rds(
     file_format: FileFormat = "xdr",
     compression: Compression = "gzip",
     encoding: str = "UTF-8",
-    versions: tuple[int, int, int] | None = None,
+    format_version: int = DEFAULT_FORMAT_VERSION,
 ) -> None:
     """
     Write an RDS file.
@@ -38,8 +38,7 @@ def write_rds(
         file_format: File format.
         compression: Compression.
         encoding: Encoding to be used for strings within data.
-        versions: Tuple of file version information
-            (format_version, r_version, minimum_r_version).
+        format_version: File format version.
 
     See Also:
         :func:`write_rda`: Similar function that writes an RDA or RDATA file.
@@ -59,7 +58,7 @@ def write_rds(
     r_data = build_r_data(
         r_object,
         encoding=encoding,
-        versions=None if versions is None else RVersions(*versions),
+        format_version=format_version,
     )
     unparse_file(
         path,
@@ -77,7 +76,7 @@ def write_rda(
     file_format: FileFormat = "xdr",
     compression: Compression = "gzip",
     encoding: str = "UTF-8",
-    versions: tuple[int, int, int] | None = None,
+    format_version: int = DEFAULT_FORMAT_VERSION,
 ) -> None:
     """
     Write an RDA or RDATA file.
@@ -94,8 +93,7 @@ def write_rda(
         file_format: File format.
         compression: Compression.
         encoding: Encoding to be used for strings within data.
-        versions: Tuple of file version information
-            (format_version, r_version, minimum_r_version).
+        format_version: File format version.
 
     See Also:
         :func:`write_rds`: Similar function that writes an RDS file.
@@ -115,7 +113,7 @@ def write_rda(
     r_data = build_r_data(
         r_object,
         encoding=encoding,
-        versions=None if versions is None else RVersions(*versions),
+        format_version=format_version,
     )
     unparse_file(
         path,

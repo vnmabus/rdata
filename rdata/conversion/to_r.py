@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import string
-from typing import TYPE_CHECKING, Any, Callable
+from types import MappingProxyType
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -24,8 +25,20 @@ from . import (
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
+    from typing import Any, Callable, Final
 
     from mypy_extensions import NamedArg
+
+
+# Default values for RVersions object
+DEFAULT_FORMAT_VERSION: Final[int] = 3
+DEFAULT_R_VERSION_SERIALIZED: Final[int] = 0x40201
+
+# Mapping from format version to minimum R version
+R_MINIMUM_VERSIONS: Final[Mapping[int, int]] = MappingProxyType({
+    2: 0x20300,
+    3: 0x30500,
+})
 
 
 def build_r_object(
@@ -158,7 +171,8 @@ def build_r_data(
         r_object: RObject,
         *,
         encoding: str = "UTF-8",
-        versions: RVersions | None = None,
+        format_version: int = DEFAULT_FORMAT_VERSION,
+        r_version_serialized: int = DEFAULT_R_VERSION_SERIALIZED,
 ) -> RData:
     """
     Build RData object from R object.
@@ -169,8 +183,10 @@ def build_r_data(
         R object.
     encoding:
         Encoding to be used for strings within data.
-    versions:
-        File version information.
+    format_version:
+        File format version.
+    r_version_serialized:
+        R version written as the creator of the object.
 
     Returns:
     -------
@@ -181,8 +197,11 @@ def build_r_data(
     --------
     convert_to_r_object
     """
-    if versions is None:
-        versions = RVersions(3, 262657, 197888)
+    versions = RVersions(
+        format_version,
+        r_version_serialized,
+        R_MINIMUM_VERSIONS[format_version],
+    )
 
     minimum_version_with_encoding = 3
     extra = RExtraInfo(encoding) if versions.format >= minimum_version_with_encoding \

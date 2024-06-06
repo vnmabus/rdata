@@ -110,8 +110,11 @@ def test_convert_to_r(fname: str) -> None:
                 r_obj = rdata.conversion.convert_to_r_object_for_rda(
                     py_data, encoding=encoding)
             new_r_data = rdata.conversion.build_r_data(
-                r_obj, versions=r_data.versions, encoding=encoding,
-                )
+                r_obj,
+                encoding=encoding,
+                format_version=r_data.versions.format,
+                r_version_serialized=r_data.versions.serialized,
+            )
         except NotImplementedError as e:
             pytest.xfail(str(e))
 
