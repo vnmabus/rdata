@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     import os
     from typing import Any
 
+    from .conversion.to_r import Encoding
     from .unparser import Compression, FileFormat
 
 
@@ -20,7 +21,7 @@ def write_rds(
     *,
     file_format: FileFormat = "xdr",
     compression: Compression = "gzip",
-    encoding: str = "UTF-8",
+    encoding: Encoding = "utf-8",
     format_version: int = DEFAULT_FORMAT_VERSION,
 ) -> None:
     """
@@ -75,7 +76,7 @@ def write_rda(
     *,
     file_format: FileFormat = "xdr",
     compression: Compression = "gzip",
-    encoding: str = "UTF-8",
+    encoding: Encoding = "utf-8",
     format_version: int = DEFAULT_FORMAT_VERSION,
 ) -> None:
     """

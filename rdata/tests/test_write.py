@@ -13,6 +13,7 @@ import rdata
 from rdata.unparser import unparse_data
 
 if TYPE_CHECKING:
+    from rdata.conversion.to_r import Encoding
     from rdata.unparser import Compression, FileFormat, FileType
 
 
@@ -118,9 +119,12 @@ def test_convert_to_r(fname: str) -> None:
         except NotImplementedError as e:
             pytest.skip(str(e))
 
-        encoding = r_data.extra.encoding
+        encoding: Encoding
+        encoding = r_data.extra.encoding  # type: ignore [assignment]
         if encoding is None:
-            encoding = "CP1252" if "win" in fname else "UTF-8"
+            encoding = "cp1252" if "win" in fname else "utf-8"
+        else:
+            encoding = encoding.lower()  # type: ignore [assignment]
 
         try:
             if file_type == "rds":
@@ -168,13 +172,13 @@ def test_unparse_bad_rda() -> None:
 def test_convert_to_r_bad_encoding() -> None:
     """Test checking encoding."""
     with pytest.raises(LookupError, match="(?i)unknown encoding"):
-        rdata.conversion.convert_to_r_object("ä", encoding="non-existent")
+        rdata.conversion.convert_to_r_object("ä", encoding="non-existent")  # type: ignore [arg-type]
 
 
 def test_convert_to_r_unsupported_encoding() -> None:
     """Test checking encoding."""
     with pytest.raises(ValueError, match="(?i)unsupported encoding"):
-        rdata.conversion.convert_to_r_object("ä", encoding="CP1250")
+        rdata.conversion.convert_to_r_object("ä", encoding="cp1250")  # type: ignore [arg-type]
 
 
 def test_unparse_big_int() -> None:

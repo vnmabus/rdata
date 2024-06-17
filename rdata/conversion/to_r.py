@@ -25,12 +25,15 @@ from . import (
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
-    from typing import Any, Final, Protocol
+    from typing import Any, Final, Literal, Protocol
+
+    Encoding = Literal["utf-8", "cp1252"]
+
 
     class Converter(Protocol):
         """Protocol for Py-to-R conversion."""
 
-        def __call__(self, data: Any, *, encoding: str) -> RObject: # noqa: ANN401
+        def __call__(self, data: Any, *, encoding: Encoding) -> RObject: # noqa: ANN401
             """Convert Python object to R object."""
 
 
@@ -91,7 +94,7 @@ def build_r_object(
 def build_r_list(
         data: Mapping[str, Any] | list[Any],
         *,
-        encoding: str,
+        encoding: Encoding,
         convert_value: Converter | None = None,
 ) -> RObject:
     """
@@ -138,7 +141,7 @@ def build_r_list(
 def build_r_sym(
         data: str,
         *,
-        encoding: str,
+        encoding: Encoding,
 ) -> RObject:
     """
     Build R object representing symbol.
@@ -158,7 +161,7 @@ def build_r_sym(
 def build_r_data(
         r_object: RObject,
         *,
-        encoding: str = "UTF-8",
+        encoding: Encoding = "utf-8",
         format_version: int = DEFAULT_FORMAT_VERSION,
         r_version_serialized: int = DEFAULT_R_VERSION_SERIALIZED,
 ) -> RData:
@@ -184,7 +187,8 @@ def build_r_data(
     )
 
     minimum_version_with_encoding = 3
-    extra = (RExtraInfo(encoding) if versions.format >= minimum_version_with_encoding
+    extra = (RExtraInfo(encoding.upper())
+             if versions.format >= minimum_version_with_encoding
              else RExtraInfo(None))
 
     return RData(versions, extra, r_object)
@@ -193,7 +197,7 @@ def build_r_data(
 def convert_to_r_object_for_rda(
         data: Mapping[str, Any],
         *,
-        encoding: str = "UTF-8",
+        encoding: Encoding = "utf-8",
 ) -> RObject:
     """
     Convert Python dictionary to R object for RDA file.
@@ -217,7 +221,7 @@ def convert_to_r_object_for_rda(
 def convert_to_r_object(  # noqa: C901, PLR0912, PLR0915
         data: Any,  # noqa: ANN401
         *,
-        encoding: str = "UTF-8",
+        encoding: Encoding = "utf-8",
 ) -> RObject:
     """
     Convert Python data to R object.
@@ -318,9 +322,9 @@ def convert_to_r_object(  # noqa: C901, PLR0912, PLR0915
         r_type = RObjectType.CHAR
         if all(chr(byte) in string.printable for byte in data):
             gp = CharFlags.ASCII
-        elif encoding == "UTF-8":
+        elif encoding == "utf-8":
             gp = CharFlags.UTF8
-        elif encoding == "CP1252":
+        elif encoding == "cp1252":
             # Note!
             # CP1252 and Latin1 are not the same.
             # Does CharFlags.LATIN1 mean actually CP1252
