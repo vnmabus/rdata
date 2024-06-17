@@ -328,7 +328,7 @@ def convert_to_r_object(  # noqa: C901, PLR0912, PLR0915
             # Or does CP1252 change to e.g. CP1250 depending on localization?
             gp = CharFlags.LATIN1
         else:
-            msg = "unsupported encoding: {encoding}"
+            msg = f"unsupported encoding: {encoding}"
             raise ValueError(msg)
         r_value = data
 
