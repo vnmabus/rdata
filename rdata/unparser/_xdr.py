@@ -41,7 +41,8 @@ class UnparserXDR(Unparser):
                 mask = np.ma.getmask(array)  # type: ignore [no-untyped-call]
                 array = np.ma.getdata(array).copy()  # type: ignore [no-untyped-call]
                 array[mask] = R_INT_NA
-            if not np.all([np.can_cast(val, np.int32) for val in array]):
+            info = np.iinfo(np.int32)
+            if not all(info.min <= val <= info.max for val in array):
                 msg = "Integer array not castable to int32"
                 raise ValueError(msg)
             array = array.astype(np.int32)
