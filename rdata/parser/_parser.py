@@ -222,6 +222,15 @@ class RVersions:
     serialized: int
     minimum: int
 
+    def __str__(self) -> str:
+        return (
+            "RVersions("
+            f"format={self.format}, "
+            f"serialized={self.serialized:#x}, "
+            f"minimum={self.minimum:#x}"
+            ")"
+        )
+
 
 @dataclass
 class RExtraInfo:
@@ -277,7 +286,11 @@ def _str_internal(  # noqa: PLR0912, C901
 
         return string
 
-    string += f"{indent_spaces}{obj.info.type}\n"
+    info = obj.info
+    string += f"{indent_spaces}{info.type}"
+    if info.gp != 0:
+        string += f"(gp={info.gp})"
+    string += "\n"
 
     if obj.tag:
         tag_string = _str_internal(
@@ -350,6 +363,26 @@ class RObject:
     attributes: RObject | None
     tag: RObject | None = None
     referenced_object: RObject | None = None
+
+    def __eq__(self, other: object) -> bool:
+        # Custom equality operator to compare equality of numpy arrays
+        # in the value field
+        if not isinstance(other, RObject):
+            return False
+
+        # Compare value field
+        if isinstance(self.value, np.ndarray):
+            if not np.array_equal(self.value, other.value, equal_nan=True):
+                return False
+        elif self.value != other.value:
+            return False
+
+        # Compare other fields
+        for key in ("info", "attributes", "tag", "referenced_object"):
+            if getattr(self, key) != getattr(other, key):
+                return False
+
+        return True
 
     def __str__(self) -> str:
         return _str_internal(self)

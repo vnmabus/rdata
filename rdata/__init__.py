@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Final
 
 from . import conversion as conversion, parser as parser, testing as testing
 from ._read import read_rda as read_rda, read_rds as read_rds
+from ._write import write_rda as write_rda, write_rds as write_rds
 
 if TYPE_CHECKING:
     from .parser._parser import Traversable

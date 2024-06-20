@@ -10,7 +10,8 @@ keywords = [
 	"dataset",
 ]
 authors = [
-  {name = "Carlos Ramos Carreño", email = "vnmabus@gmail.com"},
+  {name = "Carlos Ramos Carreño"},
+  {name = "Tuomas Rossi"},
 ]
 maintainers = [
   {name = "Carlos Ramos Carreño", email = "vnmabus@gmail.com"},
@@ -102,6 +103,11 @@ disallow_untyped_defs = false
 addopts = "--doctest-modules --doctest-glob='*.rst'"
 doctest_optionflags = "NORMALIZE_WHITESPACE ELLIPSIS"
 norecursedirs = ".* build dist *.egg venv .svn _build docs/auto_examples examples asv_benchmarks"
+
+[tool.coverage.report]
+exclude_also = [
+    "if TYPE_CHECKING:",
+    ]
 
 [tool.ruff.lint]
 select = [

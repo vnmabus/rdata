@@ -562,6 +562,16 @@ class SimpleTests(unittest.TestCase):
             "test_emptyenv": ChainMap({}),
         }
 
+    def test_empty_list(self) -> None:
+        """Test parsing the empty list."""
+        data = rdata.read_rds(TESTDATA_PATH / "test_empty_list.rds")
+        assert data == []
+
+    def test_empty_named_list(self) -> None:
+        """Test parsing the empty list."""
+        data = rdata.read_rds(TESTDATA_PATH / "test_empty_named_list.rds")
+        assert data == {}
+
     def test_list_attrs(self) -> None:
         """Test that lists accept attributes."""
         data = rdata.read_rda(TESTDATA_PATH / "test_list_attrs.rda")
@@ -692,6 +702,17 @@ class SimpleTests(unittest.TestCase):
                 np.testing.assert_equal(ma.mask, ref_ma.mask)
                 np.testing.assert_equal(ma.get_fill_value(),
                                         ref_ma.get_fill_value())
+
+    def test_nan_inf(self) -> None:
+        """Test reading nan and inf."""
+        data = rdata.read_rds(TESTDATA_PATH / "test_nan_inf.rds")
+        np.testing.assert_equal(data, [0., np.nan, np.inf, -np.inf])
+
+    def test_ascii_nan_inf(self) -> None:
+        """Test reading nan and inf in ascii."""
+        data = rdata.read_rds(TESTDATA_PATH / "test_ascii_nan_inf.rds")
+        np.testing.assert_equal(data, [0., np.nan, np.inf, -np.inf])
+
 
 
 if __name__ == "__main__":
