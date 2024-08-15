@@ -860,10 +860,8 @@ class Parser(abc.ABC):
 
         elif info.type == RObjectType.CHAR:
             length = self.parse_int()
-            if length > 0:
+            if length >= 0:
                 value = self.parse_string(length=length)
-            elif length == 0:
-                value = b""
             elif length == -1:
                 value = None
             else:
