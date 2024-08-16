@@ -89,6 +89,11 @@ class SimpleTests(unittest.TestCase):
             "test_empty_str": [""],
         })
 
+    def test_ascii_empty_string(self) -> None:
+        """Test that the empty string is parsed correctly from ascii file."""
+        data = rdata.read_rds(TESTDATA_PATH / "test_ascii_empty_str.rds")
+        np.testing.assert_equal(data, [""])
+
     def test_na_string(self) -> None:
         """Test that the NA string is parsed correctly."""
         data = rdata.read_rda(TESTDATA_PATH / "test_na_string.rda")
