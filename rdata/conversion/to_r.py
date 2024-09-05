@@ -398,7 +398,10 @@ def convert_to_r_object(  # noqa: C901, PLR0912, PLR0915
         array = data.array
         if isinstance(array, pd.Categorical):
             return convert_to_r_object(array, encoding=encoding)
-        elif isinstance(array, pd.arrays.IntegerArray):
+        elif isinstance(array, pd.arrays.StringArray):
+            return convert_to_r_object(create_unicode_array(array), encoding=encoding)
+        elif (isinstance(array, pd.arrays.IntegerArray)
+              or isinstance(array, pd.arrays.NumpyExtensionArray)):
             return convert_to_r_object(data.to_numpy(), encoding=encoding)
         else:
             msg = f"pd.Series {type(array)} not implemented"
