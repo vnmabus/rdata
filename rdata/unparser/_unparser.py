@@ -98,8 +98,9 @@ class Unparser(abc.ABC):
         # Unparse data
         value = obj.value
         if info.type in {
-           RObjectType.NIL,
-           RObjectType.NILVALUE,
+            RObjectType.NIL,
+            RObjectType.NILVALUE,
+            RObjectType.REF,
         }:
             # These types don't have any data
             assert value is None
