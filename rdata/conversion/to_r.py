@@ -7,6 +7,7 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING
 
 import numpy as np
+import pandas as pd
 
 from rdata.parser import (
     CharFlags,
@@ -49,6 +50,23 @@ R_MINIMUM_VERSIONS: Final[Mapping[int, int]] = MappingProxyType({
 })
 
 
+def find_is_object(attributes: RObject | None):
+    if attributes is None:
+        return False
+    info = attributes.info
+    if info.type != RObjectType.LIST:
+        return False
+    if not info.tag:
+        return False
+    tag = attributes.tag
+    if tag.info.type == RObjectType.REF:
+        tag = tag.referenced_object
+    if (tag.info.type == RObjectType.SYM
+        and tag.value.value == b"class"):
+        return True
+    return find_is_object(attributes.value[1])
+
+
 def build_r_object(
         r_type: RObjectType,
         *,
@@ -56,6 +74,7 @@ def build_r_object(
         attributes: RObject | None = None,
         tag: RObject | None = None,
         gp: int = 0,
+        reference: int = 0,
 ) -> RObject:
     """
     Build R object.
@@ -66,6 +85,7 @@ def build_r_object(
         attributes: Same as in RObject.
         tag: Same as in RObject.
         gp: Same as in RObjectInfo.
+        reference: Same as in RObjectInfo.
 
     Returns:
         R object.
@@ -75,19 +95,24 @@ def build_r_object(
         RObjectInfo
     """
     assert r_type is not None
+    if reference == 0:
+        assert reference_name_list[reference] is None
+    else:
+        assert r_type == RObjectType.REF
+    is_object = find_is_object(attributes)
     return RObject(
         RObjectInfo(
             r_type,
-            object=False,
+            object=is_object,
             attributes=attributes is not None,
             tag=tag is not None,
             gp=gp,
-            reference=0,
+            reference=reference,
          ),
          value,
          attributes,
          tag,
-         None,
+         reference_obj_list[reference],
      )
 
 
@@ -138,8 +163,13 @@ def build_r_list(
         )
 
 
+# XXX global lists
+reference_name_list = [None]
+reference_obj_list = [None]
+
+
 def build_r_sym(
-        data: str,
+        name: str,
         *,
         encoding: Encoding,
 ) -> RObject:
@@ -147,15 +177,26 @@ def build_r_sym(
     Build R object representing symbol.
 
     Args:
-        data: String.
-        encoding: Encoding to be used for strings within data.
+        name: String.
+        encoding: Encoding to be used for the name.
 
     Returns:
         R object.
     """
-    r_type = RObjectType.SYM
-    r_value = convert_to_r_object(data.encode(encoding), encoding=encoding)
-    return build_r_object(r_type, value=r_value)
+    # Reference to existing symbol if exists
+    if name in reference_name_list:
+        # XXX can any symbol be referenced???
+        reference = reference_name_list.index(name)
+        return build_r_object(RObjectType.REF, reference=reference)
+
+    # Create a new symbol
+    r_value = convert_to_r_object(name.encode(encoding), encoding=encoding)
+    r_object = build_r_object(RObjectType.SYM, value=r_value)
+
+    # Add to reference list
+    reference_name_list.append(name)
+    reference_obj_list.append(r_object)
+    return r_object
 
 
 def build_r_data(
@@ -335,6 +376,54 @@ def convert_to_r_object(  # noqa: C901, PLR0912, PLR0915
             msg = f"unsupported encoding: {encoding}"
             raise ValueError(msg)
         r_value = data
+
+    elif isinstance(data, pd.Series):
+        array = data.array
+        if isinstance(array, pd.Categorical):
+            return convert_to_r_object(array, encoding=encoding)
+        elif isinstance(array, pd.arrays.IntegerArray):
+            return convert_to_r_object(data.to_numpy(), encoding=encoding)
+        else:
+            msg = f"pd.Series {type(array)} not implemented"
+            raise NotImplementedError(msg)
+
+    elif isinstance(data, pd.Categorical):
+        r_type = RObjectType.INT
+        r_value = data.codes + 1
+        attributes = build_r_list({
+            "levels": np.asarray(list(data.categories)),
+            "class": "factor",
+            },
+            encoding=encoding)
+
+    elif isinstance(data, pd.DataFrame):
+        r_type = RObjectType.VEC
+        names = []
+        r_value = []
+        for column, series in data.items():
+            names.append(column)
+            r_value.append(convert_to_r_object(series, encoding=encoding))
+
+        index = data.index
+        if (isinstance(index, pd.RangeIndex)
+            and index.start == 1
+            and index.stop == data.shape[0] + 1
+            and index.step == 1
+            ):
+            row_names = np.ma.array(
+                    data=[0, -data.shape[0]],
+                    mask=[True, False],
+                )
+        else:
+            msg = f"pd.DataFrame index {type(index)} not implemented"
+            raise NotImplementedError(msg)
+
+        attributes = build_r_list({
+            "names": np.asarray(names),
+            "row.names": row_names,
+            "class": "data.frame",
+            },
+            encoding=encoding)
 
     else:
         msg = f"type {type(data)} not implemented"
