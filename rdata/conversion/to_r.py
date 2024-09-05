@@ -25,6 +25,8 @@ from . import (
 )
 
 if TYPE_CHECKING:
+    import numpy.typing as npt
+
     from collections.abc import Mapping
     from typing import Any, Final, Literal, Protocol
 
@@ -48,6 +50,21 @@ R_MINIMUM_VERSIONS: Final[Mapping[int, int]] = MappingProxyType({
     2: 0x20300,
     3: 0x30500,
 })
+
+
+def create_unicode_array(
+        names: Any,
+) -> npt.NDArray[Any]:
+    """
+    Create unicode array from sequence/iterator of strings.
+
+    Args:
+        names: Strings.
+
+    Returns:
+        Array.
+    """
+    return np.array(list(names), dtype=np.dtype("U"))
 
 
 def find_is_object(attributes: RObject | None):
@@ -311,7 +328,7 @@ def convert_to_r_object(  # noqa: C901, PLR0912, PLR0915
         r_value = [convert_to_r_object(el, encoding=encoding) for el in values]
 
         if isinstance(data, dict):
-            names = np.array(list(data.keys()), dtype=np.dtype("U"))
+            names = create_unicode_array(data.keys())
             attributes = build_r_list({"names": names},
                                       encoding=encoding)
 
@@ -391,7 +408,7 @@ def convert_to_r_object(  # noqa: C901, PLR0912, PLR0915
         r_type = RObjectType.INT
         r_value = data.codes + 1
         attributes = build_r_list({
-            "levels": np.asarray(list(data.categories)),
+            "levels": create_unicode_array(data.categories),
             "class": "factor",
             },
             encoding=encoding)
@@ -410,7 +427,7 @@ def convert_to_r_object(  # noqa: C901, PLR0912, PLR0915
             and index.stop == data.shape[0] + 1
             and index.step == 1
             ):
-            row_names = np.ma.array(
+            row_names = np.ma.array(  # type: ignore [no-untyped-call]
                     data=[0, -data.shape[0]],
                     mask=[True, False],
                 )
@@ -419,7 +436,7 @@ def convert_to_r_object(  # noqa: C901, PLR0912, PLR0915
             raise NotImplementedError(msg)
 
         attributes = build_r_list({
-            "names": np.asarray(names),
+            "names": create_unicode_array(names),
             "row.names": row_names,
             "class": "data.frame",
             },
