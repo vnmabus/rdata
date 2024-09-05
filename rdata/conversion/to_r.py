@@ -161,8 +161,8 @@ def build_r_list(
     if isinstance(data, dict):
         data = data.copy()
         key = next(iter(data))
-        value1 = convert_value(data.pop(key), encoding=encoding)
         tag = build_r_sym(key, encoding=encoding)
+        value1 = convert_value(data.pop(key), encoding=encoding)
     elif isinstance(data, list):
         value1 = convert_value(data[0], encoding=encoding)
         data = data[1:]
