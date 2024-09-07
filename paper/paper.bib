@@ -8,12 +8,12 @@
   copyright = {MIT}
 }
 
-@misc{fajardo_2018_pyreadr,
+@misc{fajardo_2024_pyreadr,
   title = {Pyreadr},
   author = {Fajardo, Otto},
-  year = {2018},
-  month = dec,
-  doi = {10.5281/zenodo.7110170},
+  year = {2024},
+  month = jul,
+  doi = {10.5281/zenodo.13132498},
   url = {https://github.com/ofajardo/pyreadr}
 }
 
@@ -50,4 +50,17 @@
   abstract = {The library scikit-fda is a Python package for functional data analysis (FDA). It provides a comprehensive set of tools for representation, preprocessing, and exploratory analysis of functional data. The library is built upon and integrated in Python's scientific ecosystem. In particular, it conforms to the scikit-learn application programming interface so as to take advantage of the functionality for machine learning provided by this package: Pipelines, model selection, and hyperparameter tuning, among others. The scikit-fda package has been released as free and open-source software under a 3-clause BSD license and is open to contributions from the FDA community. The library's extensive documentation includes step-by-step tutorials and detailed examples of use.},
   copyright = {Copyright (c) 2024 Carlos Ramos-Carre{\~n}o, Jos{\'e} Luis Torrecilla, Miguel Carbajo-Berrocal, Pablo Marcos, Alberto Su{\'a}rez},
   langid = {english}
+}
+
+@article{rahman+_2024_hmschpc,
+  title = {Accelerating joint species distribution modelling with {Hmsc-HPC} by {GPU} porting},
+  author = {Rahman, Anis Ur and Tikhonov, Gleb and Oksanen, Jari and Rossi, Tuomas and Ovaskainen, Otso},
+  year = {2024},
+  month = sep,
+  journal = {PLOS Computational Biology},
+  volume = {20},
+  number = {9},
+  pages = {e1011914},
+  doi = {10.1371/journal.pcbi.1011914},
+  abstract = {Joint species distribution modelling (JSDM) is a widely used statistical method that analyzes combined patterns of all species in a community, linking empirical data to ecological theory and enhancing community-wide prediction tasks. However, fitting JSDMs to large datasets is often computationally demanding and time-consuming. Recent studies have introduced new statistical and machine learning techniques to provide more scalable fitting algorithms, but extending these to complex JSDM structures that account for spatial dependencies or multi-level sampling designs remains challenging. In this study, we aim to enhance JSDM scalability by leveraging high-performance computing (HPC) resources for an existing fitting method. Our work focuses on the Hmsc R-package, a widely used JSDM framework that supports the integration of various dataset types into a single comprehensive model. We developed a GPU-compatible implementation of its model-fitting algorithm using Python and the TensorFlow library. Despite these changes, our enhanced framework retains the original user interface of the Hmsc R-package. We evaluated the performance of the proposed implementation across various model configurations and dataset sizes. Our results show a significant increase in model fitting speed for most models compared to the baseline Hmsc R-package. For the largest datasets, we achieved speed-ups of over 1000 times, demonstrating the substantial potential of GPU porting for previously CPU-bound JSDM software. This advancement opens promising opportunities for better utilizing the rapidly accumulating new biodiversity data resources for inference and prediction.},
 }

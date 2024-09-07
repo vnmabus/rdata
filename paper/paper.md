@@ -1,5 +1,5 @@
 ---
-title: 'rdata: Read R datasets from Python'
+title: 'rdata: A Python library for R datasets'
 tags:
   - Python
   - R
@@ -14,11 +14,11 @@ authors:
     orcid: 0000-0002-8713-4559
     affiliation: 2
 affiliations:
- - name: Universidad Autónoma de Madrid, Spain
-   index: 1
- - name: CSC - IT Center for Science Ltd, Finland
-   index: 2
-date: 31 August 2024
+  - name: Universidad Autónoma de Madrid, Spain
+    index: 1
+  - name: CSC – IT Center for Science Ltd., Finland
+    index: 2
+date: 4 September 2024
 bibliography: paper.bib
 
 ---
@@ -26,10 +26,11 @@ bibliography: paper.bib
 # Summary
 
 Research work usually requires the analysis and processing of data from different sources.
-Traditionally statisticians and other research professionals have been using R for this task, and have compiled a huge amount of datasets in the Rda and Rds formats, native to this programming language.
+Traditionally in statistical computing, R language has been widely used for this task, and a huge amount of datasets have been compiled in the Rda and Rds formats, native to this programming language.
 As these formats contain internally the representation of R objects, they cannot be directly used from Python, another widely used language for data analysis and processing.
 The library `rdata` allows to load and convert these datasets to Python objects, without the need of exporting them to other intermediate formats which may not keep all the original information.
 This library has minimal dependencies, ensuring that it can be used in contexts where an R installation is not available.
+The capability to write data in Rda and Rds formats is also under development.
 Thus, the library `rdata` facilitates data interchange, enabling the usage of the same datasets in both languages (e.g. for reproducibility, comparisons of results against methods in both languages, or migration of processing pipelines to Python).
 
 # Statement of need
@@ -44,7 +45,7 @@ In the first place, the package requires an R installation, as it relies in laun
 Secondly, launching R just to load data is inefficient, both in time and memory.
 Finally, this package inherits the GPL license from the R language, which is not compatible with most Python packages, typically released under more permissive licenses.
 
-The recent package `pyreadr` [@fajardo_2018_pyreadr] also provides functionality to read some R datasets.
+The package `pyreadr` [@fajardo_2024_pyreadr] also provides functionality to read and write some R datasets.
 It relies in the C library `librdata` in order to perform the parsing of the RData format.
 This adds an additional dependency from C building tools, and requires that the package is compiled for all the desired operating systems.
 Moreover, this package is limited by the functionalities available in `librdata`, which at the moment of writing
@@ -52,7 +53,7 @@ does not include the parsing of common objects such as R lists and S4 objects.
 The license can also be a problem, as it is part of the GPL family and does not allow commercial use.
 
 As existing solutions were unsuitable for our needs, the package `rdata` was developed to parse data in the RData format.
-This is a small, extensible and very complete implementation in pure Python of a RData parser, that is able to read and convert most datasets in the CRAN repository to equivalent Python objects.
+This is a small, extensible, efficient, and very complete implementation in pure Python of a RData parser, that is able to read and convert most datasets in the CRAN repository to equivalent Python objects.
 It has a permissive license and can be extended to support additional conversions from custom R classes.
 
 The package `rdata` has been designed as a pure Python package with minimal dependencies, so that it can be easily integrated inside other libraries and applications.
@@ -120,11 +121,17 @@ Several utility functions, such as the routines `convert_char()` and `convert_li
 
 # Ongoing work
 
-
+To broaden the utility of the `rdata` library to data processing pipelines with steps in both R and Python, we are currently extending the library with the capability to write compatible Python objects to RData files.
+As an example, such a pipeline is present in the Hmsc-HPC code [@rahman+_2024_hmschpc], the continuous development of which has been driving the ongoing work on the writing functionality in the `rdata` library.
+The writing of RData files is implemented as a two-step process similar to reading: first, the Python object is converted to the tree-like intermediate representation used in parsing, and then this intermediate representation is written to a RData file.
+Currently, the writing functionality supporting common types is available at the development branch of the `rdata` library.
 
 # Acknowledgements
 
-The authors acknowledge financial support from the Spanish Ministry of Education and Innovation, projects PID2019-106827GB-I00 / AEI / 10.13039/501100011033 and PID2019-109387GB-I00.
-This work was also supported by an FPU grant (Formación de Profesorado Universitario) from the Spanish Ministry of Science, Innovation and Universities(MICIU) with reference FPU18/00047.
+This work has received funding
+from the Spanish Ministry of Education and Innovation, projects PID2019-106827GB-I00 / AEI / 10.13039/501100011033 and PID2019-109387GB-I00,
+from an FPU grant (Formación de Profesorado Universitario) from the Spanish Ministry of Science, Innovation and Universities(MICIU) with reference FPU18/00047,
+and from the European Union's Horizon Europe research and innovation programme under grant agreement No 101057437 (BioDT project, [https://doi.org/10.3030/101057437](https://doi.org/10.3030/101057437)).
+Views and opinions expressed are those of the author(s) only and do not necessarily reflect those of the European Union or the European Commission. Neither the European Union nor the European Commission can be held responsible for them.
 
 # References
