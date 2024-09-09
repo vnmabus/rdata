@@ -708,6 +708,16 @@ class SimpleTests(unittest.TestCase):
                 np.testing.assert_equal(ma.get_fill_value(),
                                         ref_ma.get_fill_value())
 
+    def test_ascii_characters(self) -> None:
+        """Test reading string with all ascii printable characters."""
+        data = rdata.read_rds(TESTDATA_PATH / "test_ascii_chars.rds")
+        assert data == "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\v\f\r\n", data
+
+    def test_ascii_ascii_characters(self) -> None:
+        """Test reading string with all ascii printable characters."""
+        data = rdata.read_rds(TESTDATA_PATH / "test_ascii_ascii_chars.rds")
+        assert data == "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\v\f\r\n", data
+
     def test_nan_inf(self) -> None:
         """Test reading nan and inf."""
         data = rdata.read_rds(TESTDATA_PATH / "test_nan_inf.rds")
