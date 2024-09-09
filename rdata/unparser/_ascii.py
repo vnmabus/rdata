@@ -73,11 +73,46 @@ class UnparserASCII(Unparser):
         self.unparse_int(len(value))
 
         # Ideally we could do here the reverse of parsing,
-        # i.e., value = value.decode('latin1').encode('unicode_escape').decode('ascii')
+        # i.e., output = value.decode('latin1').encode('unicode_escape').decode('ascii')
         # This would produce byte representation in hex such as '\xc3\xa4',
         # but we need to have the equivalent octal presentation '\303\244'.
-        # So, we do somewhat manual conversion instead:
-        s = "".join(chr(byte) if chr(byte) in string.printable else rf"\{byte:03o}"
-                    for byte in value)
+        # So, we need to do somewhat manual conversion instead.
 
-        self._add_line(s)
+        # List of ascii characters that are written directly;
+        # this is all printable ascii except
+        # - ' '  that Python writes as ' ',    but R as '\040'
+        # - '\v' that Python writes as '\x0b', but R as '\v'
+        # - '\f' that Python writes as '\x0c', but R as '\f'
+        write_raw = string.printable.replace(' ', '').replace('\v', '').replace('\f', '')
+
+        def escape(b: bytes) -> str:
+            """Escape string, e.g., b'\n' -> r'\\n'"""
+            return b.decode('latin1').encode('unicode_escape').decode('ascii')
+
+        # Go though the string byte-by-byte as we need to
+        # convert every non-ascii character separately
+        output = ""
+        ascii_buffer = b""
+        for byte in value:
+            if chr(byte) in write_raw:
+                # Collect ascii characters to substring buffer
+                ascii_buffer += bytes([byte])
+            else:
+                # Encountered a non-ascii character!
+                # Escape and add the ascii buffer
+                output += escape(ascii_buffer)
+                ascii_buffer = b""
+                # Add '\v' or '\f' or non-ascii character in octal presentation
+                if chr(byte) == "\v":
+                    output += r"\v"
+                elif chr(byte) == "\f":
+                    output += r"\f"
+                else:
+                    output += rf"\{byte:03o}"
+        # Escape and add the remaining ascii buffer
+        output += escape(ascii_buffer)
+
+        # Escape some more characters like R does
+        output = output.replace('"', r'\"').replace("'", r"\'").replace("?", r"\?")
+
+        self._add_line(output)
