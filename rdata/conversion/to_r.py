@@ -387,17 +387,8 @@ class ConverterFromPythonToR:
             r_value = data
 
         elif isinstance(data, pd.Series):
-            array = data.array
-            if isinstance(array, pd.Categorical):
-                return self.convert_to_r_object(array)
-            elif isinstance(array, pd.arrays.StringArray):
-                return self.convert_to_r_object(create_unicode_array(array))
-            elif (isinstance(array, pd.arrays.IntegerArray)
-                  or isinstance(array, pd.arrays.NumpyExtensionArray)):
-                return self.convert_to_r_object(data.to_numpy())
-            else:
-                msg = f"pd.Series {type(array)} not implemented"
-                raise NotImplementedError(msg)
+            msg = f"pd.Series not implemented"
+            raise NotImplementedError(msg)
 
         elif isinstance(data, pd.Categorical):
             r_type = RObjectType.INT
@@ -413,7 +404,20 @@ class ConverterFromPythonToR:
             r_value = []
             for column, series in data.items():
                 names.append(column)
-                r_value.append(self.convert_to_r_object(series))
+
+                array = series.array
+                if isinstance(array, pd.Categorical):
+                    r_series = self.convert_to_r_object(array)
+                elif isinstance(array, pd.arrays.StringArray):
+                    r_series = self.convert_to_r_object(create_unicode_array(array))
+                elif (isinstance(array, pd.arrays.IntegerArray)
+                      or isinstance(array, pd.arrays.NumpyExtensionArray)):
+                    r_series = self.convert_to_r_object(array.to_numpy())
+                else:
+                    msg = f"pd.DataFrame with pd.Series {type(array)} not implemented"
+                    raise NotImplementedError(msg)
+
+                r_value.append(r_series)
 
             index = data.index
             if (isinstance(index, pd.RangeIndex)
