@@ -142,8 +142,8 @@ def test_convert_to_r(fname: str) -> None:
         except NotImplementedError as e:
             pytest.xfail(str(e))
 
-        assert r_data == new_r_data
         assert str(r_data) == str(new_r_data)
+        assert r_data == new_r_data
 
 
 def test_convert_to_r_bad_rda() -> None:
