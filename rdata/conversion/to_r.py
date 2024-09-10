@@ -420,6 +420,7 @@ class ConverterFromPythonToR:
                 r_value.append(r_series)
 
             index = data.index
+            attr_order = ["names", "row.names", "class"]
             if (isinstance(index, pd.RangeIndex)
                 and index.start == 1
                 and index.stop == data.shape[0] + 1
@@ -430,15 +431,24 @@ class ConverterFromPythonToR:
                         mask=[True, False],
                         fill_value=R_INT_NA,
                     )
+            elif isinstance(index, pd.Index):
+                attr_order = ["names", "class", "row.names"]
+                if index.dtype == 'object':
+                    row_names = create_unicode_array(index)
+                else:
+                    msg = f"pd.DataFrame pd.Index {index.dtype} not implemented"
+                    raise NotImplementedError(msg)
             else:
                 msg = f"pd.DataFrame index {type(index)} not implemented"
                 raise NotImplementedError(msg)
 
-            attributes = self.build_r_list({
+            attr_dict = {
                 "names": create_unicode_array(names),
                 "row.names": row_names,
                 "class": "data.frame",
-                })
+            }
+
+            attributes = self.build_r_list({k: attr_dict[k] for k in attr_order})
 
         else:
             msg = f"type {type(data)} not implemented"
