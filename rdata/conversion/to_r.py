@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 from rdata.parser import (
+    R_INT_NA,
     CharFlags,
     RData,
     RExtraInfo,
@@ -421,8 +422,9 @@ class ConverterFromPythonToR:
                 and index.step == 1
                 ):
                 row_names = np.ma.array(  # type: ignore [no-untyped-call]
-                        data=[0, -data.shape[0]],
+                        data=[R_INT_NA, -data.shape[0]],
                         mask=[True, False],
+                        fill_value=R_INT_NA,
                     )
             else:
                 msg = f"pd.DataFrame index {type(index)} not implemented"
