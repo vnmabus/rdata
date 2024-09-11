@@ -83,11 +83,13 @@ class UnparserASCII(Unparser):
         # - ' '  that Python writes as ' ',    but R as '\040'
         # - '\v' that Python writes as '\x0b', but R as '\v'
         # - '\f' that Python writes as '\x0c', but R as '\f'
-        write_raw = string.printable.replace(' ', '').replace('\v', '').replace('\f', '')
+        write_raw = string.printable.replace(" ", "")\
+                                    .replace("\v", "")\
+                                    .replace("\f", "")
 
         def escape(b: bytes) -> str:
-            """Escape string, e.g., b'\n' -> r'\\n'"""
-            return b.decode('latin1').encode('unicode_escape').decode('ascii')
+            r"""Escape string, e.g., b'\n' -> r'\\n'."""
+            return b.decode("latin1").encode("unicode_escape").decode("ascii")
 
         # Go though the string byte-by-byte as we need to
         # convert every non-ascii character separately

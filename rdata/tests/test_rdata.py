@@ -711,12 +711,12 @@ class SimpleTests(unittest.TestCase):
     def test_ascii_characters(self) -> None:
         """Test reading string with all ascii printable characters."""
         data = rdata.read_rds(TESTDATA_PATH / "test_ascii_chars.rds")
-        assert data == "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\v\f\r\n", data
+        assert data == "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\v\f\r\n", data  # noqa: E501
 
     def test_ascii_ascii_characters(self) -> None:
         """Test reading string with all ascii printable characters."""
         data = rdata.read_rds(TESTDATA_PATH / "test_ascii_ascii_chars.rds")
-        assert data == "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\v\f\r\n", data
+        assert data == "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\v\f\r\n", data  # noqa: E501
 
     def test_nan_inf(self) -> None:
         """Test reading nan and inf."""
