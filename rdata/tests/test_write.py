@@ -99,7 +99,7 @@ def test_unparse(fname: str) -> None:
 
 @pytest.mark.parametrize("fname", fnames, ids=fnames)
 @pytest.mark.parametrize("expand_altrep", [True, False])
-def test_convert_to_r(fname: str, expand_altrep: bool) -> None:
+def test_convert_to_r(fname: str, expand_altrep: bool) -> None:  # noqa: FBT001
     """Test converting Python data to RData object."""
     with (TESTDATA_PATH / fname).open("rb") as f:
         # Skip test files without unique R->py->R transformation

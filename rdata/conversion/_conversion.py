@@ -436,8 +436,7 @@ def convert_altrep_to_range(
     start = int(state.value[1])
     step = int(state.value[2])
     stop = start + (n - 1) * step
-    value = range(start, stop + 1, step)
-    return value
+    return range(start, stop + 1, step)
 
 
 R_INT_MIN = -2**31
