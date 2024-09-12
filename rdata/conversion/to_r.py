@@ -396,6 +396,11 @@ class ConverterFromPythonToR:
             r_value = data
 
         elif isinstance(data, range):
+            if self.format_version < 3:
+                # ALTREP support is from R version 3.5.0
+                # (minimum version for format version 3)
+                return self.convert_to_r_object(np.array(data))
+
             if data.step != 1:
                 # R supports compact sequences only with step 1;
                 # convert the range to an array of values
