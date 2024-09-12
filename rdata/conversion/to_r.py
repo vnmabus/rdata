@@ -37,7 +37,7 @@ if TYPE_CHECKING:
     class Converter(Protocol):
         """Protocol for Py-to-R conversion."""
 
-        def __call__(self, data: Any, *, encoding: Encoding) -> RObject: # noqa: ANN401
+        def __call__(self, data: Any) -> RObject: # noqa: ANN401
             """Convert Python object to R object."""
 
 
@@ -82,7 +82,7 @@ def build_r_object(
         attributes: RObject | None = None,
         tag: RObject | None = None,
         gp: int = 0,
-        reference: tuple(int, RObject | None) = (0, None),
+        reference: tuple[int, RObject | None] = (0, None),
 ) -> RObject:
     """
     Build R object.
@@ -151,8 +151,8 @@ class ConverterFromPythonToR:
         self.encoding = encoding
         self.format_version = format_version
         self.r_version_serialized = r_version_serialized
-        self.reference_name_list = [None]
-        self.reference_obj_list = [None]
+        self.reference_name_list: list[None | str] = [None]
+        self.reference_obj_list: list[None | RObject] = [None]
 
 
     def build_r_data(self,
@@ -313,7 +313,7 @@ class ConverterFromPythonToR:
             values = data.elements
             r_value = (self.build_r_sym(str(values[0])),
                        self.build_r_list(values[1:],
-                                         convert_value=self.build_r_sym))
+                                         convert_value=self.build_r_sym))  # type: ignore [arg-type]
 
             if len(data.attributes) > 0:
                 # The following might work here (untested)
@@ -434,11 +434,11 @@ class ConverterFromPythonToR:
         elif isinstance(data, pd.DataFrame):
             is_object = True
             r_type = RObjectType.VEC
-            names = []
+            column_names = []
             r_value = []
             for column, series in data.items():
                 assert isinstance(column, str)
-                names.append(column)
+                column_names.append(column)
 
                 array = series.array
                 if isinstance(array, pd.Categorical):
@@ -447,7 +447,7 @@ class ConverterFromPythonToR:
                     r_series = self.convert_to_r_object(create_unicode_array(array))
                 elif isinstance(array, (
                          pd.arrays.IntegerArray,
-                         pd.arrays.NumpyExtensionArray,
+                         pd.arrays.NumpyExtensionArray,  # type: ignore [attr-defined]
                 )):
                     r_series = self.convert_to_r_object(array.to_numpy())
                 else:
@@ -459,11 +459,12 @@ class ConverterFromPythonToR:
             index = data.index
             attr_order = ["names", "row.names", "class"]
             if isinstance(index, pd.RangeIndex):
+                assert isinstance(index.start, int)
                 if (index.start == 1
                     and index.stop == data.shape[0] + 1
                     and index.step == 1
                 ):
-                    row_names = np.ma.array(  # type: ignore [no-untyped-call]
+                    row_names = np.ma.array(
                             data=[R_INT_NA, -data.shape[0]],
                             mask=[True, False],
                             fill_value=R_INT_NA,
@@ -474,7 +475,7 @@ class ConverterFromPythonToR:
                 attr_order = ["names", "class", "row.names"]
                 if index.dtype == "object":
                     row_names = create_unicode_array(index)
-                elif np.issubdtype(index.dtype, np.integer):
+                elif np.issubdtype(str(index.dtype), np.integer):
                     row_names = index.to_numpy()
                 else:
                     msg = f"pd.DataFrame pd.Index {index.dtype} not implemented"
@@ -484,7 +485,7 @@ class ConverterFromPythonToR:
                 raise NotImplementedError(msg)
 
             attr_dict = {
-                "names": create_unicode_array(names),
+                "names": create_unicode_array(column_names),
                 "row.names": row_names,
                 "class": "data.frame",
             }

@@ -173,16 +173,16 @@ def test_unparse_bad_rda() -> None:
 
 def test_convert_to_r_bad_encoding() -> None:
     """Test checking encoding."""
-    converter = ConverterFromPythonToR(encoding="non-existent")
+    converter = ConverterFromPythonToR(encoding="non-existent")  # type: ignore [arg-type]
     with pytest.raises(LookupError, match="(?i)unknown encoding"):
-        converter.convert_to_r_object("ä")  # type: ignore [arg-type]
+        converter.convert_to_r_object("ä")
 
 
 def test_convert_to_r_unsupported_encoding() -> None:
     """Test checking encoding."""
-    converter = ConverterFromPythonToR(encoding="cp1250")
+    converter = ConverterFromPythonToR(encoding="cp1250")  # type: ignore [arg-type]
     with pytest.raises(ValueError, match="(?i)unsupported encoding"):
-        converter.convert_to_r_object("ä")  # type: ignore [arg-type]
+        converter.convert_to_r_object("ä")
 
 
 def test_unparse_big_int() -> None:
