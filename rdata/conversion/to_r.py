@@ -51,6 +51,7 @@ R_MINIMUM_VERSIONS: Final[Mapping[int, int]] = MappingProxyType({
     2: 0x20300,
     3: 0x30500,
 })
+R_MINIMUM_VERSION_WITH_ENCODING: Final[int] = 3
 
 
 def create_unicode_array(
@@ -136,41 +137,6 @@ def build_r_object(
      )
 
 
-def build_r_data(
-        r_object: RObject,
-        *,
-        encoding: Encoding = "utf-8",
-        format_version: int = DEFAULT_FORMAT_VERSION,
-        r_version_serialized: int = DEFAULT_R_VERSION_SERIALIZED,
-) -> RData:
-    """
-    Build RData object from R object.
-
-    Args:
-        r_object: R object.
-        encoding: Encoding saved in the metadata.
-        format_version: File format version.
-        r_version_serialized: R version written as the creator of the object.
-
-    Returns:
-        Corresponding RData object.
-
-    See Also:
-        convert_to_r_object
-    """
-    versions = RVersions(
-        format_version,
-        r_version_serialized,
-        R_MINIMUM_VERSIONS[format_version],
-    )
-
-    minimum_version_with_encoding = 3
-    extra = (RExtraInfo(encoding.upper())
-             if versions.format >= minimum_version_with_encoding
-             else RExtraInfo(None))
-
-    return RData(versions, extra, r_object)
-
 
 class ConverterFromPythonToR:
     """
@@ -178,12 +144,48 @@ class ConverterFromPythonToR:
 
     Args:
         encoding: Encoding to be used for strings within data.
+        format_version: File format version.
+        r_version_serialized: R version written as the creator of the object.
     """
 
-    def __init__(self, *, encoding: Encoding = "utf-8"):
+    def __init__(self, *,
+            encoding: Encoding = "utf-8",
+            format_version: int = DEFAULT_FORMAT_VERSION,
+            r_version_serialized: int = DEFAULT_R_VERSION_SERIALIZED,
+    ) -> None:
         self.encoding = encoding
+        self.format_version = format_version
+        self.r_version_serialized = r_version_serialized
         self.reference_name_list = [None]
         self.reference_obj_list = [None]
+
+
+    def build_r_data(self,
+            r_object: RObject,
+    ) -> RData:
+        """
+        Build RData object from R object.
+
+        Args:
+            r_object: R object.
+
+        Returns:
+            Corresponding RData object.
+
+        See Also:
+            convert_to_r_object
+        """
+        versions = RVersions(
+            self.format_version,
+            self.r_version_serialized,
+            R_MINIMUM_VERSIONS[self.format_version],
+        )
+
+        extra = (RExtraInfo(self.encoding.upper())
+                 if versions.format >= R_MINIMUM_VERSION_WITH_ENCODING
+                 else RExtraInfo(None))
+
+        return RData(versions, extra, r_object)
 
 
     def build_r_list(self,

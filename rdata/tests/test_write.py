@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 import rdata
-from rdata.conversion import ConverterFromPythonToR, build_r_data
+from rdata.conversion import ConverterFromPythonToR
 from rdata.unparser import unparse_data
 
 if TYPE_CHECKING:
@@ -128,17 +128,16 @@ def test_convert_to_r(fname: str) -> None:
             encoding = encoding.lower()  # type: ignore [assignment]
 
         try:
-            converter = ConverterFromPythonToR(encoding=encoding)
-            if file_type == "rds":
-                r_obj = converter.convert_to_r_object(py_data)
-            else:
-                r_obj = converter.convert_to_r_object_for_rda(py_data)
-            new_r_data = build_r_data(
-                r_obj,
+            converter = ConverterFromPythonToR(
                 encoding=encoding,
                 format_version=r_data.versions.format,
                 r_version_serialized=r_data.versions.serialized,
             )
+            if file_type == "rds":
+                r_obj = converter.convert_to_r_object(py_data)
+            else:
+                r_obj = converter.convert_to_r_object_for_rda(py_data)
+            new_r_data = converter.build_r_data(r_obj)
         except NotImplementedError as e:
             pytest.xfail(str(e))
 
@@ -167,7 +166,7 @@ def test_unparse_bad_rda() -> None:
     py_data = "hello"
     converter = ConverterFromPythonToR()
     r_obj = converter.convert_to_r_object(py_data)
-    r_data = build_r_data(r_obj)
+    r_data = converter.build_r_data(r_obj)
     with pytest.raises(ValueError, match="(?i)must be dictionary-like"):
         unparse_data(r_data, file_type="rda")
 
@@ -191,7 +190,7 @@ def test_unparse_big_int() -> None:
     big_int = 2**32
     converter = ConverterFromPythonToR()
     r_obj = converter.convert_to_r_object(big_int)
-    r_data = build_r_data(r_obj)
+    r_data = converter.build_r_data(r_obj)
     with pytest.raises(ValueError, match="(?i)not castable"):
         unparse_data(r_data, file_format="xdr")
 

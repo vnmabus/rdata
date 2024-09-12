@@ -25,6 +25,5 @@ from ._conversion import (
     ts_constructor as ts_constructor,
 )
 from .to_r import (
-    build_r_data as build_r_data,
     ConverterFromPythonToR as ConverterFromPythonToR,
 )
