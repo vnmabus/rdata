@@ -74,27 +74,11 @@ def create_unicode_array(
     return np.array(name_list, dtype=np.dtype("U"))
 
 
-def find_is_object(attributes: RObject | None) -> bool:
-    if attributes is None:
-        return False
-    info = attributes.info
-    if info.type != RObjectType.LIST:
-        return False
-    if not info.tag:
-        return False
-    tag = attributes.tag
-    if tag.info.type == RObjectType.REF:
-        tag = tag.referenced_object
-    if (tag.info.type == RObjectType.SYM
-        and tag.value.value == b"class"):
-        return True
-    return find_is_object(attributes.value[1])
-
-
 def build_r_object(
         r_type: RObjectType,
         *,
         value: Any = None,  # noqa: ANN401
+        is_object: bool = False,
         attributes: RObject | None = None,
         tag: RObject | None = None,
         gp: int = 0,
@@ -106,6 +90,7 @@ def build_r_object(
     Args:
         r_type: Type indentifier.
         value: Value for RObject.
+        is_object: True if RObject represents object.
         attributes: Same as in RObject.
         tag: Same as in RObject.
         gp: Same as in RObjectInfo.
@@ -124,7 +109,6 @@ def build_r_object(
             == (referenced_object is None)
             == (r_type != RObjectType.REF)
             )
-    is_object = find_is_object(attributes)
     return RObject(
         RObjectInfo(
             r_type,
@@ -312,9 +296,10 @@ class ConverterFromPythonToR:
         r_type = None
         values: list[Any] | tuple[Any, ...]
         r_value: Any = None
-        gp = 0
+        is_object = False
         attributes = None
         tag = None
+        gp = 0
 
         if data is None:
             r_type = RObjectType.NILVALUE
@@ -438,6 +423,7 @@ class ConverterFromPythonToR:
             raise NotImplementedError(msg)
 
         elif isinstance(data, pd.Categorical):
+            is_object = True
             r_type = RObjectType.INT
             r_value = data.codes + 1
             attributes = self.build_r_list({
@@ -446,6 +432,7 @@ class ConverterFromPythonToR:
                 })
 
         elif isinstance(data, pd.DataFrame):
+            is_object = True
             r_type = RObjectType.VEC
             names = []
             r_value = []
@@ -509,5 +496,6 @@ class ConverterFromPythonToR:
             raise NotImplementedError(msg)
 
         return build_r_object(r_type, value=r_value,
+                              is_object=is_object,
                               attributes=attributes,
                               tag=tag, gp=gp)
