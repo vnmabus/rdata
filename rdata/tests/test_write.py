@@ -130,19 +130,28 @@ def test_convert_to_r(fname: str, expand_altrep: bool) -> None:  # noqa: FBT001
         else:
             encoding = encoding.lower()  # type: ignore [assignment]
 
+        converter = ConverterFromPythonToR(
+            encoding=encoding,
+            format_version=r_data.versions.format,
+            r_version_serialized=r_data.versions.serialized,
+        )
+        if fname in [
+            "test_dataframe_dtypes.rds",
+            "test_dataframe_int_rownames.rds",
+            "test_dataframe_range_rownames.rds",
+            "test_dataframe_rownames.rda",
+        ]:
+            converter.df_attr_order = ["names", "class", "row.names"]
+
         try:
-            converter = ConverterFromPythonToR(
-                encoding=encoding,
-                format_version=r_data.versions.format,
-                r_version_serialized=r_data.versions.serialized,
-            )
             if file_type == "rds":
                 r_obj = converter.convert_to_r_object(py_data)
             else:
                 r_obj = converter.convert_to_r_object_for_rda(py_data)
-            new_r_data = converter.build_r_data(r_obj)
         except NotImplementedError as e:
             pytest.xfail(str(e))
+
+        new_r_data = converter.build_r_data(r_obj)
 
         assert str(r_data) == str(new_r_data)
         assert r_data == new_r_data

@@ -154,6 +154,11 @@ class ConverterFromPythonToR:
         self.reference_name_list: list[None | str] = [None]
         self.reference_obj_list: list[None | RObject] = [None]
 
+        # In test files the order in which dataframe attributes are written varies.
+        # R can read files with attributes in any order, but this variable
+        # is used in tests to change the attribute order to match with the test file.
+        self.df_attr_order = None
+
 
     def build_r_data(self,
             r_object: RObject,
@@ -462,11 +467,6 @@ class ConverterFromPythonToR:
 
                 r_value.append(r_series)
 
-            # In test files the order in which attributes are written varies.
-            # We replicate here the order matching test files, but likely
-            # R could read files with attributes in any order.
-            attr_order = ["names", "row.names", "class"]
-
             index = data.index
             if isinstance(index, pd.RangeIndex):
                 assert isinstance(index.start, int)
@@ -480,10 +480,8 @@ class ConverterFromPythonToR:
                             fill_value=R_INT_NA,
                         )
                 else:
-                    attr_order = ["names", "class", "row.names"]
                     row_names = range(index.start, index.stop, index.step)
             elif isinstance(index, pd.Index):
-                attr_order = ["names", "class", "row.names"]
                 if index.dtype == "object":
                     row_names = create_unicode_array(index)
                 elif np.issubdtype(str(index.dtype), np.integer):
@@ -500,7 +498,9 @@ class ConverterFromPythonToR:
                 "row.names": row_names,
                 "class": "data.frame",
             }
-            attributes = self.build_r_list({k: attr_dict[k] for k in attr_order})
+            if self.df_attr_order is not None:
+                attr_dict = {k: attr_dict[k] for k in self.df_attr_order}
+            attributes = self.build_r_list(attr_dict)
 
         else:
             msg = f"type {type(data)} not implemented"
