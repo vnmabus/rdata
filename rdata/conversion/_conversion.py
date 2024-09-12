@@ -445,14 +445,26 @@ R_INT_MIN = -2**31
 def _dataframe_column_transform(source: Any) -> Any:  # noqa: ANN401
 
     if isinstance(source, np.ndarray):
+        dtype: Any
         if np.issubdtype(source.dtype, np.integer):
-            return pd.Series(source, dtype=pd.Int32Dtype()).array
+            dtype = pd.Int32Dtype()
+        elif np.issubdtype(source.dtype, np.floating):
+            dtype = pd.Float64Dtype()
+        elif np.issubdtype(source.dtype, np.complexfloating):
+            # There seems to be no pandas type for complex array
+            return source
+        elif np.issubdtype(source.dtype, np.bool_):
+            dtype = pd.BooleanDtype()
+        elif np.issubdtype(source.dtype, np.str_):
+            dtype = pd.StringDtype()
+        elif np.issubdtype(source.dtype, np.object_):
+            for value in source:
+                assert isinstance(value, str) or value is None
+            dtype = pd.StringDtype()
+        else:
+            return source
 
-        if np.issubdtype(source.dtype, np.bool_):
-            return pd.Series(source, dtype=pd.BooleanDtype()).array
-
-        if np.issubdtype(source.dtype, np.str_):
-            return pd.Series(source, dtype=pd.StringDtype()).array
+        return pd.Series(source, dtype=dtype).array
 
     return source
 
