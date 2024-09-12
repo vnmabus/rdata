@@ -538,6 +538,25 @@ class SimpleTests(unittest.TestCase):
         )
         pd.testing.assert_frame_equal(data, ref)
 
+    def test_dataframe_dtypes(self) -> None:
+        """Test dataframe conversion."""
+        # File created in R with
+        # df = data.frame(int=c(10L, 20L, 30L), float=c(1.1, 2.2, 3.3), string=c("x", "y", "z"), bool=as.logical(c(1, 0, 1)), complex=c(4+5i, 6+7i, 8+9i)); print(df); saveRDS(df, file="test_dataframe_dtypes.rds")  # noqa: E501
+        data = rdata.read_rds(TESTDATA_PATH / "test_dataframe_dtypes.rds")
+
+        index = pd.RangeIndex(1, 4)
+        ref = pd.DataFrame(
+            {
+                "int": pd.Series([10, 20, 30], dtype=pd.Int32Dtype(), index=index),
+                "float": pd.Series([1.1, 2.2, 3.3], dtype=pd.Float64Dtype(), index=index),
+                "string": pd.Series(["x" ,"y", "z"], dtype=pd.StringDtype(), index=index),
+                "bool": pd.Series([True, False, True], dtype=pd.BooleanDtype(), index=index),
+                "complex": pd.Series([4+5j, 6+7j, 8+9j], dtype=complex, index=index),
+            },
+            index=index,
+        )
+        pd.testing.assert_frame_equal(data, ref)
+
     def test_ts(self) -> None:
         """Test time series conversion."""
         data = rdata.read_rda(TESTDATA_PATH / "test_ts.rda")
