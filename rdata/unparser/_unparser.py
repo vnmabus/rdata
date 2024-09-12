@@ -111,6 +111,7 @@ class Unparser(abc.ABC):
         elif info.type in {
             RObjectType.LIST,
             RObjectType.LANG,
+            RObjectType.ALTREP,
             # Parser treats the following equal to LIST.
             # Not tested if they work
             # RObjectType.CLO,
