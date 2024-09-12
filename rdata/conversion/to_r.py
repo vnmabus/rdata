@@ -446,8 +446,9 @@ class ConverterFromPythonToR:
                 elif isinstance(array, pd.arrays.StringArray):
                     r_series = self.convert_to_r_object(create_unicode_array(array))
                 elif isinstance(array, (
-                         pd.arrays.IntegerArray,
-                         pd.arrays.NumpyExtensionArray,  # type: ignore [attr-defined]
+                    pd.arrays.IntegerArray,
+                    pd.arrays.BooleanArray,
+                    pd.arrays.NumpyExtensionArray,  # type: ignore [attr-defined]
                 )):
                     r_series = self.convert_to_r_object(array.to_numpy())
                 else:
