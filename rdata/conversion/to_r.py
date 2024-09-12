@@ -456,8 +456,12 @@ class ConverterFromPythonToR:
 
                 r_value.append(r_series)
 
-            index = data.index
+            # In test files the order in which attributes are written varies.
+            # We replicate here the order matching test files, but likely
+            # R could read files with attributes in any order.
             attr_order = ["names", "row.names", "class"]
+
+            index = data.index
             if isinstance(index, pd.RangeIndex):
                 assert isinstance(index.start, int)
                 if (index.start == 1
@@ -490,7 +494,6 @@ class ConverterFromPythonToR:
                 "row.names": row_names,
                 "class": "data.frame",
             }
-
             attributes = self.build_r_list({k: attr_dict[k] for k in attr_order})
 
         else:
