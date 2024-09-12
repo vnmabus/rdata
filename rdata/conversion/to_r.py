@@ -446,11 +446,16 @@ class ConverterFromPythonToR:
                 elif isinstance(array, pd.arrays.StringArray):
                     r_series = self.convert_to_r_object(create_unicode_array(array))
                 elif isinstance(array, (
-                    pd.arrays.IntegerArray,
                     pd.arrays.BooleanArray,
+                    pd.arrays.IntegerArray,
+                    pd.arrays.FloatingArray,
                     pd.arrays.NumpyExtensionArray,  # type: ignore [attr-defined]
                 )):
-                    r_series = self.convert_to_r_object(array.to_numpy())
+                    np_array = array.to_numpy()
+                    if np_array.dtype.kind == "O":
+                        r_series = self.convert_to_r_object(create_unicode_array(array))
+                    else:
+                        r_series = self.convert_to_r_object(array.to_numpy())
                 else:
                     msg = f"pd.DataFrame with pd.Series {type(array)} not implemented"
                     raise NotImplementedError(msg)
