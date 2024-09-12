@@ -113,7 +113,7 @@ def test_convert_to_r(fname: str) -> None:
         data = decompress_data(f.read())
         file_type, file_format = parse_file_type_and_format(data)
 
-        r_data = rdata.parser.parse_data(data, expand_altrep=False)
+        r_data = rdata.parser.parse_data(data)
 
         try:
             py_data = rdata.conversion.convert(r_data)
