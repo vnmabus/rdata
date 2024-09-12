@@ -394,6 +394,52 @@ def convert_array(
     return value  # type: ignore [no-any-return]
 
 
+def convert_altrep_to_range(
+    r_altrep: parser.RObject,
+) -> range:
+    """
+    Convert a R altrep to range object.
+
+    Args:
+        r_altrep: R altrep object
+
+    Returns:
+        Array.
+
+    See Also:
+        convert_array
+    """
+    if r_altrep.info.type != parser.RObjectType.ALTREP:
+        msg = "Must receive an altrep object"
+        raise TypeError(msg)
+
+    info, state, attr = r_altrep.value
+    assert attr.info.type == parser.RObjectType.NILVALUE
+
+    assert info.info.type == parser.RObjectType.LIST
+
+    class_sym = info.value[0]
+    while class_sym.info.type == parser.RObjectType.REF:
+        class_sym = class_sym.referenced_object
+
+    assert class_sym.info.type == parser.RObjectType.SYM
+    assert class_sym.value.info.type == parser.RObjectType.CHAR
+
+    altrep_name = class_sym.value.value
+    assert isinstance(altrep_name, bytes)
+
+    if altrep_name != b"compact_intseq":
+        msg = "Only compact integer sequences can be converted to range"
+        raise NotImplementedError(msg)
+
+    n = int(state.value[0])
+    start = int(state.value[1])
+    step = int(state.value[2])
+    stop = start + (n - 1) * step
+    value = range(start, stop + 1, step)
+    return value
+
+
 R_INT_MIN = -2**31
 
 
@@ -430,7 +476,7 @@ def dataframe_constructor(
             and isinstance(row_names, np.ma.MaskedArray)
             and row_names.mask[0]
         )
-        else tuple(row_names)
+        else row_names
     )
 
     return pd.DataFrame(obj, columns=obj, index=index)
@@ -819,6 +865,9 @@ class SimpleConverter(Converter):
         elif obj.info.type == parser.RObjectType.NILVALUE:
 
             value = None
+
+        elif obj.info.type == parser.RObjectType.ALTREP:
+            value = convert_altrep_to_range(obj)
 
         else:
             msg = f"Type {obj.info.type} not implemented"
