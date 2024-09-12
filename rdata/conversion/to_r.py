@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 from rdata.parser import (
+    R_FLOAT_NA,
     R_INT_NA,
     CharFlags,
     RData,
@@ -55,23 +56,61 @@ R_MINIMUM_VERSION_WITH_ENCODING: Final[int] = 3
 R_MINIMUM_VERSION_WITH_ALTREP: Final[int] = 3
 
 
-def create_unicode_array(
-        names: Any,  # noqa: ANN401
+def convert_pd_array_to_np_array(
+        pd_array: Any,
 ) -> npt.NDArray[Any]:
     """
-    Create unicode array from sequence/iterator of strings.
+    Convert pandas array object to numpy array.
 
     Args:
-        names: Strings.
+        pd_array: Pandas array.
 
     Returns:
-        Array.
+        Numpy array.
     """
-    name_list = []
-    for name in names:
-        assert isinstance(name, str)
-        name_list.append(name)
-    return np.array(name_list, dtype=np.dtype("U"))
+    if isinstance(pd_array, pd.arrays.StringArray):
+        return pd_array.to_numpy()
+    elif isinstance(pd_array, (
+        pd.arrays.BooleanArray,
+        pd.arrays.IntegerArray,
+        pd.arrays.FloatingArray,
+    )):
+        if isinstance(pd_array, pd.arrays.BooleanArray):
+            dtype = np.bool_
+            fill_value = True
+        elif isinstance(pd_array, pd.arrays.IntegerArray):
+            dtype = np.int32
+            fill_value = R_INT_NA
+        elif isinstance(pd_array, pd.arrays.FloatingArray):
+            dtype = np.float64
+            fill_value = R_FLOAT_NA
+
+        mask = pd_array.isna()
+        if np.any(mask):
+            data = np.empty(pd_array.shape, dtype=dtype)
+            data[~mask] = pd_array[~mask].to_numpy()
+            data[mask] = fill_value
+            if isinstance(pd_array, pd.arrays.FloatingArray):
+                array = data
+            else:
+                array = np.ma.array(
+                    data=data,
+                    mask=mask,
+                    fill_value=fill_value,
+                )
+        else:
+            array = pd_array.to_numpy()
+        assert array.dtype == dtype
+        return array
+
+    elif isinstance(pd_array, (
+        pd.arrays.NumpyExtensionArray,  # type: ignore [attr-defined]
+    )):
+        array = pd_array.to_numpy()
+        return array
+
+    msg = f"pandas array {type(array)} not implemented"
+    raise NotImplementedError(msg)
 
 
 def build_r_object(
@@ -332,17 +371,23 @@ class ConverterFromPythonToR:
             r_value = [self.convert_to_r_object(el) for el in values]
 
             if isinstance(data, dict):
-                names = create_unicode_array(data.keys())
+                names = np.array(list(data.keys()), dtype=np.dtype("U"))
                 attributes = self.build_r_list({"names": names})
 
         elif isinstance(data, np.ndarray):
             if data.dtype.kind in ["O"]:
-                # This is a special case handling only np.array([None])
-                if data.size != 1 or data[0] is not None:
-                    msg = "general object array not implemented"
-                    raise NotImplementedError(msg)
+                assert data.ndim == 1
                 r_type = RObjectType.STR
-                r_value = [build_r_object(RObjectType.CHAR)]
+                r_value = []
+                for el in data:
+                    if el is None or pd.isna(el):
+                        r_el = build_r_object(RObjectType.CHAR)
+                    elif isinstance(el, str):
+                        r_el = self.convert_to_r_object(el.encode(self.encoding))
+                    else:
+                        msg = "general object array not implemented"
+                        raise NotImplementedError(msg)
+                    r_value.append(r_el)
 
             elif data.dtype.kind in ["S"]:
                 assert data.ndim == 1
@@ -432,7 +477,7 @@ class ConverterFromPythonToR:
             r_type = RObjectType.INT
             r_value = data.codes + 1
             attributes = self.build_r_list({
-                "levels": create_unicode_array(data.categories),
+                "levels": data.categories.to_numpy(),
                 "class": "factor",
                 })
 
@@ -445,26 +490,12 @@ class ConverterFromPythonToR:
                 assert isinstance(column, str)
                 column_names.append(column)
 
-                array = series.array
-                if isinstance(array, pd.Categorical):
-                    r_series = self.convert_to_r_object(array)
-                elif isinstance(array, pd.arrays.StringArray):
-                    r_series = self.convert_to_r_object(create_unicode_array(array))
-                elif isinstance(array, (
-                    pd.arrays.BooleanArray,
-                    pd.arrays.IntegerArray,
-                    pd.arrays.FloatingArray,
-                    pd.arrays.NumpyExtensionArray,  # type: ignore [attr-defined]
-                )):
-                    np_array = array.to_numpy()
-                    if np_array.dtype.kind == "O":
-                        r_series = self.convert_to_r_object(create_unicode_array(array))
-                    else:
-                        r_series = self.convert_to_r_object(array.to_numpy())
+                pd_array = series.array
+                if isinstance(pd_array, pd.Categorical):
+                    array = pd_array
                 else:
-                    msg = f"pd.DataFrame with pd.Series {type(array)} not implemented"
-                    raise NotImplementedError(msg)
-
+                    array = convert_pd_array_to_np_array(pd_array)
+                r_series = self.convert_to_r_object(array)
                 r_value.append(r_series)
 
             index = data.index
@@ -483,7 +514,7 @@ class ConverterFromPythonToR:
                     row_names = range(index.start, index.stop, index.step)
             elif isinstance(index, pd.Index):
                 if index.dtype == "object":
-                    row_names = create_unicode_array(index)
+                    row_names = index.to_numpy()
                 elif np.issubdtype(str(index.dtype), np.integer):
                     row_names = index.to_numpy()
                 else:
@@ -494,7 +525,7 @@ class ConverterFromPythonToR:
                 raise NotImplementedError(msg)
 
             attr_dict = {
-                "names": create_unicode_array(column_names),
+                "names": np.array(column_names, dtype=np.dtype("U")),
                 "row.names": row_names,
                 "class": "data.frame",
             }

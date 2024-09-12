@@ -31,6 +31,10 @@ if TYPE_CHECKING:
 #: Value used to represent a missing integer in R.
 R_INT_NA: Final = -2**31
 
+#: Value used to represent a missing float in R.
+#  This is a NaN with a particular payload, but it's not the same as np.nan.
+R_FLOAT_NA: Final = np.frombuffer(b"\x7f\xf0\x00\x00\x00\x00\x07\xa2", dtype=">f8").astype("=f8")[0]  # noqa: E501
+
 
 @runtime_checkable
 class BinaryFileLike(Protocol):
