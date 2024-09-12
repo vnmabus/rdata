@@ -517,7 +517,9 @@ class SimpleTests(unittest.TestCase):
         index = np.array([3, 6, 9], dtype=np.int32)
         ref = pd.DataFrame(
             {
-                "col1": pd.Series([10., 20., 30.], dtype=pd.Float64Dtype(), index=index),
+                "col1": pd.Series(
+                    [10., 20., 30.],
+                    dtype=pd.Float64Dtype(), index=index),
             },
             index=index,
         )
@@ -532,7 +534,9 @@ class SimpleTests(unittest.TestCase):
         index = pd.RangeIndex(2, 5)
         ref = pd.DataFrame(
             {
-                "col1": pd.Series([10., 20., 30.], dtype=pd.Float64Dtype(), index=index),
+                "col1": pd.Series(
+                    [10., 20., 30.],
+                    dtype=pd.Float64Dtype(), index=index),
             },
             index=index,
         )
@@ -547,11 +551,21 @@ class SimpleTests(unittest.TestCase):
         index = pd.RangeIndex(1, 4)
         ref = pd.DataFrame(
             {
-                "int": pd.Series([10, 20, 30], dtype=pd.Int32Dtype(), index=index),
-                "float": pd.Series([1.1, 2.2, 3.3], dtype=pd.Float64Dtype(), index=index),
-                "string": pd.Series(["x" ,"y", "z"], dtype=pd.StringDtype(), index=index),
-                "bool": pd.Series([True, False, True], dtype=pd.BooleanDtype(), index=index),
-                "complex": pd.Series([4+5j, 6+7j, 8+9j], dtype=complex, index=index),
+                "int": pd.Series(
+                    [10, 20, 30],
+                    dtype=pd.Int32Dtype(), index=index),
+                "float": pd.Series(
+                    [1.1, 2.2, 3.3],
+                    dtype=pd.Float64Dtype(), index=index),
+                "string": pd.Series(
+                    ["x" ,"y", "z"],
+                    dtype=pd.StringDtype(), index=index),
+                "bool": pd.Series(
+                    [True, False, True],
+                    dtype=pd.BooleanDtype(), index=index),
+                "complex": pd.Series(
+                    [4+5j, 6+7j, 8+9j],
+                    dtype=complex, index=index),
             },
             index=index,
         )
@@ -560,17 +574,27 @@ class SimpleTests(unittest.TestCase):
     def test_dataframe_dtypes_with_na(self) -> None:
         """Test dataframe conversion."""
         # File created in R with
-        # df = data.frame(int=c(10L, 20L, 30L, NA), float=c(1.1, 2.2, 3.3, NA), string=c("x", "y", "z", NA), bool=as.logical(c(1, 0, 1, NA)), complex=c(4+5i, 6+7i, 8+9i, NA)); saveRDS(df, file="test_dataframe_dtypes_with_na.rds")
+        # df = data.frame(int=c(10L, 20L, 30L, NA), float=c(1.1, 2.2, 3.3, NA), string=c("x", "y", "z", NA), bool=as.logical(c(1, 0, 1, NA)), complex=c(4+5i, 6+7i, 8+9i, NA)); saveRDS(df, file="test_dataframe_dtypes_with_na.rds")  # noqa: E501
         data = rdata.read_rds(TESTDATA_PATH / "test_dataframe_dtypes_with_na.rds")
 
         index = pd.RangeIndex(1, 5)
         ref = pd.DataFrame(
             {
-                "int": pd.Series([10, 20, 30, None], dtype=pd.Int32Dtype(), index=index),
-                "float": pd.Series([1.1, 2.2, 3.3, None], dtype=pd.Float64Dtype(), index=index),
-                "string": pd.Series(["x" ,"y", "z", None], dtype=pd.StringDtype(), index=index),
-                "bool": pd.Series([True, False, True, None], dtype=pd.BooleanDtype(), index=index),
-                "complex": pd.Series([4+5j, 6+7j, 8+9j, None], dtype=complex, index=index),
+                "int": pd.Series(
+                    [10, 20, 30, None],
+                    dtype=pd.Int32Dtype(), index=index),
+                "float": pd.Series(
+                    [1.1, 2.2, 3.3, None],
+                    dtype=pd.Float64Dtype(), index=index),
+                "string": pd.Series(
+                    ["x" ,"y", "z", None],
+                    dtype=pd.StringDtype(), index=index),
+                "bool": pd.Series(
+                    [True, False, True, None],
+                    dtype=pd.BooleanDtype(), index=index),
+                "complex": pd.Series(
+                    [4+5j, 6+7j, 8+9j, None],
+                    dtype=complex, index=index),
             },
             index=index,
         )

@@ -57,7 +57,7 @@ R_MINIMUM_VERSION_WITH_ALTREP: Final[int] = 3
 
 
 def convert_pd_array_to_np_array(
-        pd_array: Any,
+        pd_array: Any,  # noqa: ANN401
 ) -> npt.NDArray[Any]:
     """
     Convert pandas array object to numpy array.
@@ -70,7 +70,8 @@ def convert_pd_array_to_np_array(
     """
     if isinstance(pd_array, pd.arrays.StringArray):
         return pd_array.to_numpy()
-    elif isinstance(pd_array, (
+
+    if isinstance(pd_array, (
         pd.arrays.BooleanArray,
         pd.arrays.IntegerArray,
         pd.arrays.FloatingArray,
@@ -103,11 +104,10 @@ def convert_pd_array_to_np_array(
         assert array.dtype == dtype
         return array
 
-    elif isinstance(pd_array, (
+    if isinstance(pd_array, (
         pd.arrays.NumpyExtensionArray,  # type: ignore [attr-defined]
     )):
-        array = pd_array.to_numpy()
-        return array
+        return pd_array.to_numpy()
 
     msg = f"pandas array {type(array)} not implemented"
     raise NotImplementedError(msg)
@@ -513,9 +513,8 @@ class ConverterFromPythonToR:
                 else:
                     row_names = range(index.start, index.stop, index.step)
             elif isinstance(index, pd.Index):
-                if index.dtype == "object":
-                    row_names = index.to_numpy()
-                elif np.issubdtype(str(index.dtype), np.integer):
+                if (index.dtype == "object"
+                    or np.issubdtype(str(index.dtype), np.integer)):
                     row_names = index.to_numpy()
                 else:
                     msg = f"pd.DataFrame pd.Index {index.dtype} not implemented"
