@@ -7,6 +7,8 @@ from contextlib import AbstractContextManager, nullcontext
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import numpy as np
+import pandas as pd
 import pytest
 
 import rdata
@@ -206,6 +208,37 @@ def test_unparse_big_int() -> None:
     r_data = converter.build_r_data(r_obj)
     with pytest.raises(ValueError, match="(?i)not castable"):
         unparse_data(r_data, file_format="xdr")
+
+
+def test_convert_dataframe_pandas_dtypes() -> None:
+    """Test converting dataframe with pandas dtypes."""
+    df1 = pd.DataFrame(
+        {
+            "int": np.array([10, 20, 30], dtype=np.int32),
+            "float": [1.1, 2.2, 3.3],
+            "string": ["x" ,"y", "z"],
+            "bool": [True, False, True],
+            "complex": [4+5j, 6+7j, 8+9j],
+        },
+        index=range(3),
+    )
+
+    df2 = pd.DataFrame(
+        {
+            "int": pd.Series([10, 20, 30], dtype=pd.Int32Dtype()),
+            "float": pd.Series([1.1, 2.2, 3.3], dtype=pd.Float64Dtype()),
+            "string": pd.Series(["x" ,"y", "z"], dtype=pd.StringDtype()),
+            "bool": pd.Series([True, False, True], dtype=pd.BooleanDtype()),
+            "complex": pd.Series([4+5j, 6+7j, 8+9j], dtype=complex),
+        },
+        index=pd.RangeIndex(3),
+    )
+
+    r_obj1 = ConverterFromPythonToR().convert_to_r_object(df1)
+    r_obj2 = ConverterFromPythonToR().convert_to_r_object(df2)
+
+    assert str(r_obj1) == str(r_obj2)
+    assert r_obj1 == r_obj2
 
 
 @pytest.mark.parametrize("compression", [*valid_compressions, "fail"])
