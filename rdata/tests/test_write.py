@@ -148,16 +148,16 @@ def test_convert_to_r(fname: str) -> None:
 def test_convert_to_r_bad_rda() -> None:
     """Test checking that data for RDA has variable names."""
     py_data = "hello"
+    converter = ConverterFromPythonToR()
     with pytest.raises(TypeError, match="(?i)data must be a dictionary"):
-        converter = ConverterFromPythonToR()
         converter.convert_to_r_object_for_rda(py_data)  # type: ignore [arg-type]
 
 
 def test_convert_to_r_empty_rda() -> None:
     """Test checking that data for RDA has variable names."""
     py_data: dict[str, Any] = {}
+    converter = ConverterFromPythonToR()
     with pytest.raises(ValueError, match="(?i)data must not be empty"):
-        converter = ConverterFromPythonToR()
         converter.convert_to_r_object_for_rda(py_data)
 
 
@@ -173,15 +173,15 @@ def test_unparse_bad_rda() -> None:
 
 def test_convert_to_r_bad_encoding() -> None:
     """Test checking encoding."""
+    converter = ConverterFromPythonToR(encoding="non-existent")
     with pytest.raises(LookupError, match="(?i)unknown encoding"):
-        converter = ConverterFromPythonToR(encoding="non-existent")
         converter.convert_to_r_object("ä")  # type: ignore [arg-type]
 
 
 def test_convert_to_r_unsupported_encoding() -> None:
     """Test checking encoding."""
+    converter = ConverterFromPythonToR(encoding="cp1250")
     with pytest.raises(ValueError, match="(?i)unsupported encoding"):
-        converter = ConverterFromPythonToR(encoding="cp1250")
         converter.convert_to_r_object("ä")  # type: ignore [arg-type]
 
 

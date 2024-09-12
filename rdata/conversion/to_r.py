@@ -26,10 +26,10 @@ from . import (
 )
 
 if TYPE_CHECKING:
-    import numpy.typing as npt
-
     from collections.abc import Mapping
     from typing import Any, Final, Literal, Protocol
+
+    import numpy.typing as npt
 
     Encoding = Literal["utf-8", "cp1252"]
 
@@ -52,10 +52,11 @@ R_MINIMUM_VERSIONS: Final[Mapping[int, int]] = MappingProxyType({
     3: 0x30500,
 })
 R_MINIMUM_VERSION_WITH_ENCODING: Final[int] = 3
+R_MINIMUM_VERSION_WITH_ALTREP: Final[int] = 3
 
 
 def create_unicode_array(
-        names: Any,
+        names: Any,  # noqa: ANN401
 ) -> npt.NDArray[Any]:
     """
     Create unicode array from sequence/iterator of strings.
@@ -73,7 +74,7 @@ def create_unicode_array(
     return np.array(name_list, dtype=np.dtype("U"))
 
 
-def find_is_object(attributes: RObject | None):
+def find_is_object(attributes: RObject | None) -> bool:
     if attributes is None:
         return False
     info = attributes.info
@@ -119,7 +120,10 @@ def build_r_object(
     """
     assert r_type is not None
     reference_id, referenced_object = reference
-    assert (reference_id == 0) == (referenced_object == None) == (r_type != RObjectType.REF)
+    assert ((reference_id == 0)
+            == (referenced_object is None)
+            == (r_type != RObjectType.REF)
+            )
     is_object = find_is_object(attributes)
     return RObject(
         RObjectInfo(
@@ -142,17 +146,24 @@ class ConverterFromPythonToR:
     """
     Class converting Python objects to R objects.
 
-    Args:
+    Attributes:
         encoding: Encoding to be used for strings within data.
         format_version: File format version.
         r_version_serialized: R version written as the creator of the object.
     """
-
     def __init__(self, *,
             encoding: Encoding = "utf-8",
             format_version: int = DEFAULT_FORMAT_VERSION,
             r_version_serialized: int = DEFAULT_R_VERSION_SERIALIZED,
     ) -> None:
+        """
+        Init class.
+
+        Args:
+            encoding: Encoding to be used for strings within data.
+            format_version: File format version.
+            r_version_serialized: R version written as the creator of the object.
+        """
         self.encoding = encoding
         self.format_version = format_version
         self.r_version_serialized = r_version_serialized
@@ -321,7 +332,7 @@ class ConverterFromPythonToR:
 
             if len(data.attributes) > 0:
                 # The following might work here (untested)
-                # attributes = build_r_list(data.attributes)  # noqa: ERA001,E501
+                # attributes = build_r_list(data.attributes)  # noqa: ERA001
                 msg = f"type {r_type} with attributes not implemented"
                 raise NotImplementedError(msg)
 
@@ -350,7 +361,8 @@ class ConverterFromPythonToR:
 
             elif data.dtype.kind in ["U"]:
                 assert data.ndim == 1
-                data = np.array([s.encode(self.encoding) for s in data], dtype=np.dtype("S"))
+                data = np.array([s.encode(self.encoding) for s in data],
+                                dtype=np.dtype("S"))
                 return self.convert_to_r_object(data)
 
             else:
@@ -396,7 +408,7 @@ class ConverterFromPythonToR:
             r_value = data
 
         elif isinstance(data, range):
-            if self.format_version < 3:
+            if self.format_version < R_MINIMUM_VERSION_WITH_ALTREP:
                 # ALTREP support is from R version 3.5.0
                 # (minimum version for format version 3)
                 return self.convert_to_r_object(np.array(data))
@@ -422,7 +434,7 @@ class ConverterFromPythonToR:
             )
 
         elif isinstance(data, pd.Series):
-            msg = f"pd.Series not implemented"
+            msg = "pd.Series not implemented"
             raise NotImplementedError(msg)
 
         elif isinstance(data, pd.Categorical):
@@ -446,8 +458,10 @@ class ConverterFromPythonToR:
                     r_series = self.convert_to_r_object(array)
                 elif isinstance(array, pd.arrays.StringArray):
                     r_series = self.convert_to_r_object(create_unicode_array(array))
-                elif (isinstance(array, pd.arrays.IntegerArray)
-                      or isinstance(array, pd.arrays.NumpyExtensionArray)):
+                elif isinstance(array, (
+                         pd.arrays.IntegerArray,
+                         pd.arrays.NumpyExtensionArray,
+                )):
                     r_series = self.convert_to_r_object(array.to_numpy())
                 else:
                     msg = f"pd.DataFrame with pd.Series {type(array)} not implemented"
@@ -471,7 +485,7 @@ class ConverterFromPythonToR:
                     row_names = range(index.start, index.stop, index.step)
             elif isinstance(index, pd.Index):
                 attr_order = ["names", "class", "row.names"]
-                if index.dtype == 'object':
+                if index.dtype == "object":
                     row_names = create_unicode_array(index)
                 elif np.issubdtype(index.dtype, np.integer):
                     row_names = index.to_numpy()
@@ -494,4 +508,6 @@ class ConverterFromPythonToR:
             msg = f"type {type(data)} not implemented"
             raise NotImplementedError(msg)
 
-        return build_r_object(r_type, value=r_value, attributes=attributes, tag=tag, gp=gp)
+        return build_r_object(r_type, value=r_value,
+                              attributes=attributes,
+                              tag=tag, gp=gp)
