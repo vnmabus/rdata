@@ -466,6 +466,8 @@ class ConverterFromPythonToR:
                 attr_order = ["names", "class", "row.names"]
                 if index.dtype == 'object':
                     row_names = create_unicode_array(index)
+                elif np.issubdtype(index.dtype, np.integer):
+                    row_names = index.to_numpy()
                 else:
                     msg = f"pd.DataFrame pd.Index {index.dtype} not implemented"
                     raise NotImplementedError(msg)
