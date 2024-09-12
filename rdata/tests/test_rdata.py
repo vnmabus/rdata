@@ -508,6 +508,36 @@ class SimpleTests(unittest.TestCase):
             ),
         )
 
+    def test_dataframe_int_rownames(self) -> None:
+        """Test dataframe conversion."""
+        # File created in R with
+        # df = data.frame(col1=c(10, 20, 30), row.names=c(3L, 6L, 9L)); saveRDS(df, file="test_dataframe_int_rownames.rds")  # noqa: E501
+        data = rdata.read_rda(TESTDATA_PATH / "test_dataframe_int_rownames.rds")
+
+        index = np.array([3, 6, 9], dtype=np.int32)
+        ref = pd.DataFrame(
+            {
+                "col1": pd.Series([10., 20., 30.], dtype=pd.Float64Dtype(), index=index),
+            },
+            index=index,
+        )
+        pd.testing.assert_frame_equal(data, ref)
+
+    def test_dataframe_range_rownames(self) -> None:
+        """Test dataframe conversion."""
+        # File created in R with
+        # df = data.frame(col1=c(10, 20, 30), row.names=2:4); saveRDS(df, file="test_dataframe_range_rownames.rds")  # noqa: E501
+        data = rdata.read_rda(TESTDATA_PATH / "test_dataframe_range_rownames.rds")
+
+        index = pd.RangeIndex(2, 5)
+        ref = pd.DataFrame(
+            {
+                "col1": pd.Series([10., 20., 30.], dtype=pd.Float64Dtype(), index=index),
+            },
+            index=index,
+        )
+        pd.testing.assert_frame_equal(data, ref)
+
     def test_ts(self) -> None:
         """Test time series conversion."""
         data = rdata.read_rda(TESTDATA_PATH / "test_ts.rda")
