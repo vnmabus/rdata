@@ -65,7 +65,11 @@ def create_unicode_array(
     Returns:
         Array.
     """
-    return np.array(list(names), dtype=np.dtype("U"))
+    name_list = []
+    for name in names:
+        assert isinstance(name, str)
+        name_list.append(name)
+    return np.array(name_list, dtype=np.dtype("U"))
 
 
 def find_is_object(attributes: RObject | None):
@@ -403,6 +407,7 @@ class ConverterFromPythonToR:
             names = []
             r_value = []
             for column, series in data.items():
+                assert isinstance(column, str)
                 names.append(column)
 
                 array = series.array
