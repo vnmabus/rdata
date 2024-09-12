@@ -213,20 +213,23 @@ class ConverterFromPythonToR:
             data = data.copy()
             key = next(iter(data))
             tag = self.build_r_sym(key)
-            value1 = convert_value(data.pop(key))
+            car = data.pop(key)
         elif isinstance(data, list):
-            value1 = convert_value(data[0])
+            car = data[0]
             data = data[1:]
             tag = None
 
+        if not isinstance(car, RObject):
+            car = convert_value(car)
+
         if len(data) == 0:
-            value2 = build_r_object(RObjectType.NILVALUE)
+            cdr = build_r_object(RObjectType.NILVALUE)
         else:
-            value2 = self.build_r_list(data, convert_value=convert_value)
+            cdr = self.build_r_list(data, convert_value=convert_value)
 
         return build_r_object(
             RObjectType.LIST,
-            value=(value1, value2),
+            value=(car, cdr),
             tag=tag,
             )
 
@@ -390,6 +393,27 @@ class ConverterFromPythonToR:
                 raise ValueError(msg)
             r_value = data
 
+        elif isinstance(data, range):
+            if data.step != 1:
+                # R supports compact sequences only with step 1;
+                # convert the range to an array of values
+                return self.convert_to_r_object(np.array(data))
+
+            r_type = RObjectType.ALTREP
+            r_value = (
+                self.build_r_list([
+                    self.build_r_sym("compact_intseq"),
+                    self.build_r_sym("base"),
+                    RObjectType.INT.value,
+                ]),
+                self.convert_to_r_object(np.array([
+                    len(data),
+                    data.start,
+                    data.step,
+                ], dtype=float)),
+                self.convert_to_r_object(None),
+            )
+
         elif isinstance(data, pd.Series):
             msg = f"pd.Series not implemented"
             raise NotImplementedError(msg)
@@ -426,16 +450,18 @@ class ConverterFromPythonToR:
 
             index = data.index
             attr_order = ["names", "row.names", "class"]
-            if (isinstance(index, pd.RangeIndex)
-                and index.start == 1
-                and index.stop == data.shape[0] + 1
-                and index.step == 1
+            if isinstance(index, pd.RangeIndex):
+                if (index.start == 1
+                    and index.stop == data.shape[0] + 1
+                    and index.step == 1
                 ):
-                row_names = np.ma.array(  # type: ignore [no-untyped-call]
-                        data=[R_INT_NA, -data.shape[0]],
-                        mask=[True, False],
-                        fill_value=R_INT_NA,
-                    )
+                    row_names = np.ma.array(  # type: ignore [no-untyped-call]
+                            data=[R_INT_NA, -data.shape[0]],
+                            mask=[True, False],
+                            fill_value=R_INT_NA,
+                        )
+                else:
+                    row_names = range(index.start, index.stop, index.step)
             elif isinstance(index, pd.Index):
                 attr_order = ["names", "class", "row.names"]
                 if index.dtype == 'object':
