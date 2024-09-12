@@ -7,12 +7,19 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
+from rdata.parser import R_FLOAT_NA
+
 from ._unparser import Unparser
 
 if TYPE_CHECKING:
     import io
 
     import numpy.typing as npt
+
+
+def is_float_na(value: float) -> bool:
+    """Check if value is NA value."""
+    return np.array(value).tobytes() == np.array(R_FLOAT_NA).tobytes()
 
 
 class UnparserASCII(Unparser):
@@ -35,7 +42,7 @@ class UnparserASCII(Unparser):
         """Unparse magic bits."""
         self._add_line("A")
 
-    def _unparse_array_values(self, array: npt.NDArray[Any]) -> None:
+    def _unparse_array_values(self, array: npt.NDArray[Any]) -> None:  # noqa: C901
         # Convert boolean to int
         if np.issubdtype(array.dtype, np.bool_):
             array = array.astype(np.int32)
@@ -51,7 +58,9 @@ class UnparserASCII(Unparser):
                 line = "NA" if value is None or np.ma.is_masked(value) else str(value)  # type: ignore [no-untyped-call]
 
             elif np.issubdtype(array.dtype, np.floating):
-                if np.isnan(value):
+                if is_float_na(value):
+                    line = "NA"
+                elif np.isnan(value):
                     line = "NaN"
                 elif value == np.inf:
                     line = "Inf"
