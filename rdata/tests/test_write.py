@@ -98,7 +98,8 @@ def test_unparse(fname: str) -> None:
 
 
 @pytest.mark.parametrize("fname", fnames, ids=fnames)
-def test_convert_to_r(fname: str) -> None:
+@pytest.mark.parametrize("expand_altrep", [True, False])
+def test_convert_to_r(fname: str, expand_altrep: bool) -> None:
     """Test converting Python data to RData object."""
     with (TESTDATA_PATH / fname).open("rb") as f:
         # Skip test files without unique R->py->R transformation
@@ -113,7 +114,7 @@ def test_convert_to_r(fname: str) -> None:
         data = decompress_data(f.read())
         file_type, file_format = parse_file_type_and_format(data)
 
-        r_data = rdata.parser.parse_data(data)
+        r_data = rdata.parser.parse_data(data, expand_altrep=expand_altrep)
 
         try:
             py_data = rdata.conversion.convert(r_data)
@@ -143,6 +144,18 @@ def test_convert_to_r(fname: str) -> None:
 
         assert str(r_data) == str(new_r_data)
         assert r_data == new_r_data
+
+        # Check futher that the resulting unparsed data is correct to ensure that
+        # Python-to-R conversion hasn't created any odd objects that can't be unparsed
+        if not expand_altrep:
+            file_type, file_format = parse_file_type_and_format(data)
+            out_data = unparse_data(
+                new_r_data, file_format=file_format, file_type=file_type)
+
+            if file_format == "ascii":
+                data = data.replace(b"\r\n", b"\n")
+
+            assert data == out_data
 
 
 def test_convert_to_r_bad_rda() -> None:
