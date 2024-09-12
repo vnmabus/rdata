@@ -6,7 +6,15 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 
-from ._parser import R_INT_NA, AltRepConstructorMap, Parser
+from ._parser import R_FLOAT_NA, R_INT_NA, AltRepConstructorMap, Parser
+
+
+def map_int_na(line: str) -> int:
+    return R_INT_NA if line == "NA" else int(line)
+
+
+def map_float_na(line: str) -> float:
+    return R_FLOAT_NA if line == "NA" else float(line)
 
 
 class ParserASCII(Parser):
@@ -42,14 +50,16 @@ class ParserASCII(Parser):
             line = self._readline()
 
             if np.issubdtype(dtype, np.integer):
-                value = R_INT_NA if line == "NA" else int(line)
+                value = map_int_na(line)
 
             elif np.issubdtype(dtype, np.floating):
-                value = float(line)
+                value = map_float_na(line)
 
             elif np.issubdtype(dtype, np.complexfloating):
+                value1 = map_float_na(line)
                 line2 = self._readline()
-                value = complex(float(line), float(line2))
+                value2 = map_float_na(line2)
+                value = complex(value1, value2)
 
             else:
                 msg = f"Unknown dtype: {dtype}"
