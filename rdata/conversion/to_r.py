@@ -470,6 +470,7 @@ class ConverterFromPythonToR:
                             fill_value=R_INT_NA,
                         )
                 else:
+                    attr_order = ["names", "class", "row.names"]
                     row_names = range(index.start, index.stop, index.step)
             elif isinstance(index, pd.Index):
                 attr_order = ["names", "class", "row.names"]
