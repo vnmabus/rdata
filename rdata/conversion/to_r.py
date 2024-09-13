@@ -263,16 +263,19 @@ class ConverterFromPythonToR:
         """
         converted = []
         for key, value in data.items():
-            converted.append((self.build_r_sym(key), self.convert_to_r_object(value)))
+            converted.append((
+                self.convert_to_r_sym(key),
+                self.convert_to_r_object(value),
+            ))
 
         return build_r_list(converted)
 
 
-    def build_r_sym(self,
+    def convert_to_r_sym(self,
             name: str,
     ) -> RObject:
         """
-        Build R object representing symbol.
+        Convert string to R symbol.
 
         Args:
             name: String.
@@ -345,7 +348,7 @@ class ConverterFromPythonToR:
 
         elif isinstance(data, RLanguage):
             r_type = RObjectType.LANG
-            symbols = [self.build_r_sym(el) for el in data.elements]
+            symbols = [self.convert_to_r_sym(el) for el in data.elements]
             r_value = (symbols[0], build_r_list(symbols[1:]))
 
             if len(data.attributes) > 0:
@@ -445,8 +448,8 @@ class ConverterFromPythonToR:
             r_type = RObjectType.ALTREP
             r_value = (
                 build_r_list([
-                    self.build_r_sym("compact_intseq"),
-                    self.build_r_sym("base"),
+                    self.convert_to_r_sym("compact_intseq"),
+                    self.convert_to_r_sym("base"),
                     self.convert_to_r_object(RObjectType.INT.value),
                 ]),
                 self.convert_to_r_object(np.array([
