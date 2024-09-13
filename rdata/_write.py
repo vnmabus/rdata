@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from .conversion import ConverterFromPythonToR
+from .conversion import convert_python_to_r_data
 from .conversion.to_r import DEFAULT_FORMAT_VERSION
 from .unparser import unparse_file
 
@@ -49,11 +49,11 @@ def write_rds(
         >>> data = ["hello", 1, 2.2, 3.3+4.4j]
         >>> rdata.write_rds("test.rds", data)
     """
-    converter = ConverterFromPythonToR(
+    r_data = convert_python_to_r_data(
+        data,
         encoding=encoding,
         format_version=format_version,
     )
-    r_data = converter.convert_to_r_data(data)
 
     unparse_file(
         path,
@@ -98,11 +98,12 @@ def write_rda(
         >>> data = {"name": "hello", "values": [1, 2.2, 3.3+4.4j]}
         >>> rdata.write_rda("test.rda", data)
     """
-    converter = ConverterFromPythonToR(
+    r_data = convert_python_to_r_data(
+        data,
         encoding=encoding,
         format_version=format_version,
+        file_type="rda",
     )
-    r_data = converter.convert_to_r_data(data, file_type="rda")
 
     unparse_file(
         path,

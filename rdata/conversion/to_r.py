@@ -529,3 +529,63 @@ class ConverterFromPythonToR:
                               is_object=is_object,
                               attributes=r_attributes,
                               tag=tag, gp=gp)
+
+
+def convert_python_to_r_data(
+        data: Any,  # noqa: ANN401
+        *,
+        encoding: Encoding = "utf-8",
+        format_version: int = DEFAULT_FORMAT_VERSION,
+        r_version_serialized: int = DEFAULT_R_VERSION_SERIALIZED,
+        file_type: FileType = "rds",
+) -> RData:
+    """
+    Convert Python data to R data.
+
+    Args:
+        data: Any Python object.
+        encoding: Encoding to be used for strings within data.
+        format_version: File format version.
+        r_version_serialized: R version written as the creator of the object.
+        file_type: File type.
+
+    Returns:
+        Corresponding RData object.
+
+    See Also:
+        convert_python_to_r_object
+    """
+    return ConverterFromPythonToR(
+            encoding=encoding,
+            format_version=format_version,
+            r_version_serialized=r_version_serialized,
+    ).convert_to_r_data(data, file_type=file_type)
+
+
+def convert_python_to_r_object(
+        data: Any,  # noqa: ANN401
+        *,
+        encoding: Encoding = "utf-8",
+        format_version: int = DEFAULT_FORMAT_VERSION,
+        r_version_serialized: int = DEFAULT_R_VERSION_SERIALIZED,
+) -> RObject:
+    """
+    Convert Python data to R object.
+
+    Args:
+        data: Any Python object.
+        encoding: Encoding to be used for strings within data.
+        format_version: File format version.
+        r_version_serialized: R version written as the creator of the object.
+
+    Returns:
+        Corresponding RObject object.
+
+    See Also:
+        convert_python_to_r_data
+    """
+    return ConverterFromPythonToR(
+            encoding=encoding,
+            format_version=format_version,
+            r_version_serialized=r_version_serialized,
+    ).convert_to_r_object(data)

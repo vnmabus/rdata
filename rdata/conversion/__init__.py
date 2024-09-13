@@ -26,4 +26,6 @@ from ._conversion import (
 )
 from .to_r import (
     ConverterFromPythonToR as ConverterFromPythonToR,
+    convert_python_to_r_data as convert_python_to_r_data,
+    convert_python_to_r_object as convert_python_to_r_object,
 )
