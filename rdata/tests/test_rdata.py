@@ -717,11 +717,15 @@ class SimpleTests(unittest.TestCase):
 
     def test_ascii_characters(self) -> None:
         """Test reading string with all ascii printable characters."""
+        # File created in R with
+        # saveRDS("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\v\f\r\n", file="test_ascii_chars.rds")  # noqa: E501,ERA001
         data = rdata.read_rds(TESTDATA_PATH / "test_ascii_chars.rds")
         assert data == "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\v\f\r\n", data  # noqa: E501
 
     def test_ascii_ascii_characters(self) -> None:
         """Test reading string with all ascii printable characters."""
+        # File created in R with
+        # saveRDS("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\v\f\r\n", file="test_ascii_ascii_chars.rds", ascii=TRUE, compress=FALSE)  # noqa: E501,ERA001
         data = rdata.read_rds(TESTDATA_PATH / "test_ascii_ascii_chars.rds")
         assert data == "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\v\f\r\n", data  # noqa: E501
 
