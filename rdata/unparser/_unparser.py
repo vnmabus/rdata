@@ -73,9 +73,17 @@ class Unparser(abc.ABC):
     def _unparse_array_values(self, array: npt.NDArray[Any]) -> None:
         """Unparse the values of an array."""
 
-    @abc.abstractmethod
-    def unparse_string(self, value: bytes) -> None:
+    def unparse_string(self, value: bytes | None) -> None:
         """Unparse a string."""
+        if value is None:
+            self.unparse_int(-1)
+            return
+        self.unparse_int(len(value))
+        self._unparse_string_characters(value)
+
+    @abc.abstractmethod
+    def _unparse_string_characters(self, value: bytes) -> None:
+        """Unparse characters of a string (not None)."""
 
     def unparse_r_data(self, r_data: RData) -> None:
         """Unparse an RData object."""

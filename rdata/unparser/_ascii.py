@@ -68,10 +68,7 @@ class UnparserASCII(Unparser):
 
             self._add_line(line)
 
-    def unparse_string(self, value: bytes) -> None:
-        """Unparse a string."""
-        self.unparse_int(len(value))
-
+    def _unparse_string_characters(self, value: bytes) -> None:
         # Ideally we could do here the reverse of parsing,
         # i.e., output = value.decode('latin1').encode('unicode_escape').decode('ascii')
         # This would produce byte representation in hex such as '\xc3\xa4',
