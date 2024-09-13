@@ -74,15 +74,17 @@ def convert_pd_array_to_np_array(
     if isinstance(pd_array, (
         pd.arrays.BooleanArray,
         pd.arrays.IntegerArray,
-        pd.arrays.FloatingArray,
+        pd.arrays.FloatingArray,  # type: ignore [attr-defined]
     )):
+        dtype: type[Any]
+        fill_value: bool | int | float
         if isinstance(pd_array, pd.arrays.BooleanArray):
             dtype = np.bool_
             fill_value = True
         elif isinstance(pd_array, pd.arrays.IntegerArray):
             dtype = np.int32
             fill_value = R_INT_NA
-        elif isinstance(pd_array, pd.arrays.FloatingArray):
+        elif isinstance(pd_array, pd.arrays.FloatingArray):  # type: ignore [attr-defined]
             dtype = np.float64
             fill_value = R_FLOAT_NA
 
@@ -91,10 +93,10 @@ def convert_pd_array_to_np_array(
             data = np.empty(pd_array.shape, dtype=dtype)
             data[~mask] = pd_array[~mask].to_numpy()
             data[mask] = fill_value
-            if isinstance(pd_array, pd.arrays.FloatingArray):
+            if isinstance(pd_array, pd.arrays.FloatingArray):  # type: ignore [attr-defined]
                 array = data
             else:
-                array = np.ma.array(
+                array = np.ma.array(  # type: ignore [no-untyped-call]
                     data=data,
                     mask=mask,
                     fill_value=fill_value,
@@ -105,7 +107,7 @@ def convert_pd_array_to_np_array(
         return array
 
     if isinstance(pd_array, (
-        pd.arrays.NumpyExtensionArray,  # type: ignore [attr-defined]
+        pd.arrays.NumpyExtensionArray,
     )):
         return pd_array.to_numpy()
 
@@ -196,7 +198,7 @@ class ConverterFromPythonToR:
         # In test files the order in which dataframe attributes are written varies.
         # R can read files with attributes in any order, but this variable
         # is used in tests to change the attribute order to match with the test file.
-        self.df_attr_order = None
+        self.df_attr_order: list[str] | None = None
 
 
     def build_r_data(self,
@@ -491,6 +493,7 @@ class ConverterFromPythonToR:
                 column_names.append(column)
 
                 pd_array = series.array
+                array: pd.Categorical | npt.NDArray[Any]
                 if isinstance(pd_array, pd.Categorical):
                     array = pd_array
                 else:
