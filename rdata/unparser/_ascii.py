@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
-from rdata.parser import R_FLOAT_NA
+from rdata.parser import is_float_na
 
 from ._unparser import Unparser
 
@@ -15,11 +15,6 @@ if TYPE_CHECKING:
     import io
 
     import numpy.typing as npt
-
-
-def is_float_na(value: float) -> bool:
-    """Check if value is NA value."""
-    return np.array(value).tobytes() == np.array(R_FLOAT_NA).tobytes()
 
 
 class UnparserASCII(Unparser):

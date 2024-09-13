@@ -11,6 +11,7 @@ from ._parser import (
     RObjectInfo as RObjectInfo,
     RObjectType as RObjectType,
     RVersions as RVersions,
+    is_float_na as is_float_na,
     parse_data as parse_data,
     parse_file as parse_file,
 )
