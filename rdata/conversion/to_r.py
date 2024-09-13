@@ -192,8 +192,8 @@ class ConverterFromPythonToR:
         self.encoding = encoding
         self.format_version = format_version
         self.r_version_serialized = r_version_serialized
-        self.reference_name_list: list[None | str] = [None]
-        self.reference_obj_list: list[None | RObject] = [None]
+        self._references: dict[str | None, tuple[int, RObject | None]] \
+            = {None: (0, None)}
 
         # In test files the order in which dataframe attributes are written varies.
         # R can read files with attributes in any order, but this variable
@@ -290,18 +290,16 @@ class ConverterFromPythonToR:
             R object.
         """
         # Reference to existing symbol if exists
-        if name in self.reference_name_list:
-            idx = self.reference_name_list.index(name)
-            obj = self.reference_obj_list[idx]
-            return build_r_object(RObjectType.REF, reference=(idx, obj))
+        if name in self._references:
+            reference = self._references[name]
+            return build_r_object(RObjectType.REF, reference=reference)
 
         # Create a new symbol
         r_value = self.convert_to_r_object(name.encode(self.encoding))
         r_object = build_r_object(RObjectType.SYM, value=r_value)
 
         # Add to reference list
-        self.reference_name_list.append(name)
-        self.reference_obj_list.append(r_object)
+        self._references[name] = (len(self._references), r_object)
         return r_object
 
 
