@@ -28,19 +28,11 @@ from . import (
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
-    from typing import Any, Final, Literal, Protocol
+    from typing import Any, Final, Literal
 
     import numpy.typing as npt
 
     Encoding = Literal["utf-8", "cp1252"]
-
-
-    class Converter(Protocol):
-        """Protocol for Py-to-R conversion."""
-
-        def __call__(self, data: Any) -> RObject: # noqa: ANN401
-            """Convert Python object to R object."""
-
 
 
 # Default values for RVersions object
@@ -166,6 +158,34 @@ def build_r_object(
      )
 
 
+def build_r_list(
+        data: list[RObject] | list[tuple[RObject, RObject]],
+) -> RObject:
+    """
+    Build R object representing (named) linked list.
+
+    Args:
+        data: Non-empty list of values or (key, value) pairs.
+
+    Returns:
+        R object.
+    """
+    if len(data) == 0:
+        msg = "data must not be empty"
+        raise ValueError(msg)
+
+    head = data[0]
+    tail = data[1:]
+    if isinstance(head, tuple):
+        tag, car = head
+    else:
+        tag = None
+        car = head
+
+    cdr = build_r_object(RObjectType.NILVALUE) if len(tail) == 0 else build_r_list(tail)
+
+    return build_r_object(RObjectType.LIST, value=(car, cdr), tag=tag)
+
 
 class ConverterFromPythonToR:
     """
@@ -229,52 +249,23 @@ class ConverterFromPythonToR:
         return RData(versions, extra, r_object)
 
 
-    def build_r_list(self,
-            data: Mapping[str, Any] | list[Any],
-            *,
-            convert_value: Converter | None = None,
+    def convert_to_r_attributes(self,
+            data: dict[str, Any],
     ) -> RObject:
         """
-        Build R object representing named linked list.
+        Convert dictionary to R attributes list.
 
         Args:
-            data: Non-empty dictionary or list.
-            convert_value: Function used for converting value to R object
-                (for example, convert_to_r_object).
+            data: Non-empty dictionary.
 
         Returns:
             R object.
         """
-        if convert_value is None:
-            convert_value = self.convert_to_r_object
+        converted = []
+        for key, value in data.items():
+            converted.append((self.build_r_sym(key), self.convert_to_r_object(value)))
 
-        if len(data) == 0:
-            msg = "data must not be empty"
-            raise ValueError(msg)
-
-        if isinstance(data, dict):
-            data = data.copy()
-            key = next(iter(data))
-            tag = self.build_r_sym(key)
-            car = data.pop(key)
-        elif isinstance(data, list):
-            car = data[0]
-            data = data[1:]
-            tag = None
-
-        if not isinstance(car, RObject):
-            car = convert_value(car)
-
-        if len(data) == 0:
-            cdr = build_r_object(RObjectType.NILVALUE)
-        else:
-            cdr = self.build_r_list(data, convert_value=convert_value)
-
-        return build_r_object(
-            RObjectType.LIST,
-            value=(car, cdr),
-            tag=tag,
-            )
+        return build_r_list(converted)
 
 
     def build_r_sym(self,
@@ -321,7 +312,7 @@ class ConverterFromPythonToR:
         if not isinstance(data, dict):
             msg = f"for RDA file, data must be a dictionary, not type {type(data)}"
             raise TypeError(msg)
-        return self.build_r_list(data)
+        return self.convert_to_r_attributes(data)
 
 
     def convert_to_r_object(self,  # noqa: C901, PLR0912, PLR0915
@@ -341,7 +332,7 @@ class ConverterFromPythonToR:
         values: list[Any] | tuple[Any, ...]
         r_value: Any = None
         is_object = False
-        attributes = None
+        attributes: dict[str, Any] | None = None
         tag = None
         gp = 0
 
@@ -354,14 +345,12 @@ class ConverterFromPythonToR:
 
         elif isinstance(data, RLanguage):
             r_type = RObjectType.LANG
-            values = data.elements
-            r_value = (self.build_r_sym(str(values[0])),
-                       self.build_r_list(values[1:],
-                                         convert_value=self.build_r_sym))  # type: ignore [arg-type]
+            symbols = [self.build_r_sym(el) for el in data.elements]
+            r_value = (symbols[0], build_r_list(symbols[1:]))
 
             if len(data.attributes) > 0:
                 # The following might work here (untested)
-                # attributes = build_r_list(data.attributes)  # noqa: ERA001
+                # attributes = data.attributes  # noqa: ERA001
                 msg = f"type {r_type} with attributes not implemented"
                 raise NotImplementedError(msg)
 
@@ -372,7 +361,7 @@ class ConverterFromPythonToR:
 
             if isinstance(data, dict):
                 names = np.array(list(data.keys()), dtype=np.dtype("U"))
-                attributes = self.build_r_list({"names": names})
+                attributes = {"names": names}
 
         elif isinstance(data, np.ndarray):
             if data.dtype.kind in ["O"]:
@@ -415,7 +404,7 @@ class ConverterFromPythonToR:
                 else:
                     # R uses column-major order like Fortran
                     r_value = np.ravel(data, order="F")
-                    attributes = self.build_r_list({"dim": np.array(data.shape)})
+                    attributes = {"dim": np.array(data.shape)}
 
         elif isinstance(data, (bool, int, float, complex)):
             return self.convert_to_r_object(np.array(data))
@@ -455,10 +444,10 @@ class ConverterFromPythonToR:
 
             r_type = RObjectType.ALTREP
             r_value = (
-                self.build_r_list([
+                build_r_list([
                     self.build_r_sym("compact_intseq"),
                     self.build_r_sym("base"),
-                    RObjectType.INT.value,
+                    self.convert_to_r_object(RObjectType.INT.value),
                 ]),
                 self.convert_to_r_object(np.array([
                     len(data),
@@ -476,10 +465,10 @@ class ConverterFromPythonToR:
             is_object = True
             r_type = RObjectType.INT
             r_value = data.codes + 1
-            attributes = self.build_r_list({
+            attributes = {
                 "levels": data.categories.to_numpy(),
                 "class": "factor",
-                })
+            }
 
         elif isinstance(data, pd.DataFrame):
             is_object = True
@@ -524,20 +513,24 @@ class ConverterFromPythonToR:
                 msg = f"pd.DataFrame index {type(index)} not implemented"
                 raise NotImplementedError(msg)
 
-            attr_dict = {
+            attributes = {
                 "names": np.array(column_names, dtype=np.dtype("U")),
                 "row.names": row_names,
                 "class": "data.frame",
             }
             if self.df_attr_order is not None:
-                attr_dict = {k: attr_dict[k] for k in self.df_attr_order}
-            attributes = self.build_r_list(attr_dict)
+                attributes = {k: attributes[k] for k in self.df_attr_order}
 
         else:
             msg = f"type {type(data)} not implemented"
             raise NotImplementedError(msg)
 
+        if attributes is not None:
+            r_attributes = self.convert_to_r_attributes(attributes)
+        else:
+            r_attributes = None
+
         return build_r_object(r_type, value=r_value,
                               is_object=is_object,
-                              attributes=attributes,
+                              attributes=r_attributes,
                               tag=tag, gp=gp)
