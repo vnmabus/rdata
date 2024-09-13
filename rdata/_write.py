@@ -53,8 +53,7 @@ def write_rds(
         encoding=encoding,
         format_version=format_version,
     )
-    r_object = converter.convert_to_r_object(data)
-    r_data = converter.build_r_data(r_object)
+    r_data = converter.convert_to_r_data(data)
 
     unparse_file(
         path,
@@ -103,8 +102,7 @@ def write_rda(
         encoding=encoding,
         format_version=format_version,
     )
-    r_object = converter.convert_to_r_object_for_rda(data)
-    r_data = converter.build_r_data(r_object)
+    r_data = converter.convert_to_r_data(data, file_type="rda")
 
     unparse_file(
         path,

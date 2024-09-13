@@ -32,6 +32,8 @@ if TYPE_CHECKING:
 
     import numpy.typing as npt
 
+    from rdata.unparser import FileType
+
     Encoding = Literal["utf-8", "cp1252"]
 
 
@@ -221,14 +223,17 @@ class ConverterFromPythonToR:
         self.df_attr_order: list[str] | None = None
 
 
-    def build_r_data(self,
-            r_object: RObject,
+    def convert_to_r_data(self,
+            data: Any,  # noqa: ANN401
+            *,
+            file_type: FileType = "rds",
     ) -> RData:
         """
-        Build RData object from R object.
+        Convert Python data to R data.
 
         Args:
-            r_object: R object.
+            data: Any Python object.
+            file_type: File type.
 
         Returns:
             Corresponding RData object.
@@ -236,6 +241,14 @@ class ConverterFromPythonToR:
         See Also:
             convert_to_r_object
         """
+        if file_type == "rda":
+            if not isinstance(data, dict):
+                msg = f"for RDA file, data must be a dictionary, not type {type(data)}"
+                raise TypeError(msg)
+            r_object = self.convert_to_r_attributes(data)
+        else:
+            r_object = self.convert_to_r_object(data)
+
         versions = RVersions(
             self.format_version,
             self.r_version_serialized,
@@ -295,27 +308,6 @@ class ConverterFromPythonToR:
         # Add to reference list
         self._references[name] = (len(self._references), r_object)
         return r_object
-
-
-    def convert_to_r_object_for_rda(self,
-            data: Mapping[str, Any],
-    ) -> RObject:
-        """
-        Convert Python dictionary to R object for RDA file.
-
-        Args:
-            data: Python dictionary with data and variable names.
-
-        Returns:
-            Corresponding R object.
-
-        See Also:
-            convert_to_r_object
-        """
-        if not isinstance(data, dict):
-            msg = f"for RDA file, data must be a dictionary, not type {type(data)}"
-            raise TypeError(msg)
-        return self.convert_to_r_attributes(data)
 
 
     def convert_to_r_object(self,  # noqa: C901, PLR0912, PLR0915

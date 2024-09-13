@@ -145,14 +145,9 @@ def test_convert_to_r(fname: str, expand_altrep: bool) -> None:  # noqa: FBT001
             converter.df_attr_order = ["names", "class", "row.names"]
 
         try:
-            if file_type == "rds":
-                r_obj = converter.convert_to_r_object(py_data)
-            else:
-                r_obj = converter.convert_to_r_object_for_rda(py_data)
+            new_r_data = converter.convert_to_r_data(py_data, file_type=file_type)
         except NotImplementedError as e:
             pytest.xfail(str(e))
-
-        new_r_data = converter.build_r_data(r_obj)
 
         assert str(r_data) == str(new_r_data)
         assert r_data == new_r_data
@@ -175,7 +170,7 @@ def test_convert_to_r_bad_rda() -> None:
     py_data = "hello"
     converter = ConverterFromPythonToR()
     with pytest.raises(TypeError, match="(?i)data must be a dictionary"):
-        converter.convert_to_r_object_for_rda(py_data)  # type: ignore [arg-type]
+        converter.convert_to_r_data(py_data, file_type="rda")
 
 
 def test_convert_to_r_empty_rda() -> None:
@@ -183,15 +178,14 @@ def test_convert_to_r_empty_rda() -> None:
     py_data: dict[str, Any] = {}
     converter = ConverterFromPythonToR()
     with pytest.raises(ValueError, match="(?i)data must not be empty"):
-        converter.convert_to_r_object_for_rda(py_data)
+        converter.convert_to_r_data(py_data, file_type="rda")
 
 
 def test_unparse_bad_rda() -> None:
     """Test checking that data for RDA has variable names."""
     py_data = "hello"
     converter = ConverterFromPythonToR()
-    r_obj = converter.convert_to_r_object(py_data)
-    r_data = converter.build_r_data(r_obj)
+    r_data = converter.convert_to_r_data(py_data)
     with pytest.raises(ValueError, match="(?i)must be dictionary-like"):
         unparse_data(r_data, file_type="rda")
 
@@ -214,8 +208,7 @@ def test_unparse_big_int() -> None:
     """Test checking too large integers."""
     big_int = 2**32
     converter = ConverterFromPythonToR()
-    r_obj = converter.convert_to_r_object(big_int)
-    r_data = converter.build_r_data(r_obj)
+    r_data = converter.convert_to_r_data(big_int)
     with pytest.raises(ValueError, match="(?i)not castable"):
         unparse_data(r_data, file_format="xdr")
 
