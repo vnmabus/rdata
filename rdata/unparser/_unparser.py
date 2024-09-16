@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
+from rdata.missing import R_INT_NA
 from rdata.parser import (
     RData,
     RExtraInfo,
@@ -69,9 +70,32 @@ class Unparser(abc.ABC):
         self.unparse_int(array.size)
         self._unparse_array_values(array)
 
-    @abc.abstractmethod
     def _unparse_array_values(self, array: npt.NDArray[Any]) -> None:
         """Unparse the values of an array."""
+        # Convert boolean to int
+        if np.issubdtype(array.dtype, np.bool_):
+            array = array.astype(np.int32)
+
+        # Flatten masked values and convert int arrays to int32
+        if np.issubdtype(array.dtype, np.integer):
+            if np.ma.is_masked(array):  # type: ignore [no-untyped-call]
+                mask = np.ma.getmask(array)  # type: ignore [no-untyped-call]
+                array = np.ma.getdata(array).copy()  # type: ignore [no-untyped-call]
+                array[mask] = R_INT_NA
+            info = np.iinfo(np.int32)
+            if not all(info.min <= val <= info.max for val in array):
+                msg = "Integer array not castable to int32"
+                raise ValueError(msg)
+            array = array.astype(np.int32)
+
+        assert array.dtype in (np.int32, np.float64, np.complex128)
+        self._unparse_array_values_raw(array)
+
+    @abc.abstractmethod
+    def _unparse_array_values_raw(self,
+        array: npt.NDArray[np.int32 | np.float64 | np.complex128],
+    ) -> None:
+        """Unparse the values of an array as such."""
 
     @abc.abstractmethod
     def unparse_string(self, value: bytes) -> None:

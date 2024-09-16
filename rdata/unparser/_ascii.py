@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import string
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -37,11 +37,9 @@ class UnparserASCII(Unparser):
         """Unparse magic bits."""
         self._add_line("A")
 
-    def _unparse_array_values(self, array: npt.NDArray[Any]) -> None:  # noqa: C901
-        # Convert boolean to int
-        if np.issubdtype(array.dtype, np.bool_):
-            array = array.astype(np.int32)
-
+    def _unparse_array_values_raw(self,
+        array: npt.NDArray[np.int32 | np.float64 | np.complex128],
+    ) -> None:
         # Convert complex to pairs of floats
         if np.issubdtype(array.dtype, np.complexfloating):
             assert array.dtype == np.complex128
@@ -50,7 +48,7 @@ class UnparserASCII(Unparser):
         # Unparse data
         for value in array:
             if np.issubdtype(array.dtype, np.integer):
-                line = "NA" if value is None or np.ma.is_masked(value) else str(value)  # type: ignore [no-untyped-call]
+                line = "NA" if is_na(value) else str(value)
 
             elif np.issubdtype(array.dtype, np.floating):
                 if is_na(value):
