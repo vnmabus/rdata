@@ -144,6 +144,7 @@ def test_convert_to_r(fname: str, expand_altrep: bool) -> None:  # noqa: FBT001
             "test_dataframe_range_rownames.rds",
             "test_dataframe_rownames.rda",
             "test_dataframe_dtypes_with_na.rds",
+            "test_dataframe_float_with_na_nan.rds",
         ]:
             converter.df_attr_order = ["names", "class", "row.names"]
 

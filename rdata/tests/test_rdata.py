@@ -603,6 +603,23 @@ class SimpleTests(unittest.TestCase):
             # Comparing complex arrays with R_FLOAT_NA gives warning
             pd.testing.assert_frame_equal(data, ref)
 
+    def test_dataframe_float_with_na_nan(self) -> None:
+        """Test dataframe conversion."""
+        # File created in R with
+        # df = data.frame(float=c(1.1, 2.2, 3.3, NA, NaN, Inf, -Inf)); saveRDS(df, file="test_dataframe_float_with_na_nan.rds")  # noqa: E501,ERA001
+        data = rdata.read_rds(TESTDATA_PATH / "test_dataframe_float_with_na_nan.rds")
+
+        index = pd.RangeIndex(1, 8)
+        ref = pd.DataFrame(
+            {
+                "float": pd.Series(
+                    [1.1, 2.2, 3.3, rdata.parser.R_FLOAT_NA, np.nan, np.inf, -np.inf],
+                    dtype=float, index=index),
+            },
+            index=index,
+        )
+        pd.testing.assert_frame_equal(data, ref)
+
     def test_ts(self) -> None:
         """Test time series conversion."""
         data = rdata.read_rda(TESTDATA_PATH / "test_ts.rda")
