@@ -207,11 +207,11 @@ def test_convert_to_r_unsupported_encoding() -> None:
 
 
 @pytest.mark.parametrize("file_format", valid_formats)
-def test_unparse_big_int(file_format: FileFormat) -> None:
+@pytest.mark.parametrize("value", [-2**31 - 1, 2**31])
+def test_unparse_big_int(file_format: FileFormat, value: int) -> None:
     """Test checking too large integers."""
-    big_int = 2**32
     converter = ConverterFromPythonToR()
-    r_data = converter.convert_to_r_data(big_int)
+    r_data = converter.convert_to_r_data(value)
     with pytest.raises(ValueError, match="(?i)not castable"):
         unparse_data(r_data, file_format=file_format)
 
