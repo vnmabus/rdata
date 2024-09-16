@@ -439,9 +439,6 @@ def convert_altrep_to_range(
     return range(start, stop + 1, step)
 
 
-R_INT_MIN = -2**31
-
-
 def _dataframe_column_transform(source: Any) -> Any:  # noqa: ANN401
 
     if isinstance(source, np.ndarray):
