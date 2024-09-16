@@ -85,7 +85,7 @@ class Unparser(abc.ABC):
 
             if array.dtype != np.int32:
                 info = np.iinfo(np.int32)
-                if np.any((array < info.min) | (array > info.max)):
+                if np.any(array > info.max) or np.any(array < info.min):
                     msg = "Integer array not castable to int32"
                     raise ValueError(msg)
                 array = array.astype(np.int32)
