@@ -598,7 +598,10 @@ class SimpleTests(unittest.TestCase):
             },
             index=index,
         )
-        pd.testing.assert_frame_equal(data, ref)
+
+        with np.errstate(invalid="ignore"):
+            # Comparing complex arrays with R_FLOAT_NA gives warning
+            pd.testing.assert_frame_equal(data, ref)
 
     def test_ts(self) -> None:
         """Test time series conversion."""

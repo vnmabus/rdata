@@ -85,7 +85,8 @@ def test_unparse(fname: str) -> None:
     with (TESTDATA_PATH / fname).open("rb") as f:
         data = decompress_data(f.read())
         file_type, file_format = parse_file_type_and_format(data)
-        r_data = rdata.parser.parse_data(data, expand_altrep=False)
+        r_data = rdata.parser.parse_data(
+            data, expand_altrep=False, extension=f".{file_type}")
 
         try:
             out_data = unparse_data(
@@ -99,6 +100,7 @@ def test_unparse(fname: str) -> None:
         assert data == out_data
 
 
+@pytest.mark.filterwarnings("ignore:Missing constructor")
 @pytest.mark.parametrize("fname", fnames, ids=fnames)
 @pytest.mark.parametrize("expand_altrep", [True, False])
 def test_convert_to_r(fname: str, expand_altrep: bool) -> None:  # noqa: FBT001
@@ -116,7 +118,8 @@ def test_convert_to_r(fname: str, expand_altrep: bool) -> None:  # noqa: FBT001
         data = decompress_data(f.read())
         file_type, file_format = parse_file_type_and_format(data)
 
-        r_data = rdata.parser.parse_data(data, expand_altrep=expand_altrep)
+        r_data = rdata.parser.parse_data(
+            data, expand_altrep=expand_altrep, extension=f".{file_type}")
 
         try:
             py_data = rdata.conversion.convert(r_data)
