@@ -406,10 +406,7 @@ def convert_altrep_to_range(
         r_altrep: R altrep object
 
     Returns:
-        Array.
-
-    See Also:
-        convert_array
+        Range object.
     """
     if r_altrep.info.type != parser.RObjectType.ALTREP:
         msg = "Must receive an altrep object"
