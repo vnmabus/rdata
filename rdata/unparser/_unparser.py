@@ -82,11 +82,13 @@ class Unparser(abc.ABC):
                 mask = np.ma.getmask(array)  # type: ignore [no-untyped-call]
                 array = np.ma.getdata(array).copy()  # type: ignore [no-untyped-call]
                 array[mask] = R_INT_NA
-            info = np.iinfo(np.int32)
-            if not all(info.min <= val <= info.max for val in array):
-                msg = "Integer array not castable to int32"
-                raise ValueError(msg)
-            array = array.astype(np.int32)
+
+            if array.dtype != np.int32:
+                info = np.iinfo(np.int32)
+                if np.any((array < info.min) | (array > info.max)):
+                    msg = "Integer array not castable to int32"
+                    raise ValueError(msg)
+                array = array.astype(np.int32)
 
         assert array.dtype in (np.int32, np.float64, np.complex128)
         self._unparse_array_values_raw(array)
