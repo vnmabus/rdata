@@ -9,9 +9,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pandas as pd
 
+from rdata.missing import R_FLOAT_NA, R_INT_NA
 from rdata.parser import (
-    R_FLOAT_NA,
-    R_INT_NA,
     CharFlags,
     RData,
     RExtraInfo,

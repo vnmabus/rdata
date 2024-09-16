@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
-from rdata.parser import R_INT_NA
+from rdata.missing import R_INT_NA
 
 from ._unparser import Unparser
 

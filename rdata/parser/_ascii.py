@@ -6,7 +6,9 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 
-from ._parser import R_FLOAT_NA, R_INT_NA, AltRepConstructorMap, Parser
+from rdata.missing import R_FLOAT_NA, R_INT_NA
+
+from ._parser import AltRepConstructorMap, Parser
 
 
 def map_int_na(line: str) -> int:

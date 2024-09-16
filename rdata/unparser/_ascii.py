@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
-from rdata.parser import is_float_na
+from rdata.missing import is_float_na
 
 from ._unparser import Unparser
 

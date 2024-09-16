@@ -13,6 +13,7 @@ import pytest
 import xarray
 
 import rdata
+from rdata.missing import R_FLOAT_NA
 
 TESTDATA_PATH = rdata.TESTDATA_PATH
 
@@ -584,7 +585,7 @@ class SimpleTests(unittest.TestCase):
                     [10, 20, 30, pd.NA],
                     dtype=pd.Int32Dtype(), index=index),
                 "float": pd.Series(
-                    [1.1, 2.2, 3.3, rdata.parser.R_FLOAT_NA],
+                    [1.1, 2.2, 3.3, R_FLOAT_NA],
                     dtype=float, index=index),
                 "string": pd.Series(
                     ["x" ,"y", "z", pd.NA],
@@ -593,7 +594,7 @@ class SimpleTests(unittest.TestCase):
                     [True, False, True, pd.NA],
                     dtype=pd.BooleanDtype(), index=index),
                 "complex": pd.Series(
-                    [4+5j, 6+7j, 8+9j, rdata.parser.R_FLOAT_NA],
+                    [4+5j, 6+7j, 8+9j, R_FLOAT_NA],
                     dtype=complex, index=index),
             },
             index=index,
@@ -613,7 +614,7 @@ class SimpleTests(unittest.TestCase):
         ref = pd.DataFrame(
             {
                 "float": pd.Series(
-                    [1.1, 2.2, 3.3, rdata.parser.R_FLOAT_NA, np.nan, np.inf, -np.inf],
+                    [1.1, 2.2, 3.3, R_FLOAT_NA, np.nan, np.inf, -np.inf],
                     dtype=float, index=index),
             },
             index=index,
