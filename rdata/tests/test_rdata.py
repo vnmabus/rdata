@@ -581,19 +581,19 @@ class SimpleTests(unittest.TestCase):
         ref = pd.DataFrame(
             {
                 "int": pd.Series(
-                    [10, 20, 30, None],
+                    [10, 20, 30, pd.NA],
                     dtype=pd.Int32Dtype(), index=index),
                 "float": pd.Series(
-                    [1.1, 2.2, 3.3, None],
+                    [1.1, 2.2, 3.3, pd.NA],
                     dtype=pd.Float64Dtype(), index=index),
                 "string": pd.Series(
-                    ["x" ,"y", "z", None],
+                    ["x" ,"y", "z", pd.NA],
                     dtype=pd.StringDtype(), index=index),
                 "bool": pd.Series(
-                    [True, False, True, None],
+                    [True, False, True, pd.NA],
                     dtype=pd.BooleanDtype(), index=index),
                 "complex": pd.Series(
-                    [4+5j, 6+7j, 8+9j, None],
+                    [4+5j, 6+7j, 8+9j, rdata.parser.R_FLOAT_NA],
                     dtype=complex, index=index),
             },
             index=index,
