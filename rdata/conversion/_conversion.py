@@ -14,6 +14,8 @@ import pandas as pd
 import xarray
 from typing_extensions import override
 
+from rdata.parser._parser import get_altrep_name
+
 from .. import parser
 
 ConversionFunction = Callable[[Union[parser.RData, parser.RObject]], Any]
@@ -416,17 +418,7 @@ def convert_altrep_to_range(
     info, state, attr = r_altrep.value
     assert attr.info.type == parser.RObjectType.NILVALUE
 
-    assert info.info.type == parser.RObjectType.LIST
-
-    class_sym = info.value[0]
-    while class_sym.info.type == parser.RObjectType.REF:
-        class_sym = class_sym.referenced_object
-
-    assert class_sym.info.type == parser.RObjectType.SYM
-    assert class_sym.value.info.type == parser.RObjectType.CHAR
-
-    altrep_name = class_sym.value.value
-    assert isinstance(altrep_name, bytes)
+    altrep_name = get_altrep_name(info)
 
     if altrep_name != b"compact_intseq":
         msg = "Only compact integer sequences can be converted to range"

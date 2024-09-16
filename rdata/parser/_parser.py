@@ -538,6 +538,22 @@ def wrap_constructor(
     return new_info, value
 
 
+def get_altrep_name(info: RObject) -> bytes:
+    """Get the name of the ALTREP object."""
+    assert info.info.type == RObjectType.LIST
+
+    class_sym = info.value[0]
+    while class_sym.info.type == RObjectType.REF:
+        class_sym = class_sym.referenced_object
+
+    assert class_sym.info.type == RObjectType.SYM
+    assert class_sym.value.info.type == RObjectType.CHAR
+
+    altrep_name = class_sym.value.value
+    assert isinstance(altrep_name, bytes)
+    return altrep_name
+
+
 default_altrep_map_dict: Final[Mapping[bytes, AltRepConstructor]] = {
     b"deferred_string": deferred_string_constructor,
     b"compact_intseq": compact_intseq_constructor,
@@ -666,18 +682,7 @@ class Parser(abc.ABC):
         state: RObject,
     ) -> tuple[RObjectInfo, Any]:
         """Expand alternative representation to normal object."""
-        assert info.info.type == RObjectType.LIST
-
-        class_sym = info.value[0]
-        while class_sym.info.type == RObjectType.REF:
-            class_sym = class_sym.referenced_object
-
-        assert class_sym.info.type == RObjectType.SYM
-        assert class_sym.value.info.type == RObjectType.CHAR
-
-        altrep_name = class_sym.value.value
-        assert isinstance(altrep_name, bytes)
-
+        altrep_name = get_altrep_name(info)
         constructor = self.altrep_constructor_dict[altrep_name]
         return constructor(state)
 
