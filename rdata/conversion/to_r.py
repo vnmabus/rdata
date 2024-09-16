@@ -68,42 +68,45 @@ def convert_pd_array_to_np_array(
     if isinstance(pd_array, (
         pd.arrays.BooleanArray,
         pd.arrays.IntegerArray,
-        pd.arrays.FloatingArray,  # type: ignore [attr-defined]
     )):
         dtype: type[Any]
-        fill_value: bool | int | float
+        fill_value: bool | int
         if isinstance(pd_array, pd.arrays.BooleanArray):
             dtype = np.bool_
             fill_value = True
         elif isinstance(pd_array, pd.arrays.IntegerArray):
             dtype = np.int32
             fill_value = R_INT_NA
-        elif isinstance(pd_array, pd.arrays.FloatingArray):  # type: ignore [attr-defined]
-            dtype = np.float64
-            fill_value = R_FLOAT_NA
 
         mask = pd_array.isna()
         if np.any(mask):
-            data = np.empty(pd_array.shape, dtype=dtype)
-            data[~mask] = pd_array[~mask].to_numpy()
-            data[mask] = fill_value
-            if isinstance(pd_array, pd.arrays.FloatingArray):  # type: ignore [attr-defined]
-                array = data
-            else:
-                array = np.ma.array(  # type: ignore [no-untyped-call]
-                    data=data,
-                    mask=mask,
-                    fill_value=fill_value,
-                )
+            data = pd_array.to_numpy(dtype=dtype, na_value=fill_value)
+            array = np.ma.array(  # type: ignore [no-untyped-call]
+                data=data,
+                mask=mask,
+                fill_value=fill_value,
+            )
         else:
             array = pd_array.to_numpy()
         assert array.dtype == dtype
+        assert isinstance(array, np.ndarray)  # for mypy
         return array
 
     if isinstance(pd_array, (
-        pd.arrays.NumpyExtensionArray,
+        pd.arrays.FloatingArray,  # type: ignore [attr-defined]
     )):
-        return pd_array.to_numpy()
+        # Note that this possibly maps all NaNs (not only R_FLOAT_NA)
+        # to the same `na_value` depending on how the array was built:
+        array = pd_array.to_numpy(dtype=np.float64, na_value=R_FLOAT_NA)
+        assert isinstance(array, np.ndarray)  # for mypy
+        return array
+
+    if isinstance(pd_array, (
+        pd.arrays.NumpyExtensionArray,  # type: ignore [attr-defined]
+    )):
+        array = pd_array.to_numpy()
+        assert isinstance(array, np.ndarray)  # for mypy
+        return array
 
     msg = f"pandas array {type(array)} not implemented"
     raise NotImplementedError(msg)

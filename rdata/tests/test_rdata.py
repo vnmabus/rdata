@@ -519,7 +519,7 @@ class SimpleTests(unittest.TestCase):
             {
                 "col1": pd.Series(
                     [10., 20., 30.],
-                    dtype=pd.Float64Dtype(), index=index),
+                    dtype=float, index=index),
             },
             index=index,
         )
@@ -536,7 +536,7 @@ class SimpleTests(unittest.TestCase):
             {
                 "col1": pd.Series(
                     [10., 20., 30.],
-                    dtype=pd.Float64Dtype(), index=index),
+                    dtype=float, index=index),
             },
             index=index,
         )
@@ -556,7 +556,7 @@ class SimpleTests(unittest.TestCase):
                     dtype=pd.Int32Dtype(), index=index),
                 "float": pd.Series(
                     [1.1, 2.2, 3.3],
-                    dtype=pd.Float64Dtype(), index=index),
+                    dtype=float, index=index),
                 "string": pd.Series(
                     ["x" ,"y", "z"],
                     dtype=pd.StringDtype(), index=index),
@@ -584,8 +584,8 @@ class SimpleTests(unittest.TestCase):
                     [10, 20, 30, pd.NA],
                     dtype=pd.Int32Dtype(), index=index),
                 "float": pd.Series(
-                    [1.1, 2.2, 3.3, pd.NA],
-                    dtype=pd.Float64Dtype(), index=index),
+                    [1.1, 2.2, 3.3, rdata.parser.R_FLOAT_NA],
+                    dtype=float, index=index),
                 "string": pd.Series(
                     ["x" ,"y", "z", pd.NA],
                     dtype=pd.StringDtype(), index=index),
