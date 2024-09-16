@@ -39,7 +39,7 @@ def get_na_value(dtype: np.dtype[Any]) -> Any:  # noqa: ANN401
 
 
 def is_na(
-    array: np.int32 | np.float64 | npt.NDArray[np.int32 | np.float64],
+    array: Any | npt.NDArray[Any],  # noqa: ANN401
 ) -> bool | npt.NDArray[np.bool_]:
     """
     Check if the array elements are NA.
@@ -60,7 +60,13 @@ def is_na(
         raw_dtype = f"V{array.dtype.itemsize}"
         return array.view(raw_dtype) == np.array(na).view(raw_dtype)  # type: ignore [no-any-return]
 
-    if isinstance(array, (np.int32, np.float64)):
+    if isinstance(array, int):
+        try:
+            return is_na(np.array(array, dtype=np.int32))
+        except OverflowError:
+            return is_na(np.array(array))
+
+    if isinstance(array, (float, np.int32, np.float64)):
         return is_na(np.array(array))
 
     msg = f"NA for {type(array)} not implemented"
