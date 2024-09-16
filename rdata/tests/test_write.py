@@ -206,13 +206,14 @@ def test_convert_to_r_unsupported_encoding() -> None:
         converter.convert_to_r_object("ä")
 
 
-def test_unparse_big_int() -> None:
+@pytest.mark.parametrize("file_format", valid_formats)
+def test_unparse_big_int(file_format: FileFormat) -> None:
     """Test checking too large integers."""
     big_int = 2**32
     converter = ConverterFromPythonToR()
     r_data = converter.convert_to_r_data(big_int)
     with pytest.raises(ValueError, match="(?i)not castable"):
-        unparse_data(r_data, file_format="xdr")
+        unparse_data(r_data, file_format=file_format)
 
 
 def test_convert_dataframe_pandas_dtypes() -> None:
