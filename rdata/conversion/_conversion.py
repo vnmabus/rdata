@@ -453,6 +453,9 @@ def _dataframe_column_transform(source: Any) -> Any:  # noqa: ANN401
             return source
             # This would create an array with all NaNs as "missing":
             # dtype = pd.Float64Dtype()  # noqa: ERA001
+            # This would create an array with only R_FLOAT_NA as "missing":
+            # from rdata.missing import is_na  # noqa: ERA001
+            # return pd.arrays.FloatingArray(source, is_na(source))  # noqa: ERA001
         elif np.issubdtype(source.dtype, np.complexfloating):
             # There seems to be no pandas type for complex array
             return source
