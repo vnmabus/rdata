@@ -513,8 +513,8 @@ class ConverterFromPythonToR:
 
             attributes = {
                 "names": np.array(column_names, dtype=np.dtype("U")),
-                "row.names": row_names,
                 "class": "data.frame",
+                "row.names": row_names,
             }
             if self.df_attr_order is not None:
                 attributes = {k: attributes[k] for k in self.df_attr_order}
