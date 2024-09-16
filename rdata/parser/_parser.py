@@ -23,7 +23,7 @@ from typing import (
 import numpy as np
 import numpy.typing as npt
 
-from rdata.missing import R_INT_NA
+from rdata.missing import R_INT_NA, mask_na_values
 
 if TYPE_CHECKING:
     from ._ascii import ParserASCII
@@ -606,17 +606,7 @@ class Parser(abc.ABC):
     ) -> npt.NDArray[np.int32] | np.ma.MaskedArray[Any, Any]:
         """Parse an integer array."""
         data = self._parse_array(np.int32)
-        mask = (data == R_INT_NA)
-        data[mask] = fill_value
-
-        if np.any(mask):
-            return np.ma.array(  # type: ignore [no-untyped-call,no-any-return]
-                data=data,
-                mask=mask,
-                fill_value=fill_value,
-            )
-
-        return data
+        return mask_na_values(data, fill_value=fill_value)
 
     def parse_double_array(self) -> npt.NDArray[np.float64]:
         """Parse a double array."""

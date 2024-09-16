@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
-from rdata.missing import is_float_na
+from rdata.missing import is_na
 
 from ._unparser import Unparser
 
@@ -53,7 +53,7 @@ class UnparserASCII(Unparser):
                 line = "NA" if value is None or np.ma.is_masked(value) else str(value)  # type: ignore [no-untyped-call]
 
             elif np.issubdtype(array.dtype, np.floating):
-                if is_float_na(value):
+                if is_na(value):
                     line = "NA"
                 elif np.isnan(value):
                     line = "NaN"
