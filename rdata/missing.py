@@ -17,7 +17,7 @@ R_INT_NA: Final[int] = np.int32(-2**31)  # type: ignore [assignment]
 
 #: Value used to represent a missing float in R.
 #  This is a NaN with a particular payload, but it's not the same as np.nan.
-R_FLOAT_NA: Final[float] = np.frombuffer(b"\x7f\xf0\x00\x00\x00\x00\x07\xa2", dtype=">f8").astype("=f8")[0]  # noqa: E501
+R_FLOAT_NA: Final[float] = np.uint64(0x7ff00000000007a2).view(np.float64)  # type: ignore [assignment]
 
 
 def get_na_value(dtype: np.dtype[Any]) -> Any:  # noqa: ANN401
