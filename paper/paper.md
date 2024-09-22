@@ -53,11 +53,11 @@ does not include the parsing of common objects such as R lists and S4 objects.
 The license can also be a problem, as it is part of the GPL family and does not allow commercial use.
 
 As existing solutions were unsuitable for our needs, the package `rdata` was developed to parse data in the RData format.
-This is a small, extensible, efficient, and very complete implementation in pure Python of a RData parser, that is able to read and convert most datasets in the CRAN repository to equivalent Python objects.
+This is a small, extensible, efficient, and very complete implementation in pure Python of a RData parser, that is able to read and convert most datasets in the CRAN repository to equivalent Python objects, such as the built-in types of The Python Standard Library, NumPy arrays [@harris+_2020_numpy], or Pandas dataframes [@mckinney_2010_pandas; @pandasdevelopmentteam_2024_pandasdev].
 It has a permissive license and can be extended to support additional conversions from custom R classes.
 
 The package `rdata` has been designed as a pure Python package with minimal dependencies, so that it can be easily integrated inside other libraries and applications.
-It currently powers the functionality offered in the `scikit-datasets` package [@diaz-vico+ramos-carreno_2022_scikitdatasets] for loading datasets from the CRAN repository of R packages.
+It currently powers the functionality offered in the `scikit-datasets` package [@diaz-vico+ramos-carreno_2023_scikitdatasets] for loading datasets from the CRAN repository of R packages.
 This functionality is used for fetching the functional datasets provided in the `scikit-fda` library [@ramos-carreno+_2024_scikitfda], whose development was the main reason for the creation of the `rdata` package itself.
 
 # Features
@@ -89,7 +89,7 @@ The function `convert()` of the conversion module transforms that representation
 
 Advanced users will probably require loading datasets which contain non standard S3 or S4 classes, translating each of them to a custom Python class.
 This is easy to achieve using `rdata` by simply creating a constructor function that receives the converted object representation and its attributes, and returns a Python object of the desired type.
-As an example, consider the following simple code that constructs a `Pandas` [@pandasdevelopmentteam_2020_pandasdev] `Categorical` object from the internal representation of an R `factor`.
+As an example, consider the following simple code that constructs a `Pandas` [@pandasdevelopmentteam_2024_pandasdev] `Categorical` object from the internal representation of an R `factor`.
 
 ```python
 import pandas
