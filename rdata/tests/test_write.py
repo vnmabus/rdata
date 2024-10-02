@@ -12,7 +12,7 @@ import pandas as pd
 import pytest
 
 import rdata
-from rdata.conversion import ConverterFromPythonToR
+from rdata.conversion import ConverterFromPythonToR, convert_python_to_r_object
 from rdata.unparser import unparse_data
 
 if TYPE_CHECKING:
@@ -253,8 +253,8 @@ def test_convert_dataframe_pandas_dtypes() -> None:
         index=pd.RangeIndex(3),
     )
 
-    r_obj1 = ConverterFromPythonToR().convert_to_r_object(df1)
-    r_obj2 = ConverterFromPythonToR().convert_to_r_object(df2)
+    r_obj1 = convert_python_to_r_object(df1)
+    r_obj2 = convert_python_to_r_object(df2)
 
     assert str(r_obj1) == str(r_obj2)
     assert r_obj1 == r_obj2
