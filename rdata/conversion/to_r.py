@@ -303,6 +303,63 @@ def build_r_list(
     return build_r_object(RObjectType.LIST, value=(car, cdr), tag=tag)
 
 
+def build_r_str(
+    data: str,
+    *,
+    encoding: Encoding,
+) -> RObject:
+    """
+    Build R object representing string.
+
+    Args:
+        data: String.
+        encoding: Encoding used for strings.
+
+    Returns:
+        R object.
+    """
+    value = [build_r_char(data, encoding=encoding)]
+    return build_r_object(RObjectType.STR, value=value)
+
+
+def build_r_char(
+    data: str | bytes | None,
+    *,
+    encoding: Encoding,
+) -> RObject:
+    """
+    Build R object representing characters.
+
+    Args:
+        data: String or bytestring.
+        encoding: Encoding used for strings.
+
+    Returns:
+        R object.
+    """
+    if data is None:
+        return build_r_object(RObjectType.CHAR)
+
+    if isinstance(data, str):
+        data = data.encode(encoding)
+
+    if all(chr(byte) in string.printable for byte in data):
+        gp = CharFlags.ASCII
+    elif encoding == "utf-8":
+        gp = CharFlags.UTF8
+    elif encoding == "cp1252":
+        # Note!
+        # CP1252 and Latin1 are not the same.
+        # Does CharFlags.LATIN1 mean actually CP1252
+        # as R on Windows mentions CP1252 as encoding?
+        # Or does CP1252 change to e.g. CP1250 depending on localization?
+        gp = CharFlags.LATIN1
+    else:
+        msg = f"unsupported encoding: {encoding}"
+        raise ValueError(msg)
+    return build_r_object(RObjectType.CHAR, value=data, gp=gp)
+
+
 class ConverterFromPythonToR:
     """
     Class converting Python objects to R objects.
@@ -448,7 +505,6 @@ class ConverterFromPythonToR:
         is_object = False
         attributes: dict[str, Any] | None = None
         tag = None
-        gp = 0
 
         if data is None:
             r_type = RObjectType.NILVALUE
@@ -484,24 +540,19 @@ class ConverterFromPythonToR:
                 r_value = []
                 for el in data:
                     if el is None or pd.isna(el):
-                        r_el = build_r_object(RObjectType.CHAR)
+                        r_el = build_r_char(None, encoding=self.encoding)
                     elif isinstance(el, str):
-                        r_el = self.convert_to_r_object(el.encode(self.encoding))
+                        r_el = build_r_char(el, encoding=self.encoding)
                     else:
                         msg = "general object array not implemented"
                         raise NotImplementedError(msg)
                     r_value.append(r_el)
 
-            elif data.dtype.kind in ["S"]:
+            elif data.dtype.kind in ["S", "U"]:
                 assert data.ndim == 1
                 r_type = RObjectType.STR
-                r_value = [self.convert_to_r_object(el) for el in data]
-
-            elif data.dtype.kind in ["U"]:
-                assert data.ndim == 1
-                data = np.array([s.encode(self.encoding) for s in data],
-                                dtype=np.dtype("S"))
-                return self.convert_to_r_object(data)
+                r_value = [build_r_char(el, encoding=self.encoding)
+                           for el in data]
 
             else:
                 r_type = {
@@ -524,26 +575,10 @@ class ConverterFromPythonToR:
             return self.convert_to_r_object(np.array(data))
 
         elif isinstance(data, str):
-            r_type = RObjectType.STR
-            r_value = [self.convert_to_r_object(data.encode(self.encoding))]
+            return build_r_str(data, encoding=self.encoding)
 
         elif isinstance(data, bytes):
-            r_type = RObjectType.CHAR
-            if all(chr(byte) in string.printable for byte in data):
-                gp = CharFlags.ASCII
-            elif self.encoding == "utf-8":
-                gp = CharFlags.UTF8
-            elif self.encoding == "cp1252":
-                # Note!
-                # CP1252 and Latin1 are not the same.
-                # Does CharFlags.LATIN1 mean actually CP1252
-                # as R on Windows mentions CP1252 as encoding?
-                # Or does CP1252 change to e.g. CP1250 depending on localization?
-                gp = CharFlags.LATIN1
-            else:
-                msg = f"unsupported encoding: {self.encoding}"
-                raise ValueError(msg)
-            r_value = data
+            return build_r_char(data, encoding=self.encoding)
 
         elif isinstance(data, range):
             if self.format_version < R_MINIMUM_VERSION_WITH_ALTREP:
@@ -600,7 +635,6 @@ class ConverterFromPythonToR:
             is_object=is_object,
             attributes=r_attributes,
             tag=tag,
-            gp=gp,
         )
 
 
