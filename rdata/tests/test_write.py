@@ -154,7 +154,7 @@ def test_convert_to_r(fname: str, expand_altrep: bool) -> None:  # noqa: FBT001
         assert str(r_data) == str(new_r_data)
         assert r_data == new_r_data
 
-        # Check futher that the resulting unparsed data is correct to ensure that
+        # Check further that the resulting unparsed data is correct to ensure that
         # Python-to-R conversion hasn't created any odd objects that can't be unparsed
         if not expand_altrep:
             file_type, file_format = parse_file_type_and_format(data)

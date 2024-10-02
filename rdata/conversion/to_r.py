@@ -50,7 +50,7 @@ R_MINIMUM_VERSION_WITH_ALTREP: Final[int] = 3
 
 
 def convert_pd_array_to_np_array(
-        pd_array: Any,  # noqa: ANN401
+    pd_array: pd.api.extensions.ExtensionArray,
 ) -> npt.NDArray[Any]:
     """
     Convert pandas array object to numpy array.
@@ -527,10 +527,14 @@ class ConverterFromPythonToR:
         else:
             r_attributes = None
 
-        return build_r_object(r_type, value=r_value,
-                              is_object=is_object,
-                              attributes=r_attributes,
-                              tag=tag, gp=gp)
+        return build_r_object(
+            r_type,
+            value=r_value,
+            is_object=is_object,
+            attributes=r_attributes,
+            tag=tag,
+            gp=gp,
+        )
 
 
 def convert_python_to_r_data(
