@@ -303,25 +303,6 @@ def build_r_list(
     return build_r_object(RObjectType.LIST, value=(car, cdr), tag=tag)
 
 
-def build_r_str(
-    data: str,
-    *,
-    encoding: Encoding,
-) -> RObject:
-    """
-    Build R object representing string.
-
-    Args:
-        data: String.
-        encoding: Encoding used for strings.
-
-    Returns:
-        R object.
-    """
-    value = [build_r_char(data, encoding=encoding)]
-    return build_r_object(RObjectType.STR, value=value)
-
-
 def build_r_char(
     data: str | bytes | None,
     *,
@@ -533,6 +514,10 @@ class ConverterFromPythonToR:
                 attributes = {"names": names}
 
         elif isinstance(data, np.ndarray):
+            # Promote 0-dimensional array to 1-dimensional array
+            if data.ndim == 0:
+                data = data[np.newaxis]
+
             if data.dtype.kind in ["O"]:
                 assert data.ndim == 1
                 r_type = RObjectType.STR
@@ -547,7 +532,11 @@ class ConverterFromPythonToR:
                         raise NotImplementedError(msg)
                     r_value.append(r_el)
 
-            elif data.dtype.kind in ["S", "U"]:
+            elif data.dtype.kind in ["S"]:  # bytes object is converted to this dtype
+                assert data.size == 1
+                return build_r_char(data[0], encoding=self.encoding)
+
+            elif data.dtype.kind in ["U"]:
                 assert data.ndim == 1
                 r_type = RObjectType.STR
                 r_value = [build_r_char(el, encoding=self.encoding)
@@ -561,23 +550,15 @@ class ConverterFromPythonToR:
                     "c": RObjectType.CPLX,
                 }[data.dtype.kind]
 
-                if data.ndim == 0:
-                    r_value = data[np.newaxis]
-                elif data.ndim == 1:
+                if data.ndim == 1:
                     r_value = data
                 else:
                     # R uses column-major order like Fortran
                     r_value = np.ravel(data, order="F")
                     attributes = {"dim": np.array(data.shape)}
 
-        elif isinstance(data, (bool, int, float, complex)):
+        elif isinstance(data, (bool, int, float, complex, str, bytes)):
             return self.convert_to_r_object(np.array(data))
-
-        elif isinstance(data, str):
-            return build_r_str(data, encoding=self.encoding)
-
-        elif isinstance(data, bytes):
-            return build_r_char(data, encoding=self.encoding)
 
         elif isinstance(data, range):
             if self.format_version < R_MINIMUM_VERSION_WITH_ALTREP:
