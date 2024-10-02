@@ -77,7 +77,7 @@ def convert_pd_array_to_np_array(
             dtype = np.int32
             fill_value = R_INT_NA
 
-        mask = pd_array.isna()
+        mask = pd_array.isna()  # type: ignore [no-untyped-call]
         if np.any(mask):
             data = pd_array.to_numpy(dtype=dtype, na_value=fill_value)
             array = np.ma.array(  # type: ignore [no-untyped-call]
