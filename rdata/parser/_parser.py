@@ -935,9 +935,8 @@ class Parser(abc.ABC):
                     state=altrep_state,
                 )
                 if altrep_attr.info.type != RObjectType.NILVALUE:
-                    info.attributes = True
-                    attributes_read = True
-                    attributes = altrep_attr
+                    msg = "altrep attributes not implemented"
+                    raise NotImplementedError(msg)
             else:
                 value = (altrep_info, altrep_state, altrep_attr)
 
