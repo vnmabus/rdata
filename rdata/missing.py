@@ -57,13 +57,18 @@ def is_na(
             # Use the native dtype for comparison when possible;
             # slightly faster than the steps below
             return array == na  # type: ignore [no-any-return]
-        raw_dtype = f"V{array.dtype.itemsize}"
+        # Convert dtype to unsigned integer to perform byte-by-byte
+        # equality comparison to distinguish different NaN values
+        raw_dtype = f"u{array.dtype.itemsize}"
         return array.view(raw_dtype) == np.array(na).view(raw_dtype)  # type: ignore [no-any-return]
 
     if isinstance(array, int):
         try:
+            # Python built-in integer is 64 bits or larger, so
+            # we try to cast it to 32-bit int if possible
             return is_na(np.array(array, dtype=np.int32))
         except OverflowError:
+            # Proceed with larger integer (in case it is supported at some point)
             return is_na(np.array(array))
 
     if isinstance(array, (float, np.int32, np.float64)):
