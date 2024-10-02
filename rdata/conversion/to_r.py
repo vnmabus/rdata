@@ -27,13 +27,31 @@ from . import (
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
-    from typing import Any, Final, Literal
+    from typing import Any, Final, Literal, Protocol
 
     import numpy.typing as npt
 
     from rdata.unparser import FileType
 
     Encoding = Literal["utf-8", "cp1252"]
+
+    class ConversionFunction(Protocol):
+        """Protocol for Py-to-R conversion function."""
+
+        def __call__(self, data: Any) -> RObject:  # noqa: ANN401
+            """Convert Python object to R object."""
+
+
+    class ConstructorFunction(Protocol):
+        """Protocol for Py-to-R constructor function."""
+
+        def __call__(self,
+            data: Any,  # noqa: ANN401
+            convert_to_r_object: ConversionFunction,
+        ) -> tuple[RObjectType, Any, dict[str, Any]]:
+            """Convert Python object to R object components."""
+
+    ConstructorDict = Mapping[type, ConstructorFunction]
 
 
 # Default values for RVersions object
@@ -47,6 +65,100 @@ R_MINIMUM_VERSIONS: Final[Mapping[int, int]] = MappingProxyType({
 })
 R_MINIMUM_VERSION_WITH_ENCODING: Final[int] = 3
 R_MINIMUM_VERSION_WITH_ALTREP: Final[int] = 3
+
+
+def categorical_constructor(
+    data: pd.Categorical,
+    convert_to_r_object: ConversionFunction,  # noqa: ARG001
+) -> tuple[RObjectType, Any, dict[str, Any]]:
+    """
+    Construct R object components from pandas categorical.
+
+    Args:
+        data: Pandas categorical.
+        convert_to_r_object: Conversion function.
+
+    Returns:
+        Components of the R object.
+    """
+    assert isinstance(data, pd.Categorical)
+    r_type = RObjectType.INT
+    r_value = data.codes + 1
+    attributes = {
+        "levels": data.categories.to_numpy(),
+        "class": "factor",
+    }
+    return r_type, r_value, attributes
+
+
+def dataframe_constructor(
+    data: pd.DataFrame,
+    convert_to_r_object: ConversionFunction,
+) -> tuple[RObjectType, Any, dict[str, Any]]:
+    """
+    Construct R object components from pandas dataframe.
+
+    Args:
+        data: Pandas dataframe.
+        convert_to_r_object: Conversion function.
+
+    Returns:
+        Components of the R object.
+    """
+    assert isinstance(data, pd.DataFrame)
+    r_type = RObjectType.VEC
+    column_names = []
+    r_value = []
+    for column, series in data.items():
+        assert isinstance(column, str)
+        column_names.append(column)
+
+        pd_array = series.array
+        array: pd.Categorical | npt.NDArray[Any]
+        if isinstance(pd_array, pd.Categorical):
+            array = pd_array
+        else:
+            array = convert_pd_array_to_np_array(pd_array)
+        r_series = convert_to_r_object(array)
+        r_value.append(r_series)
+
+    index = data.index
+    if isinstance(index, pd.RangeIndex):
+        assert isinstance(index.start, int)
+        if (index.start == 1
+            and index.stop == data.shape[0] + 1
+            and index.step == 1
+        ):
+            row_names = np.ma.array(
+                data=[R_INT_NA, -data.shape[0]],
+                mask=[True, False],
+                fill_value=R_INT_NA,
+            )
+        else:
+            row_names = range(index.start, index.stop, index.step)
+    elif isinstance(index, pd.Index):
+        if (index.dtype == "object"
+            or np.issubdtype(str(index.dtype), np.integer)):
+            row_names = index.to_numpy()
+        else:
+            msg = f"pd.DataFrame pd.Index {index.dtype} not implemented"
+            raise NotImplementedError(msg)
+    else:
+        msg = f"pd.DataFrame index {type(index)} not implemented"
+        raise NotImplementedError(msg)
+
+    attributes = {
+        "names": np.array(column_names, dtype=np.dtype("U")),
+        "class": "data.frame",
+        "row.names": row_names,
+    }
+    return r_type, r_value, attributes
+
+
+DEFAULT_CONSTRUCTOR_DICT: Final[ConstructorDict] = MappingProxyType({
+    pd.Categorical: categorical_constructor,
+    pd.DataFrame: dataframe_constructor,
+})
 
 
 def convert_pd_array_to_np_array(
@@ -196,11 +308,14 @@ class ConverterFromPythonToR:
     Class converting Python objects to R objects.
 
     Attributes:
+        constructor_dict: Dictionary mapping Python types to R classes.
         encoding: Encoding to be used for strings within data.
         format_version: File format version.
         r_version_serialized: R version written as the creator of the object.
     """
-    def __init__(self, *,
+    def __init__(self,
+        constructor_dict: ConstructorDict = DEFAULT_CONSTRUCTOR_DICT,
+        *,
         encoding: Encoding = "utf-8",
         format_version: int = DEFAULT_FORMAT_VERSION,
         r_version_serialized: int = DEFAULT_R_VERSION_SERIALIZED,
@@ -209,10 +324,12 @@ class ConverterFromPythonToR:
         Init class.
 
         Args:
+            constructor_dict: Dictionary mapping Python types to R classes.
             encoding: Encoding to be used for strings within data.
             format_version: File format version.
             r_version_serialized: R version written as the creator of the object.
         """
+        self.constructor_dict = constructor_dict
         self.encoding = encoding
         self.format_version = format_version
         self.r_version_serialized = r_version_serialized
@@ -454,75 +571,25 @@ class ConverterFromPythonToR:
                 self.convert_to_r_object(None),
             )
 
-        elif isinstance(data, pd.Series):
-            msg = "pd.Series not implemented"
-            raise NotImplementedError(msg)
+        else:
+            # Check available constructors
+            for t, constructor in self.constructor_dict.items():
+                if isinstance(data, t):
+                    r_type, r_value, attributes \
+                        = constructor(data, self.convert_to_r_object)
+                    break
 
-        elif isinstance(data, pd.Categorical):
-            is_object = True
-            r_type = RObjectType.INT
-            r_value = data.codes + 1
-            attributes = {
-                "levels": data.categories.to_numpy(),
-                "class": "factor",
-            }
-
-        elif isinstance(data, pd.DataFrame):
-            is_object = True
-            r_type = RObjectType.VEC
-            column_names = []
-            r_value = []
-            for column, series in data.items():
-                assert isinstance(column, str)
-                column_names.append(column)
-
-                pd_array = series.array
-                array: pd.Categorical | npt.NDArray[Any]
-                if isinstance(pd_array, pd.Categorical):
-                    array = pd_array
-                else:
-                    array = convert_pd_array_to_np_array(pd_array)
-                r_series = self.convert_to_r_object(array)
-                r_value.append(r_series)
-
-            index = data.index
-            if isinstance(index, pd.RangeIndex):
-                assert isinstance(index.start, int)
-                if (index.start == 1
-                    and index.stop == data.shape[0] + 1
-                    and index.step == 1
-                ):
-                    row_names = np.ma.array(
-                        data=[R_INT_NA, -data.shape[0]],
-                        mask=[True, False],
-                        fill_value=R_INT_NA,
-                    )
-                else:
-                    row_names = range(index.start, index.stop, index.step)
-            elif isinstance(index, pd.Index):
-                if (index.dtype == "object"
-                    or np.issubdtype(str(index.dtype), np.integer)):
-                    row_names = index.to_numpy()
-                else:
-                    msg = f"pd.DataFrame pd.Index {index.dtype} not implemented"
-                    raise NotImplementedError(msg)
-            else:
-                msg = f"pd.DataFrame index {type(index)} not implemented"
+            if r_type is None:
+                msg = f"type {type(data)} not implemented"
                 raise NotImplementedError(msg)
 
-            attributes = {
-                "names": np.array(column_names, dtype=np.dtype("U")),
-                "class": "data.frame",
-                "row.names": row_names,
-            }
-            if self.df_attr_order is not None:
+            # Fix for test files where dataframe attribute order varies
+            assert isinstance(attributes, dict)
+            if isinstance(data, pd.DataFrame) and self.df_attr_order is not None:
                 attributes = {k: attributes[k] for k in self.df_attr_order}
 
-        else:
-            msg = f"type {type(data)} not implemented"
-            raise NotImplementedError(msg)
-
         if attributes is not None:
+            is_object = "class" in attributes
             r_attributes = self.convert_to_r_attributes(attributes)
         else:
             r_attributes = None
