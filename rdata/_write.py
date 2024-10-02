@@ -3,15 +3,18 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from .conversion import convert_python_to_r_data
-from .conversion.to_r import DEFAULT_FORMAT_VERSION
+from .conversion import (
+    DEFAULT_CONSTRUCTOR_DICT,
+    DEFAULT_FORMAT_VERSION,
+    convert_python_to_r_data,
+)
 from .unparser import unparse_file
 
 if TYPE_CHECKING:
     import os
     from typing import Any
 
-    from .conversion.to_r import Encoding
+    from .conversion.to_r import ConstructorDict, Encoding
     from .unparser import Compression, FileFormat
 
 
@@ -23,6 +26,7 @@ def write_rds(
     compression: Compression = "gzip",
     encoding: Encoding = "utf-8",
     format_version: int = DEFAULT_FORMAT_VERSION,
+    constructor_dict: ConstructorDict = DEFAULT_CONSTRUCTOR_DICT,
 ) -> None:
     """
     Write an RDS file.
@@ -37,6 +41,7 @@ def write_rds(
         compression: Compression.
         encoding: Encoding to be used for strings within data.
         format_version: File format version.
+        constructor_dict: Dictionary mapping Python types to R classes.
 
     See Also:
         :func:`write_rda`: Similar function that writes an RDA or RDATA file.
@@ -53,6 +58,7 @@ def write_rds(
         data,
         encoding=encoding,
         format_version=format_version,
+        constructor_dict=constructor_dict,
     )
 
     unparse_file(
@@ -72,6 +78,7 @@ def write_rda(
     compression: Compression = "gzip",
     encoding: Encoding = "utf-8",
     format_version: int = DEFAULT_FORMAT_VERSION,
+    constructor_dict: ConstructorDict = DEFAULT_CONSTRUCTOR_DICT,
 ) -> None:
     """
     Write an RDA or RDATA file.
@@ -86,6 +93,7 @@ def write_rda(
         compression: Compression.
         encoding: Encoding to be used for strings within data.
         format_version: File format version.
+        constructor_dict: Dictionary mapping Python types to R classes.
 
     See Also:
         :func:`write_rds`: Similar function that writes an RDS file.
@@ -102,6 +110,7 @@ def write_rda(
         data,
         encoding=encoding,
         format_version=format_version,
+        constructor_dict=constructor_dict,
         file_type="rda",
     )
 
