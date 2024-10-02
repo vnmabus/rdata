@@ -112,14 +112,14 @@ def convert_pd_array_to_np_array(
 
 
 def build_r_object(
-        r_type: RObjectType,
-        *,
-        value: Any = None,  # noqa: ANN401
-        is_object: bool = False,
-        attributes: RObject | None = None,
-        tag: RObject | None = None,
-        gp: int = 0,
-        reference: tuple[int, RObject | None] = (0, None),
+    r_type: RObjectType,
+    *,
+    value: Any = None,  # noqa: ANN401
+    is_object: bool = False,
+    attributes: RObject | None = None,
+    tag: RObject | None = None,
+    gp: int = 0,
+    reference: tuple[int, RObject | None] = (0, None),
 ) -> RObject:
     """
     Build R object.
@@ -163,7 +163,7 @@ def build_r_object(
 
 
 def build_r_list(
-        data: list[RObject] | list[tuple[RObject, RObject]],
+    data: list[RObject] | list[tuple[RObject, RObject]],
 ) -> RObject:
     """
     Build R object representing (named) linked list.
@@ -201,9 +201,9 @@ class ConverterFromPythonToR:
         r_version_serialized: R version written as the creator of the object.
     """
     def __init__(self, *,
-            encoding: Encoding = "utf-8",
-            format_version: int = DEFAULT_FORMAT_VERSION,
-            r_version_serialized: int = DEFAULT_R_VERSION_SERIALIZED,
+        encoding: Encoding = "utf-8",
+        format_version: int = DEFAULT_FORMAT_VERSION,
+        r_version_serialized: int = DEFAULT_R_VERSION_SERIALIZED,
     ) -> None:
         """
         Init class.
@@ -226,9 +226,9 @@ class ConverterFromPythonToR:
 
 
     def convert_to_r_data(self,
-            data: Any,  # noqa: ANN401
-            *,
-            file_type: FileType = "rds",
+        data: Any,  # noqa: ANN401
+        *,
+        file_type: FileType = "rds",
     ) -> RData:
         """
         Convert Python data to R data.
@@ -265,7 +265,7 @@ class ConverterFromPythonToR:
 
 
     def convert_to_r_attributes(self,
-            data: dict[str, Any],
+        data: dict[str, Any],
     ) -> RObject:
         """
         Convert dictionary to R attributes list.
@@ -287,7 +287,7 @@ class ConverterFromPythonToR:
 
 
     def convert_to_r_sym(self,
-            name: str,
+        name: str,
     ) -> RObject:
         """
         Convert string to R symbol.
@@ -313,7 +313,7 @@ class ConverterFromPythonToR:
 
 
     def convert_to_r_object(self,  # noqa: C901, PLR0912, PLR0915
-            data: Any,  # noqa: ANN401
+        data: Any,  # noqa: ANN401
     ) -> RObject:
         """
         Convert Python data to R object.
@@ -493,10 +493,10 @@ class ConverterFromPythonToR:
                     and index.step == 1
                 ):
                     row_names = np.ma.array(
-                            data=[R_INT_NA, -data.shape[0]],
-                            mask=[True, False],
-                            fill_value=R_INT_NA,
-                        )
+                        data=[R_INT_NA, -data.shape[0]],
+                        mask=[True, False],
+                        fill_value=R_INT_NA,
+                    )
                 else:
                     row_names = range(index.start, index.stop, index.step)
             elif isinstance(index, pd.Index):
@@ -538,12 +538,12 @@ class ConverterFromPythonToR:
 
 
 def convert_python_to_r_data(
-        data: Any,  # noqa: ANN401
-        *,
-        encoding: Encoding = "utf-8",
-        format_version: int = DEFAULT_FORMAT_VERSION,
-        r_version_serialized: int = DEFAULT_R_VERSION_SERIALIZED,
-        file_type: FileType = "rds",
+    data: Any,  # noqa: ANN401
+    *,
+    encoding: Encoding = "utf-8",
+    format_version: int = DEFAULT_FORMAT_VERSION,
+    r_version_serialized: int = DEFAULT_R_VERSION_SERIALIZED,
+    file_type: FileType = "rds",
 ) -> RData:
     """
     Convert Python data to R data.
@@ -562,18 +562,18 @@ def convert_python_to_r_data(
         convert_python_to_r_object
     """
     return ConverterFromPythonToR(
-            encoding=encoding,
-            format_version=format_version,
-            r_version_serialized=r_version_serialized,
+        encoding=encoding,
+        format_version=format_version,
+        r_version_serialized=r_version_serialized,
     ).convert_to_r_data(data, file_type=file_type)
 
 
 def convert_python_to_r_object(
-        data: Any,  # noqa: ANN401
-        *,
-        encoding: Encoding = "utf-8",
-        format_version: int = DEFAULT_FORMAT_VERSION,
-        r_version_serialized: int = DEFAULT_R_VERSION_SERIALIZED,
+    data: Any,  # noqa: ANN401
+    *,
+    encoding: Encoding = "utf-8",
+    format_version: int = DEFAULT_FORMAT_VERSION,
+    r_version_serialized: int = DEFAULT_R_VERSION_SERIALIZED,
 ) -> RObject:
     """
     Convert Python data to R object.
@@ -591,7 +591,7 @@ def convert_python_to_r_object(
         convert_python_to_r_data
     """
     return ConverterFromPythonToR(
-            encoding=encoding,
-            format_version=format_version,
-            r_version_serialized=r_version_serialized,
+        encoding=encoding,
+        format_version=format_version,
+        r_version_serialized=r_version_serialized,
     ).convert_to_r_object(data)
