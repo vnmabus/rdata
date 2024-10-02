@@ -402,6 +402,9 @@ class ConverterFromPythonToR:
             if not isinstance(data, dict):
                 msg = f"for RDA file, data must be a dictionary, not type {type(data)}"
                 raise TypeError(msg)
+            if not all(isinstance(key, str) for key in data):
+                msg = "for RDA file, dictionary keys must be strings"
+                raise ValueError(msg)
             r_object = self.convert_to_r_attributes(data)
         else:
             r_object = self.convert_to_r_object(data)
@@ -453,6 +456,8 @@ class ConverterFromPythonToR:
         Returns:
             R object.
         """
+        assert isinstance(name, str)
+
         # Reference to existing symbol if exists
         if name in self._references:
             reference = self._references[name]

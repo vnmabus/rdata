@@ -167,12 +167,18 @@ def test_convert_to_r(fname: str, expand_altrep: bool) -> None:  # noqa: FBT001
             assert data == out_data
 
 
-def test_convert_to_r_bad_rda() -> None:
+def test_convert_to_r_rda_missing_names() -> None:
     """Test checking that data for RDA has variable names."""
-    py_data = "hello"
     converter = ConverterFromPythonToR()
     with pytest.raises(TypeError, match="(?i)data must be a dictionary"):
-        converter.convert_to_r_data(py_data, file_type="rda")
+        converter.convert_to_r_data("hello", file_type="rda")
+
+
+def test_convert_to_r_rda_nonstr_names() -> None:
+    """Test checking that RDA variable names are strings."""
+    converter = ConverterFromPythonToR()
+    with pytest.raises(ValueError, match="(?i)keys must be strings"):
+        converter.convert_to_r_data({1: "hello"}, file_type="rda")
 
 
 def test_convert_to_r_empty_rda() -> None:
