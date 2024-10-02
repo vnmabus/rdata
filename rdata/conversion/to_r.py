@@ -504,7 +504,6 @@ class ConverterFromPythonToR:
         r_value: Any = None
         is_object = False
         attributes: dict[str, Any] | None = None
-        tag = None
 
         if data is None:
             r_type = RObjectType.NILVALUE
@@ -634,7 +633,6 @@ class ConverterFromPythonToR:
             value=r_value,
             is_object=is_object,
             attributes=r_attributes,
-            tag=tag,
         )
 
 
