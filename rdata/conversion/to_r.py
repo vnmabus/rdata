@@ -510,6 +510,9 @@ class ConverterFromPythonToR:
             r_value = [self.convert_to_r_object(el) for el in values]
 
             if isinstance(data, dict):
+                if not all(isinstance(key, str) for key in data):
+                    msg = "dictionary keys must be strings"
+                    raise ValueError(msg)
                 names = np.array(list(data.keys()), dtype=np.dtype("U"))
                 attributes = {"names": names}
 

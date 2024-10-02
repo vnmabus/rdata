@@ -206,6 +206,13 @@ def test_convert_to_r_unsupported_encoding() -> None:
         converter.convert_to_r_object("ä")
 
 
+def test_convert_to_r_nonstr_dict_keys() -> None:
+    """Test checking non-string dict keys."""
+    converter = ConverterFromPythonToR()
+    with pytest.raises(ValueError, match="(?i)keys must be strings"):
+        converter.convert_to_r_object({"a": 1, 2: 2})
+
+
 @pytest.mark.parametrize("file_format", valid_formats)
 @pytest.mark.parametrize("value", [-2**31 - 1, 2**31])
 def test_unparse_big_int(file_format: FileFormat, value: int) -> None:
