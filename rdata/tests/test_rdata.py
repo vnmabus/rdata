@@ -653,6 +653,7 @@ class SimpleTests(unittest.TestCase):
             TESTDATA_PATH / "test_altrep_wrap_real.rda",
         )
         obj = parsed.object.value[0]  # taking value as it's an rda file
+        assert obj.info.type == rdata.parser.RObjectType.REAL  # sanity check
         assert not obj.info.object
         assert not obj.info.attributes
         assert obj.attributes is None
@@ -670,6 +671,7 @@ class SimpleTests(unittest.TestCase):
             TESTDATA_PATH / "test_altrep_wrap_real_attributes.rds",
         )
         obj = parsed.object
+        assert obj.info.type == rdata.parser.RObjectType.REAL  # sanity check
         assert not obj.info.object
         assert obj.info.attributes
         assert obj.attributes is not None
@@ -688,6 +690,7 @@ class SimpleTests(unittest.TestCase):
             TESTDATA_PATH / "test_altrep_wrap_real_class_attribute.rds",
         )
         obj = parsed.object
+        assert obj.info.type == rdata.parser.RObjectType.REAL  # sanity check
         assert obj.info.object
         assert obj.info.attributes
         assert obj.attributes is not None
