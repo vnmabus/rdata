@@ -60,15 +60,20 @@ class ParserASCII(Parser):
         return array
 
     def parse_string(self, length: int) -> bytes:
-        # Non-ascii characters in strings are written using octal byte codes,
+        # Read the ascii string
+        s = self._readline()
+
+        # R escapes question marks ('?') so they come always as r'\?'.
+        # Let's start unescaping those.
+        s = s.replace(r"\?", "?")
+
+        # Non-ascii characters and space are written using octal byte codes,
         # for example, a string 'aä' (2 chars) in UTF-8 is written as an ascii
         # string r'a\303\244' (9 chars). We want to transform this to a byte
         # string b'a\303\244' (3 bytes) corresponding to the byte
         # representation of the original UTF-8 string.
         # Let's use this string as an example to go through the code below
 
-        # Read the ascii string
-        s = self._readline()
         # Now s = r'a\303\244' (9 chars)
 
         # Convert characters to bytes (all characters are ascii)

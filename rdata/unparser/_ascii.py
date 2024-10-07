@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import string
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -11,8 +11,39 @@ from ._unparser import Unparser
 
 if TYPE_CHECKING:
     import io
+    from typing import Any, Final
 
     import numpy.typing as npt
+
+
+def build_byte_to_str_map() -> tuple[str, ...]:
+    """Build byte-to-string mapping for string conversion."""
+
+    def escape(b: bytes) -> str:
+        r"""Escape string, e.g., b'\n' -> r'\n'."""
+        return b.decode("latin1").encode("unicode_escape").decode("ascii")
+
+    # Fill mapping with octal codes
+    byte_to_str = [rf"\{byte:03o}" for byte in range(256)]
+
+    # Update mapping for ascii characters
+    for byte in string.printable.encode("ascii"):
+        # Note: indexing bytestring yields ints
+        assert isinstance(byte, int)
+        byte_to_str[byte] = escape(bytes([byte]))
+
+    # Update mapping for special characters
+    byte_to_str[b'"'[0]] = r'\"'
+    byte_to_str[b"'"[0]] = r"\'"
+    byte_to_str[b"?"[0]] = r"\?"
+    byte_to_str[b" "[0]] = r"\040"
+    byte_to_str[b"\v"[0]] = r"\v"
+    byte_to_str[b"\f"[0]] = r"\f"
+
+    return tuple(byte_to_str)
+
+
+BYTE_TO_STR: Final = build_byte_to_str_map()
 
 
 class UnparserASCII(Unparser):
@@ -68,16 +99,14 @@ class UnparserASCII(Unparser):
 
             self._add_line(line)
 
-    def unparse_string(self, value: bytes) -> None:
-        """Unparse a string."""
-        self.unparse_int(len(value))
-
+    def _unparse_string_characters(self, value: bytes) -> None:
         # Ideally we could do here the reverse of parsing,
-        # i.e., value = value.decode('latin1').encode('unicode_escape').decode('ascii')
+        # i.e., output = value.decode('latin1').encode('unicode_escape').decode('ascii')
         # This would produce byte representation in hex such as '\xc3\xa4',
         # but we need to have the equivalent octal presentation '\303\244'.
-        # So, we do somewhat manual conversion instead:
-        s = "".join(chr(byte) if chr(byte) in string.printable else rf"\{byte:03o}"
-                    for byte in value)
+        # In addition, some ascii characters need to be escaped.
 
-        self._add_line(s)
+        # Convert string byte-by-byte
+        output = "".join(BYTE_TO_STR[byte] for byte in value)
+
+        self._add_line(output)

@@ -56,10 +56,5 @@ class UnparserXDR(Unparser):
         data = array.data if array.flags["C_CONTIGUOUS"] else array.tobytes()
         self.file.write(data)
 
-    def unparse_string(self, value: bytes) -> None:
-        """Unparse a string."""
-        if value is None:
-            self.unparse_int(-1)
-        else:
-            self.unparse_int(len(value))
-            self.file.write(value)
+    def _unparse_string_characters(self, value: bytes) -> None:
+        self.file.write(value)

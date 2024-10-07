@@ -102,6 +102,13 @@ class SimpleTests(unittest.TestCase):
             "test_na_string": [None],
         })
 
+    def test_ascii_na_string(self) -> None:
+        """Test that the NA string is parsed correctly."""
+        # File created in R with
+        # saveRDS(as.character(NA), file="test_ascii_na_string.rds", ascii=TRUE, compress=FALSE)  # noqa: E501
+        data = rdata.read_rds(TESTDATA_PATH / "test_ascii_na_string.rds")
+        np.testing.assert_equal(data, [None])
+
     def test_complex(self) -> None:
         """Test that complex numbers can be parsed."""
         data = rdata.read_rda(TESTDATA_PATH / "test_complex.rda")
@@ -707,6 +714,20 @@ class SimpleTests(unittest.TestCase):
                 np.testing.assert_equal(ma.mask, ref_ma.mask)
                 np.testing.assert_equal(ma.get_fill_value(),
                                         ref_ma.get_fill_value())
+
+    def test_ascii_characters(self) -> None:
+        """Test reading string with all ascii printable characters."""
+        # File created in R with
+        # saveRDS("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\v\f\r\n", file="test_ascii_chars.rds")  # noqa: E501,ERA001
+        data = rdata.read_rds(TESTDATA_PATH / "test_ascii_chars.rds")
+        assert data == "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\v\f\r\n", data  # noqa: E501
+
+    def test_ascii_ascii_characters(self) -> None:
+        """Test reading string with all ascii printable characters."""
+        # File created in R with
+        # saveRDS("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\v\f\r\n", file="test_ascii_ascii_chars.rds", ascii=TRUE, compress=FALSE)  # noqa: E501,ERA001
+        data = rdata.read_rds(TESTDATA_PATH / "test_ascii_ascii_chars.rds")
+        assert data == "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\v\f\r\n", data  # noqa: E501
 
     def test_nan_inf(self) -> None:
         """Test reading nan and inf."""
