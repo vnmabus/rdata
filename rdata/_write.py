@@ -3,15 +3,18 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from .conversion import build_r_data, convert_to_r_object, convert_to_r_object_for_rda
-from .conversion.to_r import DEFAULT_FORMAT_VERSION
+from .conversion import (
+    DEFAULT_CONSTRUCTOR_DICT,
+    DEFAULT_FORMAT_VERSION,
+    convert_python_to_r_data,
+)
 from .unparser import unparse_file
 
 if TYPE_CHECKING:
     import os
     from typing import Any
 
-    from .conversion.to_r import Encoding
+    from .conversion.to_r import ConstructorDict, Encoding
     from .unparser import Compression, FileFormat
 
 
@@ -23,14 +26,12 @@ def write_rds(
     compression: Compression = "gzip",
     encoding: Encoding = "utf-8",
     format_version: int = DEFAULT_FORMAT_VERSION,
+    constructor_dict: ConstructorDict = DEFAULT_CONSTRUCTOR_DICT,
 ) -> None:
     """
     Write an RDS file.
 
-    This is a convenience function that wraps
-    :func:`rdata.conversion.convert_to_r_object`,
-    :func:`rdata.conversion.build_r_data`,
-    and :func:`rdata.unparser.unparse_file`,
+    This is a convenience function that wraps conversion and unparsing
     as it is the common use case.
 
     Args:
@@ -40,6 +41,7 @@ def write_rds(
         compression: Compression.
         encoding: Encoding to be used for strings within data.
         format_version: File format version.
+        constructor_dict: Dictionary mapping Python types to R classes.
 
     See Also:
         :func:`write_rda`: Similar function that writes an RDA or RDATA file.
@@ -52,15 +54,13 @@ def write_rds(
         >>> data = ["hello", 1, 2.2, 3.3+4.4j]
         >>> rdata.write_rds("test.rds", data)
     """
-    r_object = convert_to_r_object(
+    r_data = convert_python_to_r_data(
         data,
         encoding=encoding,
-    )
-    r_data = build_r_data(
-        r_object,
-        encoding=encoding,
         format_version=format_version,
+        constructor_dict=constructor_dict,
     )
+
     unparse_file(
         path,
         r_data,
@@ -78,14 +78,12 @@ def write_rda(
     compression: Compression = "gzip",
     encoding: Encoding = "utf-8",
     format_version: int = DEFAULT_FORMAT_VERSION,
+    constructor_dict: ConstructorDict = DEFAULT_CONSTRUCTOR_DICT,
 ) -> None:
     """
     Write an RDA or RDATA file.
 
-    This is a convenience function that wraps
-    :func:`rdata.conversion.convert_to_r_object_for_rda`,
-    :func:`rdata.conversion.build_r_data`,
-    and :func:`rdata.unparser.unparse_file`,
+    This is a convenience function that wraps conversion and unparsing
     as it is the common use case.
 
     Args:
@@ -95,6 +93,7 @@ def write_rda(
         compression: Compression.
         encoding: Encoding to be used for strings within data.
         format_version: File format version.
+        constructor_dict: Dictionary mapping Python types to R classes.
 
     See Also:
         :func:`write_rds`: Similar function that writes an RDS file.
@@ -107,15 +106,14 @@ def write_rda(
         >>> data = {"name": "hello", "values": [1, 2.2, 3.3+4.4j]}
         >>> rdata.write_rda("test.rda", data)
     """
-    r_object = convert_to_r_object_for_rda(
+    r_data = convert_python_to_r_data(
         data,
         encoding=encoding,
-    )
-    r_data = build_r_data(
-        r_object,
-        encoding=encoding,
         format_version=format_version,
+        constructor_dict=constructor_dict,
+        file_type="rda",
     )
+
     unparse_file(
         path,
         r_data,

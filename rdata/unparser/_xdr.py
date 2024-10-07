@@ -2,17 +2,14 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
-
-import numpy as np
-
-from rdata.parser import R_INT_NA
+from typing import TYPE_CHECKING
 
 from ._unparser import Unparser
 
 if TYPE_CHECKING:
     import io
 
+    import numpy as np
     import numpy.typing as npt
 
 
@@ -30,23 +27,9 @@ class UnparserXDR(Unparser):
         """Unparse magic bits."""
         self.file.write(b"X\n")
 
-    def _unparse_array_values(self, array: npt.NDArray[Any]) -> None:
-        # Convert boolean to int
-        if np.issubdtype(array.dtype, np.bool_):
-            array = array.astype(np.int32)
-
-        # Flatten masked values and convert int arrays to int32
-        if np.issubdtype(array.dtype, np.integer):
-            if np.ma.is_masked(array):  # type: ignore [no-untyped-call]
-                mask = np.ma.getmask(array)  # type: ignore [no-untyped-call]
-                array = np.ma.getdata(array).copy()  # type: ignore [no-untyped-call]
-                array[mask] = R_INT_NA
-            info = np.iinfo(np.int32)
-            if not all(info.min <= val <= info.max for val in array):
-                msg = "Integer array not castable to int32"
-                raise ValueError(msg)
-            array = array.astype(np.int32)
-
+    def _unparse_array_values_raw(self,
+        array: npt.NDArray[np.int32 | np.float64 | np.complex128],
+    ) -> None:
         # Convert to big endian if needed
         array = array.astype(array.dtype.newbyteorder(">"))
 

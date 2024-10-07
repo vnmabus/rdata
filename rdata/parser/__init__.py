@@ -2,7 +2,6 @@
 
 from ._parser import (
     DEFAULT_ALTREP_MAP as DEFAULT_ALTREP_MAP,
-    R_INT_NA as R_INT_NA,
     CharFlags as CharFlags,
     RData as RData,
     RExtraInfo as RExtraInfo,

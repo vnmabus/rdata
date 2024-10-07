@@ -23,13 +23,11 @@ from typing import (
 import numpy as np
 import numpy.typing as npt
 
+from rdata.missing import R_INT_NA, mask_na_values
+
 if TYPE_CHECKING:
     from ._ascii import ParserASCII
     from ._xdr import ParserXDR
-
-
-#: Value used to represent a missing integer in R.
-R_INT_NA: Final = -2**31
 
 
 @runtime_checkable
@@ -540,6 +538,22 @@ def wrap_constructor(
     return new_info, value
 
 
+def get_altrep_name(info: RObject) -> bytes:
+    """Get the name of the ALTREP object."""
+    assert info.info.type == RObjectType.LIST
+
+    class_sym = info.value[0]
+    while class_sym.info.type == RObjectType.REF:
+        class_sym = class_sym.referenced_object
+
+    assert class_sym.info.type == RObjectType.SYM
+    assert class_sym.value.info.type == RObjectType.CHAR
+
+    altrep_name = class_sym.value.value
+    assert isinstance(altrep_name, bytes)
+    return altrep_name
+
+
 default_altrep_map_dict: Final[Mapping[bytes, AltRepConstructor]] = {
     b"deferred_string": deferred_string_constructor,
     b"compact_intseq": compact_intseq_constructor,
@@ -608,17 +622,7 @@ class Parser(abc.ABC):
     ) -> npt.NDArray[np.int32] | np.ma.MaskedArray[Any, Any]:
         """Parse an integer array."""
         data = self._parse_array(np.int32)
-        mask = (data == R_INT_NA)
-        data[mask] = fill_value
-
-        if np.any(mask):
-            return np.ma.array(  # type: ignore [no-untyped-call,no-any-return]
-                data=data,
-                mask=mask,
-                fill_value=fill_value,
-            )
-
-        return data
+        return mask_na_values(data, fill_value=fill_value)
 
     def parse_double_array(self) -> npt.NDArray[np.float64]:
         """Parse a double array."""
@@ -678,18 +682,7 @@ class Parser(abc.ABC):
         state: RObject,
     ) -> tuple[RObjectInfo, Any]:
         """Expand alternative representation to normal object."""
-        assert info.info.type == RObjectType.LIST
-
-        class_sym = info.value[0]
-        while class_sym.info.type == RObjectType.REF:
-            class_sym = class_sym.referenced_object
-
-        assert class_sym.info.type == RObjectType.SYM
-        assert class_sym.value.info.type == RObjectType.CHAR
-
-        altrep_name = class_sym.value.value
-        assert isinstance(altrep_name, bytes)
-
+        altrep_name = get_altrep_name(info)
         constructor = self.altrep_constructor_dict[altrep_name]
         return constructor(state)
 
@@ -941,7 +934,9 @@ class Parser(abc.ABC):
                     info=altrep_info,
                     state=altrep_state,
                 )
-                attributes = altrep_attr
+                if altrep_attr.info.type != RObjectType.NILVALUE:
+                    msg = "altrep attributes not implemented"
+                    raise NotImplementedError(msg)
             else:
                 value = (altrep_info, altrep_state, altrep_attr)
 

@@ -25,7 +25,9 @@ from ._conversion import (
     ts_constructor as ts_constructor,
 )
 from .to_r import (
-    build_r_data as build_r_data,
-    convert_to_r_object as convert_to_r_object,
-    convert_to_r_object_for_rda as convert_to_r_object_for_rda,
+    DEFAULT_CONSTRUCTOR_DICT as DEFAULT_CONSTRUCTOR_DICT,
+    DEFAULT_FORMAT_VERSION as DEFAULT_FORMAT_VERSION,
+    ConverterFromPythonToR as ConverterFromPythonToR,
+    convert_python_to_r_data as convert_python_to_r_data,
+    convert_python_to_r_object as convert_python_to_r_object,
 )

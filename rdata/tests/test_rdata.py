@@ -13,6 +13,7 @@ import pytest
 import xarray
 
 import rdata
+from rdata.missing import R_FLOAT_NA
 
 TESTDATA_PATH = rdata.TESTDATA_PATH
 
@@ -514,6 +515,118 @@ class SimpleTests(unittest.TestCase):
                 index=("Madrid", "Frankfurt", "Herzberg am Harz"),
             ),
         )
+
+    def test_dataframe_int_rownames(self) -> None:
+        """Test dataframe conversion."""
+        # File created in R with
+        # df = data.frame(col1=c(10, 20, 30), row.names=c(3L, 6L, 9L)); saveRDS(df, file="test_dataframe_int_rownames.rds")  # noqa: E501
+        data = rdata.read_rds(TESTDATA_PATH / "test_dataframe_int_rownames.rds")
+
+        index = np.array([3, 6, 9], dtype=np.int32)
+        ref = pd.DataFrame(
+            {
+                "col1": pd.Series(
+                    [10., 20., 30.],
+                    dtype=float, index=index),
+            },
+            index=index,
+        )
+        pd.testing.assert_frame_equal(data, ref)
+
+    def test_dataframe_range_rownames(self) -> None:
+        """Test dataframe conversion."""
+        # File created in R with
+        # df = data.frame(col1=c(10, 20, 30), row.names=2:4); saveRDS(df, file="test_dataframe_range_rownames.rds")  # noqa: E501
+        data = rdata.read_rds(TESTDATA_PATH / "test_dataframe_range_rownames.rds")
+
+        index = pd.RangeIndex(2, 5)
+        ref = pd.DataFrame(
+            {
+                "col1": pd.Series(
+                    [10., 20., 30.],
+                    dtype=float, index=index),
+            },
+            index=index,
+        )
+        pd.testing.assert_frame_equal(data, ref)
+
+    def test_dataframe_dtypes(self) -> None:
+        """Test dataframe conversion."""
+        # File created in R with
+        # df = data.frame(int=c(10L, 20L, 30L), float=c(1.1, 2.2, 3.3), string=c("x", "y", "z"), bool=as.logical(c(1, 0, 1)), complex=c(4+5i, 6+7i, 8+9i)); print(df); saveRDS(df, file="test_dataframe_dtypes.rds")  # noqa: E501
+        data = rdata.read_rds(TESTDATA_PATH / "test_dataframe_dtypes.rds")
+
+        index = pd.RangeIndex(1, 4)
+        ref = pd.DataFrame(
+            {
+                "int": pd.Series(
+                    [10, 20, 30],
+                    dtype=pd.Int32Dtype(), index=index),
+                "float": pd.Series(
+                    [1.1, 2.2, 3.3],
+                    dtype=float, index=index),
+                "string": pd.Series(
+                    ["x" ,"y", "z"],
+                    dtype=pd.StringDtype(), index=index),
+                "bool": pd.Series(
+                    [True, False, True],
+                    dtype=pd.BooleanDtype(), index=index),
+                "complex": pd.Series(
+                    [4+5j, 6+7j, 8+9j],
+                    dtype=complex, index=index),
+            },
+            index=index,
+        )
+        pd.testing.assert_frame_equal(data, ref)
+
+    def test_dataframe_dtypes_with_na(self) -> None:
+        """Test dataframe conversion."""
+        # File created in R with
+        # df = data.frame(int=c(10L, 20L, 30L, NA), float=c(1.1, 2.2, 3.3, NA), string=c("x", "y", "z", NA), bool=as.logical(c(1, 0, 1, NA)), complex=c(4+5i, 6+7i, 8+9i, NA)); saveRDS(df, file="test_dataframe_dtypes_with_na.rds")  # noqa: E501
+        data = rdata.read_rds(TESTDATA_PATH / "test_dataframe_dtypes_with_na.rds")
+
+        index = pd.RangeIndex(1, 5)
+        ref = pd.DataFrame(
+            {
+                "int": pd.Series(
+                    [10, 20, 30, pd.NA],
+                    dtype=pd.Int32Dtype(), index=index),
+                "float": pd.Series(
+                    [1.1, 2.2, 3.3, R_FLOAT_NA],
+                    dtype=float, index=index),
+                "string": pd.Series(
+                    ["x" ,"y", "z", pd.NA],
+                    dtype=pd.StringDtype(), index=index),
+                "bool": pd.Series(
+                    [True, False, True, pd.NA],
+                    dtype=pd.BooleanDtype(), index=index),
+                "complex": pd.Series(
+                    [4+5j, 6+7j, 8+9j, R_FLOAT_NA],
+                    dtype=complex, index=index),
+            },
+            index=index,
+        )
+
+        with np.errstate(invalid="ignore"):
+            # Comparing complex arrays with R_FLOAT_NA gives warning
+            pd.testing.assert_frame_equal(data, ref)
+
+    def test_dataframe_float_with_na_nan(self) -> None:
+        """Test dataframe conversion."""
+        # File created in R with
+        # df = data.frame(float=c(1.1, 2.2, 3.3, NA, NaN, Inf, -Inf)); saveRDS(df, file="test_dataframe_float_with_na_nan.rds")  # noqa: E501,ERA001
+        data = rdata.read_rds(TESTDATA_PATH / "test_dataframe_float_with_na_nan.rds")
+
+        index = pd.RangeIndex(1, 8)
+        ref = pd.DataFrame(
+            {
+                "float": pd.Series(
+                    [1.1, 2.2, 3.3, R_FLOAT_NA, np.nan, np.inf, -np.inf],
+                    dtype=float, index=index),
+            },
+            index=index,
+        )
+        pd.testing.assert_frame_equal(data, ref)
 
     def test_ts(self) -> None:
         """Test time series conversion."""

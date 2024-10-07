@@ -7,9 +7,12 @@ from contextlib import AbstractContextManager, nullcontext
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import numpy as np
+import pandas as pd
 import pytest
 
 import rdata
+from rdata.conversion import ConverterFromPythonToR, convert_python_to_r_object
 from rdata.unparser import unparse_data
 
 if TYPE_CHECKING:
@@ -82,7 +85,8 @@ def test_unparse(fname: str) -> None:
     with (TESTDATA_PATH / fname).open("rb") as f:
         data = decompress_data(f.read())
         file_type, file_format = parse_file_type_and_format(data)
-        r_data = rdata.parser.parse_data(data, expand_altrep=False)
+        r_data = rdata.parser.parse_data(
+            data, expand_altrep=False, extension=f".{file_type}")
 
         try:
             out_data = unparse_data(
@@ -96,8 +100,10 @@ def test_unparse(fname: str) -> None:
         assert data == out_data
 
 
+@pytest.mark.filterwarnings("ignore:Missing constructor")
 @pytest.mark.parametrize("fname", fnames, ids=fnames)
-def test_convert_to_r(fname: str) -> None:
+@pytest.mark.parametrize("expand_altrep", [True, False])
+def test_convert_to_r(fname: str, expand_altrep: bool) -> None:  # noqa: FBT001
     """Test converting Python data to RData object."""
     with (TESTDATA_PATH / fname).open("rb") as f:
         # Skip test files without unique R->py->R transformation
@@ -112,7 +118,8 @@ def test_convert_to_r(fname: str) -> None:
         data = decompress_data(f.read())
         file_type, file_format = parse_file_type_and_format(data)
 
-        r_data = rdata.parser.parse_data(data, expand_altrep=False)
+        r_data = rdata.parser.parse_data(
+            data, expand_altrep=expand_altrep, extension=f".{file_type}")
 
         try:
             py_data = rdata.conversion.convert(r_data)
@@ -126,68 +133,131 @@ def test_convert_to_r(fname: str) -> None:
         else:
             encoding = encoding.lower()  # type: ignore [assignment]
 
+        converter = ConverterFromPythonToR(
+            encoding=encoding,
+            format_version=r_data.versions.format,
+            r_version_serialized=r_data.versions.serialized,
+        )
+        if fname in [
+            "test_dataframe.rda",
+            "test_dataframe.rds",
+            "test_dataframe_v3.rda",
+            "test_dataframe_v3.rds",
+        ]:
+            converter.df_attr_order = ["names", "row.names", "class"]
+
         try:
-            if file_type == "rds":
-                r_obj = rdata.conversion.convert_to_r_object(
-                    py_data, encoding=encoding)
-            else:
-                r_obj = rdata.conversion.convert_to_r_object_for_rda(
-                    py_data, encoding=encoding)
-            new_r_data = rdata.conversion.build_r_data(
-                r_obj,
-                encoding=encoding,
-                format_version=r_data.versions.format,
-                r_version_serialized=r_data.versions.serialized,
-            )
+            new_r_data = converter.convert_to_r_data(py_data, file_type=file_type)
         except NotImplementedError as e:
             pytest.xfail(str(e))
 
-        assert r_data == new_r_data
         assert str(r_data) == str(new_r_data)
+        assert r_data == new_r_data
+
+        # Check further that the resulting unparsed data is correct to ensure that
+        # Python-to-R conversion hasn't created any odd objects that can't be unparsed
+        if not expand_altrep:
+            file_type, file_format = parse_file_type_and_format(data)
+            out_data = unparse_data(
+                new_r_data, file_format=file_format, file_type=file_type)
+
+            if file_format == "ascii":
+                data = data.replace(b"\r\n", b"\n")
+
+            assert data == out_data
 
 
-def test_convert_to_r_bad_rda() -> None:
+def test_convert_to_r_rda_missing_names() -> None:
     """Test checking that data for RDA has variable names."""
-    py_data = "hello"
+    converter = ConverterFromPythonToR()
     with pytest.raises(TypeError, match="(?i)data must be a dictionary"):
-        rdata.conversion.convert_to_r_object_for_rda(py_data)  # type: ignore [arg-type]
+        converter.convert_to_r_data("hello", file_type="rda")
+
+
+def test_convert_to_r_rda_nonstr_names() -> None:
+    """Test checking that RDA variable names are strings."""
+    converter = ConverterFromPythonToR()
+    with pytest.raises(ValueError, match="(?i)keys must be strings"):
+        converter.convert_to_r_data({1: "hello"}, file_type="rda")
 
 
 def test_convert_to_r_empty_rda() -> None:
     """Test checking that data for RDA has variable names."""
     py_data: dict[str, Any] = {}
+    converter = ConverterFromPythonToR()
     with pytest.raises(ValueError, match="(?i)data must not be empty"):
-        rdata.conversion.convert_to_r_object_for_rda(py_data)
+        converter.convert_to_r_data(py_data, file_type="rda")
 
 
 def test_unparse_bad_rda() -> None:
     """Test checking that data for RDA has variable names."""
     py_data = "hello"
-    r_obj = rdata.conversion.convert_to_r_object(py_data)
-    r_data = rdata.conversion.build_r_data(r_obj)
+    converter = ConverterFromPythonToR()
+    r_data = converter.convert_to_r_data(py_data)
     with pytest.raises(ValueError, match="(?i)must be dictionary-like"):
         unparse_data(r_data, file_type="rda")
 
 
 def test_convert_to_r_bad_encoding() -> None:
     """Test checking encoding."""
+    converter = ConverterFromPythonToR(encoding="non-existent")  # type: ignore [arg-type]
     with pytest.raises(LookupError, match="(?i)unknown encoding"):
-        rdata.conversion.convert_to_r_object("ä", encoding="non-existent")  # type: ignore [arg-type]
+        converter.convert_to_r_object("ä")
 
 
 def test_convert_to_r_unsupported_encoding() -> None:
     """Test checking encoding."""
+    converter = ConverterFromPythonToR(encoding="cp1250")  # type: ignore [arg-type]
     with pytest.raises(ValueError, match="(?i)unsupported encoding"):
-        rdata.conversion.convert_to_r_object("ä", encoding="cp1250")  # type: ignore [arg-type]
+        converter.convert_to_r_object("ä")
 
 
-def test_unparse_big_int() -> None:
+def test_convert_to_r_nonstr_dict_keys() -> None:
+    """Test checking non-string dict keys."""
+    converter = ConverterFromPythonToR()
+    with pytest.raises(ValueError, match="(?i)keys must be strings"):
+        converter.convert_to_r_object({"a": 1, 2: 2})
+
+
+@pytest.mark.parametrize("file_format", valid_formats)
+@pytest.mark.parametrize("value", [-2**31 - 1, 2**31])
+def test_unparse_big_int(file_format: FileFormat, value: int) -> None:
     """Test checking too large integers."""
-    big_int = 2**32
-    r_obj = rdata.conversion.convert_to_r_object(big_int)
-    r_data = rdata.conversion.build_r_data(r_obj)
+    converter = ConverterFromPythonToR()
+    r_data = converter.convert_to_r_data(value)
     with pytest.raises(ValueError, match="(?i)not castable"):
-        unparse_data(r_data, file_format="xdr")
+        unparse_data(r_data, file_format=file_format)
+
+
+def test_convert_dataframe_pandas_dtypes() -> None:
+    """Test converting dataframe with pandas dtypes."""
+    df1 = pd.DataFrame(
+        {
+            "int": np.array([10, 20, 30], dtype=np.int32),
+            "float": [1.1, 2.2, 3.3],
+            "string": ["x" ,"y", "z"],
+            "bool": [True, False, True],
+            "complex": [4+5j, 6+7j, 8+9j],
+        },
+        index=range(3),
+    )
+
+    df2 = pd.DataFrame(
+        {
+            "int": pd.Series([10, 20, 30], dtype=pd.Int32Dtype()),
+            "float": pd.Series([1.1, 2.2, 3.3], dtype=pd.Float64Dtype()),
+            "string": pd.Series(["x" ,"y", "z"], dtype=pd.StringDtype()),
+            "bool": pd.Series([True, False, True], dtype=pd.BooleanDtype()),
+            "complex": pd.Series([4+5j, 6+7j, 8+9j], dtype=complex),
+        },
+        index=pd.RangeIndex(3),
+    )
+
+    r_obj1 = convert_python_to_r_object(df1)
+    r_obj2 = convert_python_to_r_object(df2)
+
+    assert str(r_obj1) == str(r_obj2)
+    assert r_obj1 == r_obj2
 
 
 @pytest.mark.parametrize("compression", [*valid_compressions, "fail"])
