@@ -119,7 +119,8 @@ Several utility functions, such as the routines `convert_char()` and `convert_li
 # Ongoing work
 
 To broaden the utility of the `rdata` library for data processing pipelines with steps in both R and Python, we are currently extending the library with the capability to write compatible Python objects to Rda and Rds files.
-As an example, such a pipeline is present in the Hmsc-HPC code [@rahman+_2024_hmschpc], the continuous development of which has been driving the ongoing work on the writing functionality in the `rdata` library.
+As an example, such a pipeline is present in the Hmsc-HPC code [@rahman+_2024_hmschpc].
+The continuous development of this code has also been driving the ongoing work on the writing functionality of the `rdata` library.
 The writing of Rda and Rds files is implemented as a two-step process similar to reading: first, the Python object is converted to the tree-like intermediate representation used in parsing, and then this intermediate representation is written to a file of the chosen format.
 Currently, the writing functionality supporting common types is available in the development branch of the `rdata` library.
 
