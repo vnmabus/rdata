@@ -656,13 +656,57 @@ class SimpleTests(unittest.TestCase):
 
     def test_altrep_wrap_real(self) -> None:
         """Test alternative representation of wrap_real."""
-        data = rdata.read_rda(
+        parsed = rdata.parser.parse_file(
             TESTDATA_PATH / "test_altrep_wrap_real.rda",
         )
+        obj = parsed.object.value[0]  # taking value as it's an rda file
+        assert obj.info.type == rdata.parser.RObjectType.REAL  # sanity check
+        assert not obj.info.object
+        assert not obj.info.attributes
+        assert obj.attributes is None
 
+        data = rdata.conversion.convert(parsed)
         np.testing.assert_equal(data, {
             "test_altrep_wrap_real": [3],
         })
+
+    def test_altrep_wrap_real_attributes(self) -> None:
+        """Test alternative representation of wrap_real with attributes."""
+        # File created in R with
+        # a = .Internal(wrap_meta(c(1, 2, 3), 0, 0)); attr(a, "foo") = "bar"; saveRDS(a, file="test_altrep_wrap_real_attributes.rds")  # noqa: E501
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_altrep_wrap_real_attributes.rds",
+        )
+        obj = parsed.object
+        assert obj.info.type == rdata.parser.RObjectType.REAL  # sanity check
+        assert not obj.info.object
+        assert obj.info.attributes
+        assert obj.attributes is not None
+        assert obj.attributes.tag is not None
+        assert obj.attributes.tag.value.value == b"foo"
+        assert obj.attributes.value[0].value[0].value == b"bar"
+
+        data = rdata.conversion.convert(parsed)
+        np.testing.assert_equal(data, [1., 2., 3.])
+
+    def test_altrep_wrap_real_class_attribute(self) -> None:
+        """Test alternative representation of wrap_real with class attribute."""
+        # File created in R with
+        # a = .Internal(wrap_meta(c(1, 2, 3), 0, 0)); attr(a, "class") = "Date"; saveRDS(a, file="test_altrep_wrap_real_class_attribute.rds")  # noqa: E501
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_altrep_wrap_real_class_attribute.rds",
+        )
+        obj = parsed.object
+        assert obj.info.type == rdata.parser.RObjectType.REAL  # sanity check
+        assert obj.info.object
+        assert obj.info.attributes
+        assert obj.attributes is not None
+        assert obj.attributes.tag is not None
+        assert obj.attributes.tag.value.value == b"class"
+        assert obj.attributes.value[0].value[0].value == b"Date"
+
+        data = rdata.conversion.convert(parsed)
+        np.testing.assert_equal(data, [1., 2., 3.])
 
     def test_altrep_wrap_string(self) -> None:
         """Test alternative representation of wrap_string."""

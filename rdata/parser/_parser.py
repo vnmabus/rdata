@@ -937,11 +937,16 @@ class Parser(abc.ABC):
             )
 
             if self.expand_altrep:
+                is_object = info.object
                 info, value = self.expand_altrep_to_object(
                     info=altrep_info,
                     state=altrep_state,
                 )
-                attributes = altrep_attr
+                if altrep_attr.info.type != RObjectType.NILVALUE:
+                    info.object = is_object
+                    info.attributes = True
+                    attributes_read = True
+                    attributes = altrep_attr
             else:
                 value = (altrep_info, altrep_state, altrep_attr)
 
