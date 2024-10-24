@@ -35,7 +35,7 @@ Thus, the library `rdata` facilitates data interchange, enabling the usage of th
 
 # Statement of need
 
-The datasets from the CRAN repository are stored in the R specific formats Rda and Rds.
+The datasets of the R programming language, such as those from the CRAN repository, are often stored in the R specific formats Rda and Rds.
 In Python, there were a few packages that could parse these file formats, albeit all of them presented some limitations.
 
 The package `rpy2` [@gautier_2024_rpy2] can be used to interact with R from Python.
