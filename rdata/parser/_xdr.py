@@ -26,9 +26,9 @@ class ParserXDR(Parser):
         self.file = io.BytesIO(data)
 
     def _parse_array_values(
-            self,
-            dtype: npt.DTypeLike,
-            length: int,
+        self,
+        dtype: npt.DTypeLike,
+        length: int,
     ) -> npt.NDArray[Any]:
         dtype = np.dtype(dtype)
         buffer = self.file.read(length * dtype.itemsize)
