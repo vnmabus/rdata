@@ -1,7 +1,7 @@
 rdata
 =====
 
-|build-status| |docs| |coverage| |repostatus| |versions| |pypi| |conda| |zenodo| |pyOpenSci|
+|build-status| |docs| |coverage| |repostatus| |versions| |pypi| |conda| |zenodo| |pyOpenSci| |joss|
 
 A Python library for R datasets.
 
@@ -259,3 +259,6 @@ found in the
 .. |pyOpenSci| image:: https://tinyurl.com/y22nb8up
     :alt: pyOpenSci: Peer reviewed
     :target: https://github.com/pyOpenSci/software-submission/issues/144
+
+.. |joss| image:: https://joss.theoj.org/papers/10.21105/joss.07540/status.svg
+   :target: https://doi.org/10.21105/joss.07540
