@@ -452,6 +452,41 @@ class SimpleTests(unittest.TestCase):
             "test_encoding_latin1_implicit": ["Íñigo"],
         })
 
+    def test_empty_dataframe(self) -> None:
+        """
+        Test conversion of an empty dataframe.
+
+        Code for creating the object:
+
+        ::: test_empty_dataframe = data.frame()
+
+        """
+        data = rdata.read_rda(TESTDATA_PATH / "test_empty_dataframe.rda")
+
+        pd.testing.assert_frame_equal(
+            data["test_empty_dataframe"],
+            pd.DataFrame(columns=[], index=np.array([], dtype=np.int32)),
+        )
+
+    def test_empty_dataframe_without_names(self) -> None:
+        """
+        Test conversion of an empty dataframe without names.
+
+        Code for creating the object:
+
+        ::: test_empty_dataframe_without_names = data.frame()
+        ::: attr(test_empty_dataframe_without_names, "names") <- NULL
+
+        """
+        data = rdata.read_rda(
+            TESTDATA_PATH / "test_empty_dataframe_without_names.rda",
+        )
+
+        pd.testing.assert_frame_equal(
+            data["test_empty_dataframe_without_names"],
+            pd.DataFrame(index=np.array([], dtype=np.int32)),
+        )
+
     def test_dataframe(self) -> None:
         """Test dataframe conversion."""
         # Files created in R with

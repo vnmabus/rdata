@@ -116,6 +116,9 @@ def test_convert_to_r(fname: str, expand_altrep: bool) -> None:  # noqa: FBT001
             "test_file.rda",
             "test_altrep_wrap_real_attributes.rds",
             "test_altrep_wrap_real_class_attribute.rds",
+            # conversion issues
+            "test_empty_dataframe.rda",
+            "test_empty_dataframe_without_names.rda",
         ]:
             pytest.skip("ambiguous R-to-Python-to-R transformation")
 

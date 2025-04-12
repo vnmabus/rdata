@@ -435,9 +435,20 @@ def dataframe_constructor(
     attrs: Mapping[str, Any],
 ) -> pd.DataFrame:
 
-    row_names = attrs["row.names"]
+    match obj:
+        case {}:
+            columns = list(obj.keys())
+            obj = {
+                key: _dataframe_column_transform(val)
+                for key, val in obj.items()
+            }
+        case [*_]:
+            columns = None
+            obj = [
+                _dataframe_column_transform(val) for val in obj
+            ]
 
-    obj = {key: _dataframe_column_transform(val) for key, val in obj.items()}
+    row_names = attrs["row.names"]
 
     # Default row names are stored as [R_INT_NA, -len]
     default_row_names_len = 2
@@ -451,7 +462,7 @@ def dataframe_constructor(
         else row_names
     )
 
-    return pd.DataFrame(obj, columns=obj, index=index)
+    return pd.DataFrame(obj, columns=columns, index=index)
 
 
 def _factor_constructor_internal(
