@@ -561,7 +561,9 @@ class SimpleTests(unittest.TestCase):
         """Test dataframe conversion."""
         # File created in R with
         # df = data.frame(col1=c(10, 20, 30), row.names=c(3L, 6L, 9L)); saveRDS(df, file="test_dataframe_int_rownames.rds")  # noqa: E501
-        data = rdata.read_rds(TESTDATA_PATH / "test_dataframe_int_rownames.rds")
+        data = rdata.read_rds(
+            TESTDATA_PATH / "test_dataframe_int_rownames.rds",
+        )
 
         index = np.array([3, 6, 9], dtype=np.int32)
         ref = pd.DataFrame(
@@ -578,7 +580,9 @@ class SimpleTests(unittest.TestCase):
         """Test dataframe conversion."""
         # File created in R with
         # df = data.frame(col1=c(10, 20, 30), row.names=2:4); saveRDS(df, file="test_dataframe_range_rownames.rds")  # noqa: E501
-        data = rdata.read_rds(TESTDATA_PATH / "test_dataframe_range_rownames.rds")
+        data = rdata.read_rds(
+            TESTDATA_PATH / "test_dataframe_range_rownames.rds",
+        )
 
         index = pd.RangeIndex(2, 5)
         ref = pd.DataFrame(
@@ -607,7 +611,7 @@ class SimpleTests(unittest.TestCase):
                     [1.1, 2.2, 3.3],
                     dtype=float, index=index),
                 "string": pd.Series(
-                    ["x" ,"y", "z"],
+                    ["x", "y", "z"],
                     dtype=pd.StringDtype(), index=index),
                 "bool": pd.Series(
                     [True, False, True],
@@ -624,7 +628,9 @@ class SimpleTests(unittest.TestCase):
         """Test dataframe conversion."""
         # File created in R with
         # df = data.frame(int=c(10L, 20L, 30L, NA), float=c(1.1, 2.2, 3.3, NA), string=c("x", "y", "z", NA), bool=as.logical(c(1, 0, 1, NA)), complex=c(4+5i, 6+7i, 8+9i, NA)); saveRDS(df, file="test_dataframe_dtypes_with_na.rds")  # noqa: E501
-        data = rdata.read_rds(TESTDATA_PATH / "test_dataframe_dtypes_with_na.rds")
+        data = rdata.read_rds(
+            TESTDATA_PATH / "test_dataframe_dtypes_with_na.rds",
+        )
 
         index = pd.RangeIndex(1, 5)
         ref = pd.DataFrame(
@@ -636,7 +642,7 @@ class SimpleTests(unittest.TestCase):
                     [1.1, 2.2, 3.3, R_FLOAT_NA],
                     dtype=float, index=index),
                 "string": pd.Series(
-                    ["x" ,"y", "z", pd.NA],
+                    ["x", "y", "z", pd.NA],
                     dtype=pd.StringDtype(), index=index),
                 "bool": pd.Series(
                     [True, False, True, pd.NA],
@@ -656,7 +662,9 @@ class SimpleTests(unittest.TestCase):
         """Test dataframe conversion."""
         # File created in R with
         # df = data.frame(float=c(1.1, 2.2, 3.3, NA, NaN, Inf, -Inf)); saveRDS(df, file="test_dataframe_float_with_na_nan.rds")  # noqa: E501,ERA001
-        data = rdata.read_rds(TESTDATA_PATH / "test_dataframe_float_with_na_nan.rds")
+        data = rdata.read_rds(
+            TESTDATA_PATH / "test_dataframe_float_with_na_nan.rds",
+        )
 
         index = pd.RangeIndex(1, 8)
         ref = pd.DataFrame(
@@ -845,7 +853,7 @@ class SimpleTests(unittest.TestCase):
 
     @pytest.mark.filterwarnings("ignore:Missing constructor")
     def test_altrep_wrap_real_class_attribute(self) -> None:
-        """Test alternative representation of wrap_real with class attribute."""
+        """Test altrep of wrap_real with class attribute."""
         # File created in R with
         # a = .Internal(wrap_meta(c(1, 2, 3), 0, 0)); attr(a, "class") = "Date"; saveRDS(a, file="test_altrep_wrap_real_class_attribute.rds")  # noqa: E501
         parsed = rdata.parser.parse_file(
@@ -937,7 +945,6 @@ class SimpleTests(unittest.TestCase):
         """Test reading nan and inf in ascii."""
         data = rdata.read_rds(TESTDATA_PATH / "test_ascii_nan_inf.rds")
         np.testing.assert_equal(data, [0., np.nan, np.inf, -np.inf])
-
 
 
 if __name__ == "__main__":

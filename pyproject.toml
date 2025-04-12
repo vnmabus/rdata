@@ -109,12 +109,14 @@ exclude_also = [
     "if TYPE_CHECKING:",
     ]
 
+[tool.ruff]
+line-length = 79
+
 [tool.ruff.lint]
 select = [
     "ALL",
 ]
 ignore = [
-	"ANN101", # self does not need to be typed
 	"D212", # incompatible with D213, which is our preferred style for multiline docstrings
 	"Q003", # do not change quotation marks to avoid escaping
 	"PLC0414", # allow explicit re-exports

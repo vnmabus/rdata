@@ -9,10 +9,9 @@ import numpy as np
 
 from rdata.missing import is_na
 
-from ._unparser import Unparser
+from ._unparser import Unparser, WriteableBinaryFile
 
 if TYPE_CHECKING:
-    import io
     from typing import Final
 
     import numpy.typing as npt
@@ -53,7 +52,7 @@ class UnparserASCII(Unparser):
 
     def __init__(
         self,
-        file: io.BytesIO,
+        file: WriteableBinaryFile,
     ) -> None:
         """Unparser for files in ASCII format."""
         self.file = file
@@ -103,7 +102,7 @@ class UnparserASCII(Unparser):
 
     def _unparse_string_characters(self, value: bytes) -> None:
         # Ideally we could do here the reverse of parsing,
-        # i.e., output = value.decode('latin1').encode('unicode_escape').decode('ascii')
+        # i.e., output = value.decode('latin1').encode('unicode_escape').decode('ascii')  # noqa: E501
         # This would produce byte representation in hex such as '\xc3\xa4',
         # but we need to have the equivalent octal presentation '\303\244'.
         # In addition, some ascii characters need to be escaped.

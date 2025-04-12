@@ -620,7 +620,7 @@ class Parser(abc.ABC):
     def parse_nullable_int_array(
         self,
         *,
-        fill_value: int = R_INT_NA,
+        fill_value: int | np.int32 = R_INT_NA,
     ) -> npt.NDArray[np.int32] | np.ma.MaskedArray[Any, Any]:
         """Parse an integer array."""
         data = self._parse_array(np.int32)
@@ -1248,7 +1248,9 @@ type=<RObjectType.CHAR: 9>,
             warnings.warn("Unknown file type: assumed RDS")  # noqa: B028
 
         if extension not in {None, ".rds"}:
-            warnings.warn(f"Wrong extension {extension} for file in RDS format")  # noqa: B028
+            warnings.warn(  # noqa: B028
+                f"Wrong extension {extension} for file in RDS format",
+            )
 
     return parse_function(
         new_data,  # type: ignore [arg-type]

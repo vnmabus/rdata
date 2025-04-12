@@ -4,11 +4,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ._unparser import Unparser
+from ._unparser import Unparser, WriteableBinaryFile
 
 if TYPE_CHECKING:
-    import io
-
     import numpy as np
     import numpy.typing as npt
 
@@ -18,7 +16,7 @@ class UnparserXDR(Unparser):
 
     def __init__(
         self,
-        file: io.BytesIO,
+        file: WriteableBinaryFile,
     ) -> None:
         """Unparser for files in XDR format."""
         self.file = file
