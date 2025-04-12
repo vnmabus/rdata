@@ -2,7 +2,7 @@
 name = "rdata"
 description = "Read R datasets from Python."
 readme = "README.rst"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = {file = "LICENSE"}
 keywords = [
 	"rdata",
