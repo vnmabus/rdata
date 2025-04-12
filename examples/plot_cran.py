@@ -125,7 +125,7 @@ def graph_constructor(obj, attrs):
     return igraph.Graph(
         n=n_vertices,
         directed=is_directed,
-        edges=list(zip(edge_from, edge_to)),
+        edges=list(zip(edge_from, edge_to, strict=True)),
         graph_attrs=graph_attrs,
         vertex_attrs=vertex_attrs,
         edge_attrs=edge_attrs,
