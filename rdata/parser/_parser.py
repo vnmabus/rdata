@@ -16,7 +16,6 @@ from typing import (
     Any,
     Final,
     Protocol,
-    Union,
     runtime_checkable,
 )
 
@@ -47,7 +46,7 @@ class BinaryBufferFileLike(Protocol):
         """Get the underlying buffer."""
 
 
-AcceptableFile = Union[BinaryFileLike, BinaryBufferFileLike]
+AcceptableFile = BinaryFileLike | BinaryBufferFileLike
 
 try:
     from importlib.resources.abc import Traversable as Traversable

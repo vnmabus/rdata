@@ -7,7 +7,7 @@ from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from fractions import Fraction
 from types import MappingProxyType, SimpleNamespace
-from typing import Any, Final, NamedTuple, Union, cast
+from typing import Any, Final, NamedTuple, TypeAlias, cast
 
 import numpy as np
 import pandas as pd
@@ -16,7 +16,7 @@ from typing_extensions import override
 
 from .. import parser
 
-ConversionFunction = Callable[[Union[parser.RData, parser.RObject]], Any]
+ConversionFunction: TypeAlias = Callable[[parser.RData | parser.RObject], Any]
 
 
 class RLanguage(NamedTuple):
@@ -172,7 +172,7 @@ def convert_attrs(
     """
     if r_obj.attributes:
         attrs = cast(
-            Mapping[str, Any],
+            "Mapping[str, Any]",
             conversion_function(r_obj.attributes),
         )
     else:
@@ -223,7 +223,7 @@ def convert_vector(
     # If it has the name attribute, use a dict instead
     field_names = attrs.get("names")
     if field_names is not None:
-        value = dict(zip(field_names, value))
+        value = dict(zip(field_names, value, strict=True))
 
     return value
 
@@ -490,8 +490,14 @@ def ts_constructor(
 
     frequency = int(frequency)
 
-    real_start = Fraction(int(round(start * frequency)), frequency)
-    real_end = Fraction(int(round(end * frequency)), frequency)
+    real_start = Fraction(
+        int(round(start * frequency)),  # noqa: RUF046
+        frequency,
+    )
+    real_end = Fraction(
+        int(round(end * frequency)),  # noqa: RUF046
+        frequency,
+    )
 
     index: np.ndarray[Any, Any] = np.arange(
         real_start,
@@ -578,9 +584,9 @@ def srcfilecopy_constructor(
     )
 
 
-Constructor = Callable[[Any, Mapping[str, Any]], Any]
-ConstructorDict = Mapping[
-    Union[str, bytes],
+Constructor: TypeAlias = Callable[[Any, Mapping[str, Any]], Any]
+ConstructorDict: TypeAlias = Mapping[
+    str | bytes,
     Constructor,
 ]
 
@@ -602,7 +608,10 @@ class Converter(abc.ABC):
     """Interface of a class converting R objects in Python objects."""
 
     @abc.abstractmethod
-    def convert(self, data: parser.RData | parser.RObject) -> Any:  # noqa: ANN401
+    def convert(
+        self,
+        data: parser.RData | parser.RObject,
+    ) -> Any:  # noqa: ANN401
         """Convert a R object to a Python one."""
 
 
