@@ -402,7 +402,8 @@ def _dataframe_column_transform(source: Any) -> Any:  # noqa: ANN401
             dtype = pd.Int32Dtype()
         elif np.issubdtype(source.dtype, np.floating):
             # We return the numpy array here, which keeps
-            # R_FLOAT_NA, np.nan, and other NaNs as they were originally in the file.
+            # R_FLOAT_NA, np.nan, and other NaNs as they were originally in
+            # the file.
             # Users can then decide if they prefer to interpret
             # only R_FLOAT_NA or all NaNs as "missing".
             return source
@@ -410,7 +411,8 @@ def _dataframe_column_transform(source: Any) -> Any:  # noqa: ANN401
             # dtype = pd.Float64Dtype()  # noqa: ERA001
             # This would create an array with only R_FLOAT_NA as "missing":
             # from rdata.missing import is_na  # noqa: ERA001
-            # return pd.arrays.FloatingArray(source, is_na(source))  # noqa: ERA001
+            # return pd.arrays.FloatingArray(
+            #     source, is_na(source))
         elif np.issubdtype(source.dtype, np.complexfloating):
             # There seems to be no pandas type for complex array
             return source

@@ -125,9 +125,13 @@ def dataframe_constructor(
     index = data.index
     if isinstance(index, pd.RangeIndex):
         assert isinstance(index.start, int)
-        if index.start == 1 and index.stop == data.shape[0] + 1 and index.step == 1:
+        if (
+            index.start == 1
+            and index.stop == data.shape[0] + 1
+            and index.step == 1
+        ):
             # Construct default row names stored as [R_INT_NA, -len]
-            row_names = np.ma.array(
+            row_names = np.ma.array(  # type: ignore[no-untyped-call]
                 data=[R_INT_NA, -data.shape[0]],
                 mask=[True, False],
                 fill_value=R_INT_NA,
@@ -135,7 +139,10 @@ def dataframe_constructor(
         else:
             row_names = index
     elif isinstance(index, pd.Index):
-        if index.dtype == "object" or np.issubdtype(str(index.dtype), np.integer):
+        if (
+            index.dtype == "object"
+            or np.issubdtype(str(index.dtype), np.integer)
+        ):
             row_names = index.to_numpy()
         else:
             msg = f"pd.DataFrame pd.Index {index.dtype} not implemented"
@@ -236,7 +243,7 @@ def convert_pd_array_to_np_array(
         pd.arrays.IntegerArray,
     )):
         dtype: type[Any]
-        fill_value: bool | int
+        fill_value: bool | np.int32
         if isinstance(pd_array, pd.arrays.BooleanArray):
             dtype = np.bool_
             fill_value = True
@@ -246,7 +253,11 @@ def convert_pd_array_to_np_array(
 
         mask = pd_array.isna()  # type: ignore [no-untyped-call]
         if np.any(mask):
-            data = pd_array.to_numpy(dtype=dtype, na_value=fill_value)
+            data = pd_array.to_numpy(
+                dtype=dtype,
+                na_value=fill_value,  # type: ignore[arg-type]
+                # See https://github.com/pandas-dev/pandas-stubs/issues/1182
+            )
             array = np.ma.array(  # type: ignore [no-untyped-call]
                 data=data,
                 mask=mask,
@@ -354,7 +365,11 @@ def build_r_list(
         tag = None
         car = head
 
-    cdr = build_r_object(RObjectType.NILVALUE) if len(tail) == 0 else build_r_list(tail)
+    cdr = (
+        build_r_object(RObjectType.NILVALUE)
+        if len(tail) == 0
+        else build_r_list(tail)
+    )
 
     return build_r_object(RObjectType.LIST, value=(car, cdr), tag=tag)
 
@@ -423,7 +438,8 @@ class ConverterFromPythonToR:
         Args:
             encoding: Encoding to be used for strings within data.
             format_version: File format version.
-            r_version_serialized: R version written as the creator of the object.
+            r_version_serialized: R version written as the creator of the
+                object.
             constructor_dict: Dictionary mapping Python classes to
                 functions converting them to R classes.
         """
@@ -456,7 +472,10 @@ class ConverterFromPythonToR:
         """
         if file_type == "rda":
             if not isinstance(data, dict):
-                msg = f"for RDA file, data must be a dictionary, not type {type(data)}"
+                msg = (
+                    f"for RDA file, data must be a dictionary, not "
+                    f"type {type(data)}"
+                )
                 raise TypeError(msg)
             if not all(isinstance(key, str) for key in data):
                 msg = "for RDA file, dictionary keys must be strings"
@@ -596,14 +615,18 @@ class ConverterFromPythonToR:
                         raise NotImplementedError(msg)
                     r_value.append(r_el)
 
-            elif data.dtype.kind in ["S"]:  # bytes object is converted to this dtype
+            # bytes object is converted to this dtype
+            elif data.dtype.kind in ["S"]:
                 assert data.size == 1
                 return build_r_char(data[0], encoding=self.encoding)
 
             elif data.dtype.kind in ["U"]:
                 assert data.ndim == 1
                 r_type = RObjectType.STR
-                r_value = [build_r_char(el, encoding=self.encoding) for el in data]
+                r_value = [
+                    build_r_char(el, encoding=self.encoding)
+                    for el in data
+                ]
 
             else:
                 r_type = {

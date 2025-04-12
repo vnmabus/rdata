@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol, Self
 
 import numpy as np
 
@@ -18,7 +18,26 @@ from rdata.parser import (
 )
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     import numpy.typing as npt
+
+
+class WriteableBinaryFile(Protocol):
+
+    def __enter__(self) -> Self:
+        """Enter a with statement."""
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """Exit a with statement."""
+
+    def write(self, /, msg: bytes) -> int:
+        """Write to the file."""
 
 
 def pack_r_object_info(info: RObjectInfo) -> int:

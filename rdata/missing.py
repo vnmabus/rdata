@@ -13,11 +13,11 @@ if TYPE_CHECKING:
 
 
 #: Value used to represent a missing integer in R.
-R_INT_NA: Final[int] = np.int32(-2**31)  # type: ignore [assignment]
+R_INT_NA: Final = np.int32(-2**31)
 
 #: Value used to represent a missing float in R.
 #  This is a NaN with a particular payload, but it's not the same as np.nan.
-R_FLOAT_NA: Final[float] = np.uint64(0x7ff00000000007a2).view(np.float64)  # type: ignore [assignment]
+R_FLOAT_NA: Final = np.uint64(0x7ff00000000007a2).view(np.float64)
 
 
 def get_na_value(dtype: np.dtype[Any]) -> Any:  # noqa: ANN401
@@ -60,7 +60,9 @@ def is_na(
         # Convert dtype to unsigned integer to perform byte-by-byte
         # equality comparison to distinguish different NaN values
         raw_dtype = f"u{array.dtype.itemsize}"
-        return array.view(raw_dtype) == np.array(na).view(raw_dtype)  # type: ignore [no-any-return]
+        return (  # type: ignore [no-any-return]
+            array.view(raw_dtype) == np.array(na).view(raw_dtype)
+        )
 
     if isinstance(array, int):
         try:
@@ -68,7 +70,8 @@ def is_na(
             # we try to cast it to 32-bit int if possible
             return is_na(np.array(array, dtype=np.int32))
         except OverflowError:
-            # Proceed with larger integer (in case it is supported at some point)
+            # Proceed with larger integer (in case it is supported at
+            # some point)
             return is_na(np.array(array))
 
     if isinstance(array, (float, np.int32, np.float64)):

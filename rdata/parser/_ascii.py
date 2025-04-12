@@ -11,7 +11,7 @@ from rdata.missing import R_FLOAT_NA, R_INT_NA
 from ._parser import AltRepConstructorMap, Parser
 
 
-def map_int_na(line: str) -> int:
+def map_int_na(line: str) -> int | np.int32:
     return R_INT_NA if line == "NA" else int(line)
 
 
@@ -45,7 +45,7 @@ class ParserASCII(Parser):
         length: int,
     ) -> npt.NDArray[Any]:
         array = np.empty(length, dtype=dtype)
-        value: int | float | complex
+        value: int | float | complex | np.int32
 
         for i in range(length):
             line = self._readline()

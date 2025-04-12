@@ -12,11 +12,11 @@ from rdata.parser import (
 
 if TYPE_CHECKING:
     import os
-    from typing import IO, Any, Literal
-
-    from rdata.parser import RData
+    from collections.abc import Callable
+    from typing import Any, Literal
 
     from ._ascii import UnparserASCII
+    from ._unparser import WriteableBinaryFile
     from ._xdr import UnparserXDR
 
     FileFormat = Literal["xdr", "ascii"]
@@ -42,24 +42,33 @@ def unparse_file(
         file_type: File type.
         compression: Compression.
     """
+    open_with_compression: Callable[
+        [os.PathLike[Any] | str, Literal["wb"]],
+        WriteableBinaryFile,
+    ]
     if compression is None:
         open_with_compression = open
     elif compression == "bzip2":
-        from bz2 import open as open_with_compression  # type: ignore [assignment]
+        from bz2 import open as open_with_compression
     elif compression == "gzip":
-        from gzip import open as open_with_compression  # type: ignore [assignment]
+        from gzip import open as open_with_compression
     elif compression == "xz":
-        from lzma import open as open_with_compression  # type: ignore [assignment]
+        from lzma import open as open_with_compression
     else:
         msg = f"Unknown compression: {compression}"
         raise ValueError(msg)
 
     with open_with_compression(path, "wb") as f:
-        unparse_fileobj(f, r_data, file_format=file_format, file_type=file_type)
+        unparse_fileobj(
+            f,
+            r_data,
+            file_format=file_format,
+            file_type=file_type,
+        )
 
 
 def unparse_fileobj(
-    fileobj: IO[Any],
+    fileobj: WriteableBinaryFile,
     r_data: RData,
     *,
     file_format: FileFormat = "xdr",
@@ -103,7 +112,7 @@ def unparse_fileobj(
     if file_type == "rda":
         fileobj.write(f"{rda_magic}{r_data.versions.format}\n".encode("ascii"))
 
-    unparser = Unparser(fileobj)  # type: ignore [arg-type]
+    unparser = Unparser(fileobj)
     unparser.unparse_r_data(r_data)
 
 

@@ -44,7 +44,10 @@ def decompress_data(data: bytes) -> bytes:
     return decompress(data)
 
 
-fnames = sorted([fpath.name for fpath in Path(str(TESTDATA_PATH)).glob("*.rd?")])
+fnames = sorted(
+    [fpath.name for fpath in Path(str(TESTDATA_PATH)).glob("*.rd?")],
+)
+
 
 def parse_file_type_and_format(data: bytes) -> tuple[FileType, FileFormat]:
     """Parse file type and format from data."""
@@ -147,15 +150,19 @@ def test_convert_to_r(fname: str, expand_altrep: bool) -> None:  # noqa: FBT001
         )
 
         try:
-            new_r_data = converter.convert_to_r_data(py_data, file_type=file_type)
+            new_r_data = converter.convert_to_r_data(
+                py_data,
+                file_type=file_type,
+            )
         except NotImplementedError as e:
             pytest.xfail(str(e))
 
         assert str(r_data) == str(new_r_data)
         assert r_data == new_r_data
 
-        # Check further that the resulting unparsed data is correct to ensure that
-        # Python-to-R conversion hasn't created any odd objects that can't be unparsed
+        # Check further that the resulting unparsed data is correct to ensure
+        # that Python-to-R conversion hasn't created any odd objects that can't
+        # be unparsed
         if not expand_altrep:
             file_type, file_format = parse_file_type_and_format(data)
             out_data = unparse_data(
@@ -200,14 +207,18 @@ def test_unparse_bad_rda() -> None:
 
 def test_convert_to_r_bad_encoding() -> None:
     """Test checking encoding."""
-    converter = ConverterFromPythonToR(encoding="non-existent")  # type: ignore [arg-type]
+    converter = ConverterFromPythonToR(
+        encoding="non-existent",  # type: ignore [arg-type]
+    )
     with pytest.raises(LookupError, match="(?i)unknown encoding"):
         converter.convert_to_r_object("ä")
 
 
 def test_convert_to_r_unsupported_encoding() -> None:
     """Test checking encoding."""
-    converter = ConverterFromPythonToR(encoding="cp1250")  # type: ignore [arg-type]
+    converter = ConverterFromPythonToR(
+        encoding="cp1250",  # type: ignore [arg-type]
+    )
     with pytest.raises(ValueError, match="(?i)unsupported encoding"):
         converter.convert_to_r_object("ä")
 
@@ -235,7 +246,7 @@ def test_convert_dataframe_pandas_dtypes() -> None:
         {
             "int": np.array([10, 20, 30], dtype=np.int32),
             "float": [1.1, 2.2, 3.3],
-            "string": ["x" ,"y", "z"],
+            "string": ["x", "y", "z"],
             "bool": [True, False, True],
             "complex": [4+5j, 6+7j, 8+9j],
         },
@@ -245,11 +256,31 @@ def test_convert_dataframe_pandas_dtypes() -> None:
     index = pd.RangeIndex(3)
     df2 = pd.DataFrame(
         {
-            "int": pd.Series([10, 20, 30], dtype=pd.Int32Dtype(), index=index),
-            "float": pd.Series([1.1, 2.2, 3.3], dtype=pd.Float64Dtype(), index=index),
-            "string": pd.Series(["x" ,"y", "z"], dtype=pd.StringDtype(), index=index),
-            "bool": pd.Series([1, 0, 1], dtype=pd.BooleanDtype(), index=index),
-            "complex": pd.Series([4+5j, 6+7j, 8+9j], dtype=complex, index=index),
+            "int": pd.Series(
+                [10, 20, 30],
+                dtype=pd.Int32Dtype(),
+                index=index,
+            ),
+            "float": pd.Series(
+                [1.1, 2.2, 3.3],
+                dtype=pd.Float64Dtype(),
+                index=index,
+            ),
+            "string": pd.Series(
+                ["x", "y", "z"],
+                dtype=pd.StringDtype(),
+                index=index,
+            ),
+            "bool": pd.Series(
+                [1, 0, 1],
+                dtype=pd.BooleanDtype(),
+                index=index,
+            ),
+            "complex": pd.Series(
+                [4+5j, 6+7j, 8+9j],
+                dtype=complex,
+                index=index,
+            ),
         },
         index=index,
     )
@@ -300,9 +331,15 @@ def test_write_file(
     """Test writing RData object to a real file with compression."""
     expectation: AbstractContextManager[Any] = nullcontext()
     if file_format not in valid_formats:
-        expectation = pytest.raises(ValueError, match="(?i)unknown file format")
+        expectation = pytest.raises(
+            ValueError,
+            match="(?i)unknown file format",
+        )
     if compression not in valid_compressions:
-        expectation = pytest.raises(ValueError, match="(?i)unknown compression")
+        expectation = pytest.raises(
+            ValueError,
+            match="(?i)unknown compression",
+        )
 
     py_data = {"key": "Hello", "none": None}
     suffix = ".rds" if file_type == "rds" else ".rda"
@@ -312,5 +349,10 @@ def test_write_file(
         fpath = Path(tmpdir) / f"file{suffix}"
 
         with expectation:
-            write(fpath, py_data, file_format=file_format, compression=compression)
+            write(
+                fpath,
+                py_data,
+                file_format=file_format,
+                compression=compression,
+            )
             assert py_data == read(fpath)
