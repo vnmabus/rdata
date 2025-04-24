@@ -3,19 +3,19 @@ rdata version |version|
 
 |build-status| |docs| |coverage| |repostatus| |versions| |pypi| |conda| |zenodo| |pyOpenSci| |joss|
 
-The package rdata offers a lightweight way to import R datasets/objects stored
-in the ".rda" and ".rds" formats into Python.
+The package rdata offers a lightweight way in Python to import and export R datasets/objects stored
+in the ".rda" and ".rds" formats.
 Its main advantages are:
 
 - It is a pure Python implementation, with no dependencies on the R language or
   related libraries.
   Thus, it can be used anywhere where Python is supported, including the web
   using `Pyodide <https://pyodide.org/>`_.
-- It attempt to support all R objects that can be meaningfully translated.
+- It attempt to support all objects that can be meaningfully translated between R and Python.
   As opposed to other solutions, you are no limited to import dataframes or
   data with a particular structure.
 - It allows users to easily customize the conversion of R classes to Python
-  ones.
+  ones and vice versa.
   Does your data use custom R classes?
   Worry no longer, as it is possible to define custom conversions to the Python
   classes of your choosing.
@@ -48,7 +48,7 @@ as well.
 .. |docs| image:: https://readthedocs.org/projects/rdata/badge/?version=latest
     :alt: Documentation Status
     :target: https://rdata.readthedocs.io/en/latest/?badge=latest
-    
+
 .. |coverage| image:: http://codecov.io/github/vnmabus/rdata/coverage.svg?branch=develop
     :alt: Coverage Status
     :target: https://codecov.io/gh/vnmabus/rdata/branch/develop
@@ -59,7 +59,7 @@ as well.
 
 .. |versions| image:: https://img.shields.io/pypi/pyversions/rdata
    :alt: PyPI - Python Version
-    
+
 .. |pypi| image:: https://badge.fury.io/py/rdata.svg
     :alt: Pypi version
     :target: https://pypi.python.org/pypi/rdata/
@@ -71,7 +71,7 @@ as well.
 .. |zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.6382237.svg
     :alt: Zenodo DOI
     :target: https://doi.org/10.5281/zenodo.6382237
-    
+
 .. |pyOpenSci| image:: https://tinyurl.com/y22nb8up
     :alt: pyOpenSci: Peer reviewed
     :target: https://github.com/pyOpenSci/software-submission/issues/144
