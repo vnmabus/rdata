@@ -9,7 +9,7 @@ A Python library for R datasets.
 	Github does not support include in README for dubious security reasons, so
 	we copy-paste instead. Also Github does not understand Sphinx directives.
 	.. include:: docs/index.rst
-	.. include:: docs/simpleusage.rst
+	.. include:: docs/usage.rst
 
 The package rdata offers a lightweight way in Python to import and export R datasets/objects stored
 in the ".rda" and ".rds" formats.

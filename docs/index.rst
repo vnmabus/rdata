@@ -29,7 +29,7 @@ Its main advantages are:
    :caption: Contents:
 
    installation
-   simpleusage
+   usage
    apilist
    auto_examples/index
    Try online! <https://rdata.readthedocs.io/en/latest/lite/lab/?path=auto_examples/plot_example.ipynb>
