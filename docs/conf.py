@@ -25,8 +25,8 @@ import rdata
 
 # General information about the project.
 project = "rdata"
-author = "Carlos Ramos Carreño"
-copyright = "2018, Carlos Ramos Carreño"  # noqa: A001
+author = "Rdata developers"
+copyright = "2018, Rdata developers"  # noqa: A001
 github_url = "https://github.com/vnmabus/rdata"
 rtd_version = os.environ.get("READTHEDOCS_VERSION")
 rtd_version_type = os.environ.get("READTHEDOCS_VERSION_TYPE")
