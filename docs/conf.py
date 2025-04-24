@@ -227,6 +227,7 @@ todo_include_todos = True
 sphinx_gallery_conf = {
     "examples_dirs": ["../examples"],
     "gallery_dirs": ["auto_examples"],
+    "filename_pattern": "/",
     "reference_url": {
         "rdata": None,
     },

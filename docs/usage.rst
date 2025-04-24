@@ -193,8 +193,7 @@ Let's read an rds file using a custom constructor mapping R factor to :code:`MyF
     # Read data
     print("Read")
     data = rdata.read_rds(
-        #rdata.TESTDATA_PATH / "test_dataframe.rds",
-        "factor.rds",
+        rdata.TESTDATA_PATH / "test_factor.rds",
         constructor_dict=r_to_py_constructors,
     )
     print(f"Done: {data}")
