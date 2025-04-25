@@ -158,6 +158,8 @@ An example custom Python class representing an R factor is:
 
 .. code:: python
 
+    import numpy as np
+
     class MyFactor:
         """My custom class representing R factor."""
         def __init__(self, values, levels):
