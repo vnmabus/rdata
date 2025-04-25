@@ -677,6 +677,19 @@ class SimpleTests(unittest.TestCase):
         )
         pd.testing.assert_frame_equal(data, ref)
 
+    def test_factor(self) -> None:
+        """Test factor conversion."""
+        # File created in R with
+        # data = factor(c("a", "b", "b")); saveRDS(data, file="test_factor.rds")  # noqa: E501,ERA001
+        data = rdata.read_rds(
+            TESTDATA_PATH / "test_factor.rds",
+        )
+
+        pd.testing.assert_frame_equal(
+            pd.DataFrame(data),
+            pd.DataFrame(pd.Categorical(["a", "b", "b"])),
+        )
+
     def test_ts(self) -> None:
         """Test time series conversion."""
         data = rdata.read_rda(TESTDATA_PATH / "test_ts.rda")
