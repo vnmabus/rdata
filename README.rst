@@ -19,7 +19,7 @@ Its main advantages are:
   related libraries.
   Thus, it can be used anywhere where Python is supported, including the web
   using `Pyodide <https://pyodide.org/>`__.
-- It attempt to support all objects that can be meaningfully translated between R and Python.
+- It attempts to support all objects that can be meaningfully translated between R and Python.
   As opposed to other solutions, you are no limited to import dataframes or
   data with a particular structure.
 - It allows users to easily customize the conversion of R classes to Python
