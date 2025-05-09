@@ -22,7 +22,7 @@ which returns the read dataframe:
     2     b      2
     3     b      3
 
-A similar rda file can be read similarly:
+The analog rda file can be read in a similar way:
 
 .. code:: python
 
