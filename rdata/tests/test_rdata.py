@@ -82,6 +82,25 @@ class SimpleTests(unittest.TestCase):
             "test_vector": np.array([1.0, 2.0, 3.0]),
         })
 
+    def test_named_vector(self) -> None:
+        """
+        Test parsing of vectors with names.
+
+        Code for creating the object:
+
+        ::: test_named_vector = c(a=1, b=2, c=3)
+
+        """
+        data = rdata.read_rda(TESTDATA_PATH / "test_named_vector.rda")
+
+        xarray.testing.assert_identical(
+            data["test_named_vector"],
+            xarray.DataArray(
+                [1.0, 2.0, 3.0],
+                coords=[["a", "b", "c"]],
+            ),
+        )
+
     def test_empty_string(self) -> None:
         """Test that the empty string is parsed correctly."""
         data = rdata.read_rda(TESTDATA_PATH / "test_empty_str.rda")
