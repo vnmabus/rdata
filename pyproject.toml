@@ -125,7 +125,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"plot_*.py" = [
+"examples/*.py" = [
 	"ANN", # no type hints in examples
 	"ARG001", # Some unused args are needed
 	"B018", # single object expressions are not useless in examples (they display the object)
