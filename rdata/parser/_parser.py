@@ -352,7 +352,7 @@ def _str_internal(  # noqa: PLR0912, C901
 
 
 @dataclass
-class RObject:
+class RObject:  # noqa: PLW1641
     """Representation of a R object."""
 
     info: RObjectInfo
@@ -1273,17 +1273,19 @@ def parse_rdata_binary(
     if format_type:
         data = data[len(format_dict[format_type]):]
 
-    Parser: type[ParserXDR | ParserASCII]  # noqa: N806
+    parser_class: type[ParserXDR | ParserASCII]
 
     if format_type is RdataFormats.XDR:
-        from ._xdr import ParserXDR as Parser
+        from ._xdr import ParserXDR  # noqa: PLC0415
+        parser_class = ParserXDR
     elif format_type in (RdataFormats.ASCII, RdataFormats.ASCII_CRLF):
-        from ._ascii import ParserASCII as Parser
+        from ._ascii import ParserASCII  # noqa: PLC0415
+        parser_class = ParserASCII
     else:
         msg = "Unknown file format"
         raise NotImplementedError(msg)
 
-    parser = Parser(
+    parser = parser_class(
         data,
         expand_altrep=expand_altrep,
         altrep_constructor_dict=altrep_constructor_dict,

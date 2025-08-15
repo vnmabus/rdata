@@ -10,14 +10,15 @@ from rdata.parser import (
     RObjectType,
 )
 
+from ._ascii import UnparserASCII
+from ._xdr import UnparserXDR
+
 if TYPE_CHECKING:
     import os
     from collections.abc import Callable
     from typing import Any, Literal
 
-    from ._ascii import UnparserASCII
     from ._unparser import WriteableBinaryFile
-    from ._xdr import UnparserXDR
 
     FileFormat = Literal["xdr", "ascii"]
     FileType = Literal["rds", "rda"]
@@ -49,11 +50,11 @@ def unparse_file(
     if compression is None:
         open_with_compression = open
     elif compression == "bzip2":
-        from bz2 import open as open_with_compression
+        from bz2 import open as open_with_compression  # noqa: PLC0415
     elif compression == "gzip":
-        from gzip import open as open_with_compression
+        from gzip import open as open_with_compression  # noqa: PLC0415
     elif compression == "xz":
-        from lzma import open as open_with_compression
+        from lzma import open as open_with_compression  # noqa: PLC0415
     else:
         msg = f"Unknown compression: {compression}"
         raise ValueError(msg)
@@ -83,14 +84,14 @@ def unparse_fileobj(
         file_format: File format.
         file_type: File type.
     """
-    Unparser: type[UnparserXDR | UnparserASCII]  # noqa: N806
+    unparser_class: type[UnparserXDR | UnparserASCII]
 
     if file_format == "ascii":
-        from ._ascii import UnparserASCII as Unparser
+        unparser_class = UnparserASCII
 
         rda_magic = "RDA"
     elif file_format == "xdr":
-        from ._xdr import UnparserXDR as Unparser
+        unparser_class = UnparserXDR
 
         rda_magic = "RDX"
     else:
@@ -112,7 +113,7 @@ def unparse_fileobj(
     if file_type == "rda":
         fileobj.write(f"{rda_magic}{r_data.versions.format}\n".encode("ascii"))
 
-    unparser = Unparser(fileobj)
+    unparser = unparser_class(fileobj)
     unparser.unparse_r_data(r_data)
 
 

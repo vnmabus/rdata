@@ -13,6 +13,13 @@ import pytest
 
 import rdata
 from rdata.conversion import ConverterFromPythonToR, convert_python_to_r_object
+from rdata.parser._parser import (
+    FileTypes,
+    RdataFormats,
+    file_type,
+    magic_dict,
+    rdata_format,
+)
 from rdata.unparser import unparse_data
 
 if TYPE_CHECKING:
@@ -28,16 +35,14 @@ valid_formats = ["xdr", "ascii"]
 
 def decompress_data(data: bytes) -> bytes:
     """Decompress bytes."""
-    from rdata.parser._parser import FileTypes, file_type
-
     filetype = file_type(memoryview(data))
 
     if filetype is FileTypes.bzip2:
-        from bz2 import decompress
+        from bz2 import decompress  # noqa: PLC0415
     elif filetype is FileTypes.gzip:
-        from gzip import decompress
+        from gzip import decompress  # noqa: PLC0415
     elif filetype is FileTypes.xz:
-        from lzma import decompress
+        from lzma import decompress  # noqa: PLC0415
     else:
         return data
 
@@ -51,13 +56,6 @@ fnames = sorted(
 
 def parse_file_type_and_format(data: bytes) -> tuple[FileType, FileFormat]:
     """Parse file type and format from data."""
-    from rdata.parser._parser import (
-        FileTypes,
-        RdataFormats,
-        file_type,
-        magic_dict,
-        rdata_format,
-    )
     view = memoryview(data)
 
     file_type_str: FileType
