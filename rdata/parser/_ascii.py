@@ -6,7 +6,17 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 
-from ._parser import R_INT_NA, AltRepConstructorMap, Parser
+from rdata.missing import R_FLOAT_NA, R_INT_NA
+
+from ._parser import AltRepConstructorMap, Parser
+
+
+def map_int_na(line: str) -> int | np.int32:
+    return R_INT_NA if line == "NA" else int(line)
+
+
+def map_float_na(line: str) -> float:
+    return R_FLOAT_NA if line == "NA" else float(line)
 
 
 class ParserASCII(Parser):
@@ -30,26 +40,27 @@ class ParserASCII(Parser):
         return self.file.readline()[:-1]
 
     def _parse_array_values(
-            self,
-            dtype: npt.DTypeLike,
-            length: int,
+        self,
+        dtype: npt.DTypeLike,
+        length: int,
     ) -> npt.NDArray[Any]:
-
         array = np.empty(length, dtype=dtype)
-        value: int | float | complex
+        value: int | float | complex | np.int32
 
         for i in range(length):
             line = self._readline()
 
             if np.issubdtype(dtype, np.integer):
-                value = R_INT_NA if line == "NA" else int(line)
+                value = map_int_na(line)
 
             elif np.issubdtype(dtype, np.floating):
-                value = float(line)
+                value = map_float_na(line)
 
             elif np.issubdtype(dtype, np.complexfloating):
+                value1 = map_float_na(line)
                 line2 = self._readline()
-                value = complex(float(line), float(line2))
+                value2 = map_float_na(line2)
+                value = complex(value1, value2)
 
             else:
                 msg = f"Unknown dtype: {dtype}"
@@ -60,15 +71,20 @@ class ParserASCII(Parser):
         return array
 
     def parse_string(self, length: int) -> bytes:
-        # Non-ascii characters in strings are written using octal byte codes,
+        # Read the ascii string
+        s = self._readline()
+
+        # R escapes question marks ('?') so they come always as r'\?'.
+        # Let's start unescaping those.
+        s = s.replace(r"\?", "?")
+
+        # Non-ascii characters and space are written using octal byte codes,
         # for example, a string 'aä' (2 chars) in UTF-8 is written as an ascii
         # string r'a\303\244' (9 chars). We want to transform this to a byte
         # string b'a\303\244' (3 bytes) corresponding to the byte
         # representation of the original UTF-8 string.
         # Let's use this string as an example to go through the code below
 
-        # Read the ascii string
-        s = self._readline()
         # Now s = r'a\303\244' (9 chars)
 
         # Convert characters to bytes (all characters are ascii)

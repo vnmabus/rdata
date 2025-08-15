@@ -1,20 +1,23 @@
 Installation
 ============
 
-rdata is on PyPi and can be installed using :code:`pip`:
+Installing a stable release
+---------------------------
+
+The rdata package is on PyPi and can be installed using :code:`pip`:
 
 .. code::
 
    pip install rdata
 
-It is also available for :code:`conda` using the :code:`conda-forge` channel:
+The package is also available for :code:`conda` using the :code:`conda-forge` channel:
 
 .. code::
 
    conda install -c conda-forge rdata
 
-Installing the develop version
-------------------------------
+Installing a develop version
+----------------------------
 
 The current version from the develop branch can be installed as
 

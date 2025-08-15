@@ -57,6 +57,6 @@ def execute_r_data_source(
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(source)
         file.flush()
-        subprocess.check_call(
-            ["Rscript", file.name],  # noqa: S603, S607
+        subprocess.check_call(  # noqa: S603
+            ["Rscript", file.name],  # noqa: S607
         )

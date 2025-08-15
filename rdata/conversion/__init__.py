@@ -1,4 +1,5 @@
-"""Utilities for converting R objects to Python ones."""
+"""Utilities for converting between R and Python objects."""
+
 from ._conversion import (
     DEFAULT_CLASS_MAP as DEFAULT_CLASS_MAP,
     Converter as Converter,
@@ -23,4 +24,9 @@ from ._conversion import (
     dataframe_constructor as dataframe_constructor,
     factor_constructor as factor_constructor,
     ts_constructor as ts_constructor,
+)
+from .to_r import (
+    ConverterFromPythonToR as ConverterFromPythonToR,
+    convert_python_to_r_data as convert_python_to_r_data,
+    convert_python_to_r_object as convert_python_to_r_object,
 )

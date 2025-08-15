@@ -16,20 +16,17 @@ from typing import (
     Any,
     Final,
     Protocol,
-    Union,
     runtime_checkable,
 )
 
 import numpy as np
 import numpy.typing as npt
 
+from rdata.missing import R_INT_NA, mask_na_values
+
 if TYPE_CHECKING:
     from ._ascii import ParserASCII
     from ._xdr import ParserXDR
-
-
-#: Value used to represent a missing integer in R.
-R_INT_NA: Final = -2**31
 
 
 @runtime_checkable
@@ -49,7 +46,7 @@ class BinaryBufferFileLike(Protocol):
         """Get the underlying buffer."""
 
 
-AcceptableFile = Union[BinaryFileLike, BinaryBufferFileLike]
+AcceptableFile = BinaryFileLike | BinaryBufferFileLike
 
 try:
     from importlib.resources.abc import Traversable as Traversable
@@ -222,6 +219,15 @@ class RVersions:
     serialized: int
     minimum: int
 
+    def __str__(self) -> str:
+        return (
+            "RVersions("
+            f"format={self.format}, "
+            f"serialized={self.serialized:#x}, "
+            f"minimum={self.minimum:#x}"
+            ")"
+        )
+
 
 @dataclass
 class RExtraInfo:
@@ -277,7 +283,11 @@ def _str_internal(  # noqa: PLR0912, C901
 
         return string
 
-    string += f"{indent_spaces}{obj.info.type}\n"
+    info = obj.info
+    string += f"{indent_spaces}{info.type}"
+    if info.gp != 0:
+        string += f"(gp={info.gp})"
+    string += "\n"
 
     if obj.tag:
         tag_string = _str_internal(
@@ -342,7 +352,7 @@ def _str_internal(  # noqa: PLR0912, C901
 
 
 @dataclass
-class RObject:
+class RObject:  # noqa: PLW1641
     """Representation of a R object."""
 
     info: RObjectInfo
@@ -350,6 +360,29 @@ class RObject:
     attributes: RObject | None
     tag: RObject | None = None
     referenced_object: RObject | None = None
+
+    def __eq__(self, other: object) -> bool:
+        # Custom equality operator to compare equality of numpy arrays
+        # in the value field
+        if not isinstance(other, RObject):
+            return False
+
+        # Compare value field
+        if not isinstance(other.value, type(self.value)):
+            return False
+
+        if isinstance(self.value, np.ndarray):
+            if not np.array_equal(self.value, other.value, equal_nan=True):
+                return False
+        elif self.value != other.value:
+            return False
+
+        # Compare other fields
+        for key in ("info", "attributes", "tag", "referenced_object"):
+            if getattr(self, key) != getattr(other, key):
+                return False
+
+        return True
 
     def __str__(self) -> str:
         return _str_internal(self)
@@ -507,6 +540,22 @@ def wrap_constructor(
     return new_info, value
 
 
+def get_altrep_name(info: RObject) -> bytes:
+    """Get the name of the ALTREP object."""
+    assert info.info.type == RObjectType.LIST
+
+    class_sym = info.value[0]
+    while class_sym.info.type == RObjectType.REF:
+        class_sym = class_sym.referenced_object
+
+    assert class_sym.info.type == RObjectType.SYM
+    assert class_sym.value.info.type == RObjectType.CHAR
+
+    altrep_name = class_sym.value.value
+    assert isinstance(altrep_name, bytes)
+    return altrep_name
+
+
 default_altrep_map_dict: Final[Mapping[bytes, AltRepConstructor]] = {
     b"deferred_string": deferred_string_constructor,
     b"compact_intseq": compact_intseq_constructor,
@@ -571,21 +620,11 @@ class Parser(abc.ABC):
     def parse_nullable_int_array(
         self,
         *,
-        fill_value: int = R_INT_NA,
+        fill_value: int | np.int32 = R_INT_NA,
     ) -> npt.NDArray[np.int32] | np.ma.MaskedArray[Any, Any]:
         """Parse an integer array."""
         data = self._parse_array(np.int32)
-        mask = (data == R_INT_NA)
-        data[mask] = fill_value
-
-        if np.any(mask):
-            return np.ma.array(  # type: ignore [no-untyped-call,no-any-return]
-                data=data,
-                mask=mask,
-                fill_value=fill_value,
-            )
-
-        return data
+        return mask_na_values(data, fill_value=fill_value)
 
     def parse_double_array(self) -> npt.NDArray[np.float64]:
         """Parse a double array."""
@@ -645,18 +684,7 @@ class Parser(abc.ABC):
         state: RObject,
     ) -> tuple[RObjectInfo, Any]:
         """Expand alternative representation to normal object."""
-        assert info.info.type == RObjectType.LIST
-
-        class_sym = info.value[0]
-        while class_sym.info.type == RObjectType.REF:
-            class_sym = class_sym.referenced_object
-
-        assert class_sym.info.type == RObjectType.SYM
-        assert class_sym.value.info.type == RObjectType.CHAR
-
-        altrep_name = class_sym.value.value
-        assert isinstance(altrep_name, bytes)
-
+        altrep_name = get_altrep_name(info)
         constructor = self.altrep_constructor_dict[altrep_name]
         return constructor(state)
 
@@ -827,10 +855,8 @@ class Parser(abc.ABC):
 
         elif info.type == RObjectType.CHAR:
             length = self.parse_int()
-            if length > 0:
+            if length >= 0:
                 value = self.parse_string(length=length)
-            elif length == 0:
-                value = b""
             elif length == -1:
                 value = None
             else:
@@ -906,11 +932,16 @@ class Parser(abc.ABC):
             )
 
             if self.expand_altrep:
+                is_object = info.object
                 info, value = self.expand_altrep_to_object(
                     info=altrep_info,
                     state=altrep_state,
                 )
-                attributes = altrep_attr
+                if altrep_attr.info.type != RObjectType.NILVALUE:
+                    info.object = is_object
+                    info.attributes = True
+                    attributes_read = True
+                    attributes = altrep_attr
             else:
                 value = (altrep_info, altrep_state, altrep_attr)
 
@@ -1217,7 +1248,9 @@ type=<RObjectType.CHAR: 9>,
             warnings.warn("Unknown file type: assumed RDS")  # noqa: B028
 
         if extension not in {None, ".rds"}:
-            warnings.warn(f"Wrong extension {extension} for file in RDS format")  # noqa: B028
+            warnings.warn(  # noqa: B028
+                f"Wrong extension {extension} for file in RDS format",
+            )
 
     return parse_function(
         new_data,  # type: ignore [arg-type]
@@ -1240,17 +1273,19 @@ def parse_rdata_binary(
     if format_type:
         data = data[len(format_dict[format_type]):]
 
-    Parser: type[ParserXDR | ParserASCII]  # noqa: N806
+    parser_class: type[ParserXDR | ParserASCII]
 
     if format_type is RdataFormats.XDR:
-        from ._xdr import ParserXDR as Parser
+        from ._xdr import ParserXDR  # noqa: PLC0415
+        parser_class = ParserXDR
     elif format_type in (RdataFormats.ASCII, RdataFormats.ASCII_CRLF):
-        from ._ascii import ParserASCII as Parser
+        from ._ascii import ParserASCII  # noqa: PLC0415
+        parser_class = ParserASCII
     else:
         msg = "Unknown file format"
         raise NotImplementedError(msg)
 
-    parser = Parser(
+    parser = parser_class(
         data,
         expand_altrep=expand_altrep,
         altrep_constructor_dict=altrep_constructor_dict,

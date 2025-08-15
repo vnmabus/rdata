@@ -25,17 +25,18 @@ import rdata
 
 # General information about the project.
 project = "rdata"
-author = "Carlos Ramos Carreño"
-copyright = "2018, Carlos Ramos Carreño"  # noqa: A001
+author = "Rdata developers"
+copyright = "2018, Rdata developers"  # noqa: A001
 github_url = "https://github.com/vnmabus/rdata"
 rtd_version = os.environ.get("READTHEDOCS_VERSION")
 rtd_version_type = os.environ.get("READTHEDOCS_VERSION_TYPE")
+release_version = rdata.__version__
 
 switcher_version = rtd_version
 if switcher_version == "latest":
     switcher_version = "dev"
-elif rtd_version_type not in {"branch", "tag"}:
-    switcher_version = rdata.__version__
+elif rtd_version_type not in {"branch", "tag"} or rtd_version == "stable":
+    switcher_version = release_version
 
 rtd_branch = os.environ.get(" READTHEDOCS_GIT_IDENTIFIER", "develop")
 language = "en"

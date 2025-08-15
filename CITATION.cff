@@ -24,3 +24,39 @@ identifiers:
   - description: "This is the archived snapshot of version 0.7 of rdata"
     type: doi
     value: 10.5281/zenodo.6382238
+preferred-citation:
+  type: article
+  title: "rdata: A Python library for R datasets"
+  authors:
+    - family-names: "Ramos-Carreño"
+      given-names: "Carlos"
+      orcid: "https://orcid.org/0000-0003-2566-7058"
+      affiliation: "Universidad Autónoma de Madrid"
+      email: vnmabus@gmail.com
+    - family-names: "Rossi"
+      given-names: "Tuomas"
+      orcid: "https://orcid.org/0000-0002-8713-4559"
+      affiliation: "CSC - IT Center for Science Ltd."
+  date-published: 2024-12-01
+  abstract: "Research work usually requires the analysis and processing of data from different sources. Traditionally in statistical computing, the R language has been widely used for this task, and a huge amount of datasets have been compiled in the Rda and Rds formats, native to this programming language. As these formats contain internally the representation of R objects, they cannot be directly used from Python, another widely used language for data analysis and processing. The library rdata allows to load and convert these datasets to Python objects, without the need of exporting them to other intermediate formats which may not keep all the original information. This library has minimal dependencies, ensuring that it can be used in contexts where an R installation is not available. The capability to write data in Rda and Rds formats is also under development. Thus, the library rdata facilitates data interchange, enabling the usage of the same datasets in both languages (e.g. for reproducibility, comparisons of results against methods in both languages, or the creation of complex processing pipelines that involve steps in both R and Python)."
+  doi: 10.21105/joss.07540
+  institution:
+    name: "Universidad Autónoma de Madrid"
+  issn: "2475-9066"
+  issue-date: "2024-12-01"
+  journal: "Journal of Open Source Software"
+  keywords:
+    - "R"
+    - "datasets"
+    - "rda"
+    - "rds"
+  languages:
+    - en
+  license: CC-BY-4.0
+  publisher:
+    name: "The Open Journal"
+  url: "https://joss.theoj.org/papers/10.21105/joss.07540#"
+  volume: 9
+  issue: 104
+  start: 1
+  end: 4

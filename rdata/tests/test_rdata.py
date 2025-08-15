@@ -13,6 +13,7 @@ import pytest
 import xarray
 
 import rdata
+from rdata.missing import R_FLOAT_NA
 
 TESTDATA_PATH = rdata.TESTDATA_PATH
 
@@ -81,6 +82,25 @@ class SimpleTests(unittest.TestCase):
             "test_vector": np.array([1.0, 2.0, 3.0]),
         })
 
+    def test_named_vector(self) -> None:
+        """
+        Test parsing of vectors with names.
+
+        Code for creating the object:
+
+        ::: test_named_vector = c(a=1, b=2, c=3)
+
+        """
+        data = rdata.read_rda(TESTDATA_PATH / "test_named_vector.rda")
+
+        xarray.testing.assert_identical(
+            data["test_named_vector"],
+            xarray.DataArray(
+                [1.0, 2.0, 3.0],
+                coords=[["a", "b", "c"]],
+            ),
+        )
+
     def test_empty_string(self) -> None:
         """Test that the empty string is parsed correctly."""
         data = rdata.read_rda(TESTDATA_PATH / "test_empty_str.rda")
@@ -89,6 +109,11 @@ class SimpleTests(unittest.TestCase):
             "test_empty_str": [""],
         })
 
+    def test_ascii_empty_string(self) -> None:
+        """Test that the empty string is parsed correctly from ascii file."""
+        data = rdata.read_rds(TESTDATA_PATH / "test_ascii_empty_str.rds")
+        np.testing.assert_equal(data, [""])
+
     def test_na_string(self) -> None:
         """Test that the NA string is parsed correctly."""
         data = rdata.read_rda(TESTDATA_PATH / "test_na_string.rda")
@@ -96,6 +121,13 @@ class SimpleTests(unittest.TestCase):
         np.testing.assert_equal(data, {
             "test_na_string": [None],
         })
+
+    def test_ascii_na_string(self) -> None:
+        """Test that the NA string is parsed correctly."""
+        # File created in R with
+        # saveRDS(as.character(NA), file="test_ascii_na_string.rds", ascii=TRUE, compress=FALSE)  # noqa: E501
+        data = rdata.read_rds(TESTDATA_PATH / "test_ascii_na_string.rds")
+        np.testing.assert_equal(data, [None])
 
     def test_complex(self) -> None:
         """Test that complex numbers can be parsed."""
@@ -439,8 +471,46 @@ class SimpleTests(unittest.TestCase):
             "test_encoding_latin1_implicit": ["Íñigo"],
         })
 
+    def test_empty_dataframe(self) -> None:
+        """
+        Test conversion of an empty dataframe.
+
+        Code for creating the object:
+
+        ::: test_empty_dataframe = data.frame()
+
+        """
+        data = rdata.read_rda(TESTDATA_PATH / "test_empty_dataframe.rda")
+
+        pd.testing.assert_frame_equal(
+            data["test_empty_dataframe"],
+            pd.DataFrame(columns=[], index=np.array([], dtype=np.int32)),
+        )
+
+    def test_empty_dataframe_without_names(self) -> None:
+        """
+        Test conversion of an empty dataframe without names.
+
+        Code for creating the object:
+
+        ::: test_empty_dataframe_without_names = data.frame()
+        ::: attr(test_empty_dataframe_without_names, "names") <- NULL
+
+        """
+        data = rdata.read_rda(
+            TESTDATA_PATH / "test_empty_dataframe_without_names.rda",
+        )
+
+        pd.testing.assert_frame_equal(
+            data["test_empty_dataframe_without_names"],
+            pd.DataFrame(index=np.array([], dtype=np.int32)),
+        )
+
     def test_dataframe(self) -> None:
         """Test dataframe conversion."""
+        # Files created in R with
+        # test_dataframe = data.frame(class=factor(c("a", "b", "b")), value=c(1L, 2L, 3L)); save(test_dataframe, file="test_dataframe.rda", version=2)  # noqa: E501
+        # test_dataframe = data.frame(class=factor(c("a", "b", "b")), value=c(1L, 2L, 3L)); save(test_dataframe, file="test_dataframe_v3.rda")  # noqa: E501
         for f in ("test_dataframe.rda", "test_dataframe_v3.rda"):
             with self.subTest(file=f):
                 data = rdata.read_rda(TESTDATA_PATH / f)
@@ -463,6 +533,9 @@ class SimpleTests(unittest.TestCase):
 
     def test_dataframe_rds(self) -> None:
         """Test dataframe conversion."""
+        # Files created in R with
+        # df = data.frame(class=factor(c("a", "b", "b")), value=c(1L, 2L, 3L)); saveRDS(df, file="test_dataframe.rds", version=2)  # noqa: E501
+        # df = data.frame(class=factor(c("a", "b", "b")), value=c(1L, 2L, 3L)); saveRDS(df, file="test_dataframe_v3.rds")  # noqa: E501
         for f in ("test_dataframe.rds", "test_dataframe_v3.rds"):
             with self.subTest(file=f):
                 data = rdata.read_rds(TESTDATA_PATH / f)
@@ -501,6 +574,139 @@ class SimpleTests(unittest.TestCase):
                 },
                 index=("Madrid", "Frankfurt", "Herzberg am Harz"),
             ),
+        )
+
+    def test_dataframe_int_rownames(self) -> None:
+        """Test dataframe conversion."""
+        # File created in R with
+        # df = data.frame(col1=c(10, 20, 30), row.names=c(3L, 6L, 9L)); saveRDS(df, file="test_dataframe_int_rownames.rds")  # noqa: E501
+        data = rdata.read_rds(
+            TESTDATA_PATH / "test_dataframe_int_rownames.rds",
+        )
+
+        index = np.array([3, 6, 9], dtype=np.int32)
+        ref = pd.DataFrame(
+            {
+                "col1": pd.Series(
+                    [10., 20., 30.],
+                    dtype=float, index=index),
+            },
+            index=index,
+        )
+        pd.testing.assert_frame_equal(data, ref)
+
+    def test_dataframe_range_rownames(self) -> None:
+        """Test dataframe conversion."""
+        # File created in R with
+        # df = data.frame(col1=c(10, 20, 30), row.names=2:4); saveRDS(df, file="test_dataframe_range_rownames.rds")  # noqa: E501
+        data = rdata.read_rds(
+            TESTDATA_PATH / "test_dataframe_range_rownames.rds",
+        )
+
+        index = pd.RangeIndex(2, 5)
+        ref = pd.DataFrame(
+            {
+                "col1": pd.Series(
+                    [10., 20., 30.],
+                    dtype=float, index=index),
+            },
+            index=index,
+        )
+        pd.testing.assert_frame_equal(data, ref)
+
+    def test_dataframe_dtypes(self) -> None:
+        """Test dataframe conversion."""
+        # File created in R with
+        # df = data.frame(int=c(10L, 20L, 30L), float=c(1.1, 2.2, 3.3), string=c("x", "y", "z"), bool=as.logical(c(1, 0, 1)), complex=c(4+5i, 6+7i, 8+9i)); print(df); saveRDS(df, file="test_dataframe_dtypes.rds")  # noqa: E501
+        data = rdata.read_rds(TESTDATA_PATH / "test_dataframe_dtypes.rds")
+
+        index = pd.RangeIndex(1, 4)
+        ref = pd.DataFrame(
+            {
+                "int": pd.Series(
+                    [10, 20, 30],
+                    dtype=pd.Int32Dtype(), index=index),
+                "float": pd.Series(
+                    [1.1, 2.2, 3.3],
+                    dtype=float, index=index),
+                "string": pd.Series(
+                    ["x", "y", "z"],
+                    dtype=pd.StringDtype(), index=index),
+                "bool": pd.Series(
+                    [True, False, True],
+                    dtype=pd.BooleanDtype(), index=index),
+                "complex": pd.Series(
+                    [4+5j, 6+7j, 8+9j],
+                    dtype=complex, index=index),
+            },
+            index=index,
+        )
+        pd.testing.assert_frame_equal(data, ref)
+
+    def test_dataframe_dtypes_with_na(self) -> None:
+        """Test dataframe conversion."""
+        # File created in R with
+        # df = data.frame(int=c(10L, 20L, 30L, NA), float=c(1.1, 2.2, 3.3, NA), string=c("x", "y", "z", NA), bool=as.logical(c(1, 0, 1, NA)), complex=c(4+5i, 6+7i, 8+9i, NA)); saveRDS(df, file="test_dataframe_dtypes_with_na.rds")  # noqa: E501
+        data = rdata.read_rds(
+            TESTDATA_PATH / "test_dataframe_dtypes_with_na.rds",
+        )
+
+        index = pd.RangeIndex(1, 5)
+        ref = pd.DataFrame(
+            {
+                "int": pd.Series(
+                    [10, 20, 30, pd.NA],
+                    dtype=pd.Int32Dtype(), index=index),
+                "float": pd.Series(
+                    [1.1, 2.2, 3.3, R_FLOAT_NA],
+                    dtype=float, index=index),
+                "string": pd.Series(
+                    ["x", "y", "z", pd.NA],
+                    dtype=pd.StringDtype(), index=index),
+                "bool": pd.Series(
+                    [True, False, True, pd.NA],
+                    dtype=pd.BooleanDtype(), index=index),
+                "complex": pd.Series(
+                    [4+5j, 6+7j, 8+9j, R_FLOAT_NA],
+                    dtype=complex, index=index),
+            },
+            index=index,
+        )
+
+        with np.errstate(invalid="ignore"):
+            # Comparing complex arrays with R_FLOAT_NA gives warning
+            pd.testing.assert_frame_equal(data, ref)
+
+    def test_dataframe_float_with_na_nan(self) -> None:
+        """Test dataframe conversion."""
+        # File created in R with
+        # df = data.frame(float=c(1.1, 2.2, 3.3, NA, NaN, Inf, -Inf)); saveRDS(df, file="test_dataframe_float_with_na_nan.rds")  # noqa: E501,ERA001
+        data = rdata.read_rds(
+            TESTDATA_PATH / "test_dataframe_float_with_na_nan.rds",
+        )
+
+        index = pd.RangeIndex(1, 8)
+        ref = pd.DataFrame(
+            {
+                "float": pd.Series(
+                    [1.1, 2.2, 3.3, R_FLOAT_NA, np.nan, np.inf, -np.inf],
+                    dtype=float, index=index),
+            },
+            index=index,
+        )
+        pd.testing.assert_frame_equal(data, ref)
+
+    def test_factor(self) -> None:
+        """Test factor conversion."""
+        # File created in R with
+        # data = factor(c("a", "b", "b")); saveRDS(data, file="test_factor.rds")  # noqa: E501,ERA001
+        data = rdata.read_rds(
+            TESTDATA_PATH / "test_factor.rds",
+        )
+
+        pd.testing.assert_frame_equal(
+            pd.DataFrame(data),
+            pd.DataFrame(pd.Categorical(["a", "b", "b"])),
         )
 
     def test_ts(self) -> None:
@@ -561,6 +767,16 @@ class SimpleTests(unittest.TestCase):
         assert data == {
             "test_emptyenv": ChainMap({}),
         }
+
+    def test_empty_list(self) -> None:
+        """Test parsing the empty list."""
+        data = rdata.read_rds(TESTDATA_PATH / "test_empty_list.rds")
+        assert data == []
+
+    def test_empty_named_list(self) -> None:
+        """Test parsing the empty list."""
+        data = rdata.read_rds(TESTDATA_PATH / "test_empty_named_list.rds")
+        assert data == {}
 
     def test_list_attrs(self) -> None:
         """Test that lists accept attributes."""
@@ -634,13 +850,58 @@ class SimpleTests(unittest.TestCase):
 
     def test_altrep_wrap_real(self) -> None:
         """Test alternative representation of wrap_real."""
-        data = rdata.read_rda(
+        parsed = rdata.parser.parse_file(
             TESTDATA_PATH / "test_altrep_wrap_real.rda",
         )
+        obj = parsed.object.value[0]  # taking value as it's an rda file
+        assert obj.info.type == rdata.parser.RObjectType.REAL  # sanity check
+        assert not obj.info.object
+        assert not obj.info.attributes
+        assert obj.attributes is None
 
+        data = rdata.conversion.convert(parsed)
         np.testing.assert_equal(data, {
             "test_altrep_wrap_real": [3],
         })
+
+    def test_altrep_wrap_real_attributes(self) -> None:
+        """Test alternative representation of wrap_real with attributes."""
+        # File created in R with
+        # a = .Internal(wrap_meta(c(1, 2, 3), 0, 0)); attr(a, "foo") = "bar"; saveRDS(a, file="test_altrep_wrap_real_attributes.rds")  # noqa: E501
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_altrep_wrap_real_attributes.rds",
+        )
+        obj = parsed.object
+        assert obj.info.type == rdata.parser.RObjectType.REAL  # sanity check
+        assert not obj.info.object
+        assert obj.info.attributes
+        assert obj.attributes is not None
+        assert obj.attributes.tag is not None
+        assert obj.attributes.tag.value.value == b"foo"
+        assert obj.attributes.value[0].value[0].value == b"bar"
+
+        data = rdata.conversion.convert(parsed)
+        np.testing.assert_equal(data, [1., 2., 3.])
+
+    @pytest.mark.filterwarnings("ignore:Missing constructor")
+    def test_altrep_wrap_real_class_attribute(self) -> None:
+        """Test altrep of wrap_real with class attribute."""
+        # File created in R with
+        # a = .Internal(wrap_meta(c(1, 2, 3), 0, 0)); attr(a, "class") = "Date"; saveRDS(a, file="test_altrep_wrap_real_class_attribute.rds")  # noqa: E501
+        parsed = rdata.parser.parse_file(
+            TESTDATA_PATH / "test_altrep_wrap_real_class_attribute.rds",
+        )
+        obj = parsed.object
+        assert obj.info.type == rdata.parser.RObjectType.REAL  # sanity check
+        assert obj.info.object
+        assert obj.info.attributes
+        assert obj.attributes is not None
+        assert obj.attributes.tag is not None
+        assert obj.attributes.tag.value.value == b"class"
+        assert obj.attributes.value[0].value[0].value == b"Date"
+
+        data = rdata.conversion.convert(parsed)
+        np.testing.assert_equal(data, [1., 2., 3.])
 
     def test_altrep_wrap_string(self) -> None:
         """Test alternative representation of wrap_string."""
@@ -692,6 +953,30 @@ class SimpleTests(unittest.TestCase):
                 np.testing.assert_equal(ma.mask, ref_ma.mask)
                 np.testing.assert_equal(ma.get_fill_value(),
                                         ref_ma.get_fill_value())
+
+    def test_ascii_characters(self) -> None:
+        """Test reading string with all ascii printable characters."""
+        # File created in R with
+        # saveRDS("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\v\f\r\n", file="test_ascii_chars.rds")  # noqa: E501,ERA001
+        data = rdata.read_rds(TESTDATA_PATH / "test_ascii_chars.rds")
+        assert data == "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\v\f\r\n", data  # noqa: E501
+
+    def test_ascii_ascii_characters(self) -> None:
+        """Test reading string with all ascii printable characters."""
+        # File created in R with
+        # saveRDS("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\v\f\r\n", file="test_ascii_ascii_chars.rds", ascii=TRUE, compress=FALSE)  # noqa: E501,ERA001
+        data = rdata.read_rds(TESTDATA_PATH / "test_ascii_ascii_chars.rds")
+        assert data == "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\v\f\r\n", data  # noqa: E501
+
+    def test_nan_inf(self) -> None:
+        """Test reading nan and inf."""
+        data = rdata.read_rds(TESTDATA_PATH / "test_nan_inf.rds")
+        np.testing.assert_equal(data, [0., np.nan, np.inf, -np.inf])
+
+    def test_ascii_nan_inf(self) -> None:
+        """Test reading nan and inf in ascii."""
+        data = rdata.read_rds(TESTDATA_PATH / "test_ascii_nan_inf.rds")
+        np.testing.assert_equal(data, [0., np.nan, np.inf, -np.inf])
 
 
 if __name__ == "__main__":

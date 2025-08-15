@@ -1,29 +1,27 @@
+.. _default_conversions:
+
 Default conversions
 ===================
 
-This page list the default conversions applied to R objects to convert them to
-Python objects.
+This page list the default conversions between R and Python objects.
 
 Basic types
 -----------
 
 The conversion of basic types is performed directly by the
-:class:`~rdata.conversion.Converter` used.
-Thus, changing the conversion for basic types currently requires creating a
-custom :class:`~rdata.conversion.Converter` class.
-The default :class:`~rdata.conversion.SimpleConverter` realizes the following
-conversions:
+:func:`~rdata.conversion.convert` and :func:`~rdata.conversion.convert_python_to_r_data` functions
+(or the underlying :class:`~rdata.conversion.Converter` and :class:`~rdata.conversion.ConverterFromPythonToR`).
+Thus, changing the conversion for basic types currently requires creating a custom converter class.
+The default converters perform the following conversions:
 
 ================== ================================================================================================
-R object type      Python conversion
+R type             Python type
 ================== ================================================================================================
 builtin function   :class:`rdata.conversion.RBuiltin`.
 bytecode           :class:`rdata.conversion.RBytecode`.
 char (internal)    :class:`str` or :class:`bytes` (depending on the encoding flags).
 closure            :class:`rdata.conversion.RFunction`.
 complex            :class:`numpy.ndarray` with 128-bits complex dtype.
-
-                   :class:`numpy.ma.MaskedArray` with 128-bits complex dtype if it contains NA values.
 
                    :class:`xarray.DataArray` if it contains labeled dimensions.
 environment        :class:`rdata.conversion.REnvironment`.
@@ -38,7 +36,7 @@ integer            :class:`numpy.ndarray` with 32-bits integer dtype.
 
                    :class:`xarray.DataArray` if it contains labeled dimensions.
 language           :class:`rdata.conversion.RLanguage`.
-list               :class:`list` (if untagged).
+list / vector      :class:`list` (if untagged).
 
                    :class:`dict` (if tagged). Empty lists are considered tagged.
 logical (boolean)  :class:`numpy.ndarray` with boolean dtype.
@@ -50,30 +48,24 @@ missing argument   :data:`NotImplemented`.
 NULL               :data:`None`.
 real               :class:`numpy.ndarray` with 64-bits floating point dtype.
 
-                   :class:`numpy.ma.MaskedArray` with 64-bits floating point dtype if it contains NA values.
-
                    :class:`xarray.DataArray` if it contains labeled dimensions.
 reference          The referenced value, that is, an object already converted.
 S4 object          :class:`types.SimpleNamespace`.
 special function   :class:`rdata.conversion.RBuiltin`.
-string             :class:`numpy.ndarray` with suitable fixed-length string dtype.
+string             :class:`numpy.ndarray` with a suitable fixed-length string dtype.
 symbol             :class:`str`.
-vector             :class:`list` (if untagged).
-
-                   :class:`dict` (if tagged). Empty lists are considered tagged.
 ================== ================================================================================================
 
 Custom classes
 --------------
 
-In addition, objects containing a `"class"` attribute are passed to a "constructor function", if one is available.
-A dictionary of constructor functions can be supplied to the converter, where the key of each element corresponds
-to the class name.
-When the `"class"` attribute contains several class names, these are tried in order. 
-The default constructor dictionary allows to convert the following R classes:
+In addition, R objects containing a `"class"` attribute, or Python objects not listed above, are passed to an R-to-Python or Python-to-R constructor function, respectively.
+When the "class" attribute contains several class names, these are tried in order.
+A dictionary of constructor functions can be supplied to the converters as exemplified in :ref:`converting`.
+The default constructor dictionaries perform the following conversions:
 
 ================== ================================================================================================
-R class            Python conversion
+R class            Python class
 ================== ================================================================================================
 data.frame         :class:`pandas.DataFrame`.
 factor             :class:`pandas.Categorical`.

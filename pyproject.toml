@@ -2,7 +2,7 @@
 name = "rdata"
 description = "Read R datasets from Python."
 readme = "README.rst"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = {file = "LICENSE"}
 keywords = [
 	"rdata",
@@ -10,7 +10,8 @@ keywords = [
 	"dataset",
 ]
 authors = [
-  {name = "Carlos Ramos Carreño", email = "vnmabus@gmail.com"},
+  {name = "Carlos Ramos Carreño"},
+  {name = "Tuomas Rossi"},
 ]
 maintainers = [
   {name = "Carlos Ramos Carreño", email = "vnmabus@gmail.com"},
@@ -103,12 +104,19 @@ addopts = "--doctest-modules --doctest-glob='*.rst'"
 doctest_optionflags = "NORMALIZE_WHITESPACE ELLIPSIS"
 norecursedirs = ".* build dist *.egg venv .svn _build docs/auto_examples examples asv_benchmarks"
 
+[tool.coverage.report]
+exclude_also = [
+    "if TYPE_CHECKING:",
+    ]
+
+[tool.ruff]
+line-length = 79
+
 [tool.ruff.lint]
 select = [
     "ALL",
 ]
 ignore = [
-	"ANN101", # self does not need to be typed
 	"D212", # incompatible with D213, which is our preferred style for multiline docstrings
 	"Q003", # do not change quotation marks to avoid escaping
 	"PLC0414", # allow explicit re-exports
@@ -117,7 +125,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"plot_*.py" = [
+"examples/*.py" = [
 	"ANN", # no type hints in examples
 	"ARG001", # Some unused args are needed
 	"B018", # single object expressions are not useless in examples (they display the object)

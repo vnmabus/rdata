@@ -7,7 +7,7 @@ from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from fractions import Fraction
 from types import MappingProxyType, SimpleNamespace
-from typing import Any, Final, NamedTuple, Union, cast
+from typing import Any, Final, NamedTuple, TypeAlias, cast
 
 import numpy as np
 import pandas as pd
@@ -16,7 +16,7 @@ from typing_extensions import override
 
 from .. import parser
 
-ConversionFunction = Callable[[Union[parser.RData, parser.RObject]], Any]
+ConversionFunction: TypeAlias = Callable[[parser.RData | parser.RObject], Any]
 
 
 class RLanguage(NamedTuple):
@@ -172,7 +172,7 @@ def convert_attrs(
     """
     if r_obj.attributes:
         attrs = cast(
-            Mapping[str, Any],
+            "Mapping[str, Any]",
             conversion_function(r_obj.attributes),
         )
     else:
@@ -223,7 +223,7 @@ def convert_vector(
     # If it has the name attribute, use a dict instead
     field_names = attrs.get("names")
     if field_names is not None:
-        value = dict(zip(field_names, value))
+        value = dict(zip(field_names, value, strict=True))
 
     return value
 
@@ -372,7 +372,11 @@ def convert_array(
     dimension_names = None
     coords = None
 
+    names = attrs.get("names")
     dimnames = attrs.get("dimnames")
+    if dimnames is None and names is not None:
+        dimnames = [names]
+
     if dimnames:
         if isinstance(dimnames, Mapping):
             dimension_names = list(dimnames.keys())
@@ -394,20 +398,40 @@ def convert_array(
     return value  # type: ignore [no-any-return]
 
 
-R_INT_MIN = -2**31
-
-
 def _dataframe_column_transform(source: Any) -> Any:  # noqa: ANN401
 
     if isinstance(source, np.ndarray):
+        dtype: Any
         if np.issubdtype(source.dtype, np.integer):
-            return pd.Series(source, dtype=pd.Int32Dtype()).array
+            dtype = pd.Int32Dtype()
+        elif np.issubdtype(source.dtype, np.floating):
+            # We return the numpy array here, which keeps
+            # R_FLOAT_NA, np.nan, and other NaNs as they were originally in
+            # the file.
+            # Users can then decide if they prefer to interpret
+            # only R_FLOAT_NA or all NaNs as "missing".
+            return source
+            # This would create an array with all NaNs as "missing":
+            # dtype = pd.Float64Dtype()  # noqa: ERA001
+            # This would create an array with only R_FLOAT_NA as "missing":
+            # from rdata.missing import is_na  # noqa: ERA001
+            # return pd.arrays.FloatingArray(
+            #     source, is_na(source))
+        elif np.issubdtype(source.dtype, np.complexfloating):
+            # There seems to be no pandas type for complex array
+            return source
+        elif np.issubdtype(source.dtype, np.bool_):
+            dtype = pd.BooleanDtype()
+        elif np.issubdtype(source.dtype, np.str_):
+            dtype = pd.StringDtype()
+        elif np.issubdtype(source.dtype, np.object_):
+            for value in source:
+                assert isinstance(value, str) or value is None
+            dtype = pd.StringDtype()
+        else:
+            return source
 
-        if np.issubdtype(source.dtype, np.bool_):
-            return pd.Series(source, dtype=pd.BooleanDtype()).array
-
-        if np.issubdtype(source.dtype, np.str_):
-            return pd.Series(source, dtype=pd.StringDtype()).array
+        return pd.Series(source, dtype=dtype).array
 
     return source
 
@@ -417,9 +441,20 @@ def dataframe_constructor(
     attrs: Mapping[str, Any],
 ) -> pd.DataFrame:
 
-    row_names = attrs["row.names"]
+    match obj:
+        case {}:
+            columns = list(obj.keys())
+            obj = {
+                key: _dataframe_column_transform(val)
+                for key, val in obj.items()
+            }
+        case [*_]:
+            columns = None
+            obj = [
+                _dataframe_column_transform(val) for val in obj
+            ]
 
-    obj = {key: _dataframe_column_transform(val) for key, val in obj.items()}
+    row_names = attrs["row.names"]
 
     # Default row names are stored as [R_INT_NA, -len]
     default_row_names_len = 2
@@ -430,10 +465,10 @@ def dataframe_constructor(
             and isinstance(row_names, np.ma.MaskedArray)
             and row_names.mask[0]
         )
-        else tuple(row_names)
+        else row_names
     )
 
-    return pd.DataFrame(obj, columns=obj, index=index)
+    return pd.DataFrame(obj, columns=columns, index=index)
 
 
 def _factor_constructor_internal(
@@ -472,8 +507,14 @@ def ts_constructor(
 
     frequency = int(frequency)
 
-    real_start = Fraction(int(round(start * frequency)), frequency)
-    real_end = Fraction(int(round(end * frequency)), frequency)
+    real_start = Fraction(
+        int(round(start * frequency)),  # noqa: RUF046
+        frequency,
+    )
+    real_end = Fraction(
+        int(round(end * frequency)),  # noqa: RUF046
+        frequency,
+    )
 
     index: np.ndarray[Any, Any] = np.arange(
         real_start,
@@ -560,9 +601,9 @@ def srcfilecopy_constructor(
     )
 
 
-Constructor = Callable[[Any, Mapping[str, Any]], Any]
-ConstructorDict = Mapping[
-    Union[str, bytes],
+Constructor: TypeAlias = Callable[[Any, Mapping[str, Any]], Any]
+ConstructorDict: TypeAlias = Mapping[
+    str | bytes,
     Constructor,
 ]
 
@@ -584,7 +625,10 @@ class Converter(abc.ABC):
     """Interface of a class converting R objects in Python objects."""
 
     @abc.abstractmethod
-    def convert(self, data: parser.RData | parser.RObject) -> Any:  # noqa: ANN401
+    def convert(
+        self,
+        data: parser.RData | parser.RObject,
+    ) -> Any:  # noqa: ANN401
         """Convert a R object to a Python one."""
 
 
