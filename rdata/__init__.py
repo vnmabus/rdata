@@ -22,4 +22,4 @@ Path of the test data.
 
 """
 
-__version__ = "0.11.3.dev0"
+__version__ = "1.0.0.dev0"
