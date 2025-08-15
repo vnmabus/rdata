@@ -372,7 +372,11 @@ def convert_array(
     dimension_names = None
     coords = None
 
+    names = attrs.get("names")
     dimnames = attrs.get("dimnames")
+    if dimnames is None and names is not None:
+        dimnames = [names]
+
     if dimnames:
         if isinstance(dimnames, Mapping):
             dimension_names = list(dimnames.keys())
