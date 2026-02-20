@@ -56,10 +56,12 @@ class ParserBinary(Parser):
     ) -> npt.NDArray[Any]:
         dtype = np.dtype(dtype)
         buffer = self.file.read(length * dtype.itemsize)
+        # `frombuffer` on bytes creates a read-only view.
+        # `mask_na_values` mutates integer arrays in place, so we need a copy.
         return np.frombuffer(
             buffer,
             dtype=dtype.newbyteorder(self.byteorder),
-        ).astype(dtype, copy=False)
+        ).astype(dtype, copy=True)
 
     def parse_string(self, length: int) -> bytes:
         return self.file.read(length)

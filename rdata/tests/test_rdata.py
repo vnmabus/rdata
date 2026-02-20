@@ -1030,6 +1030,27 @@ class SimpleTests(unittest.TestCase):
         assert parsed.versions.format == 2
         assert parsed.object.info.type == rdata.parser.RObjectType.NILVALUE
 
+    def test_native_binary_rds_int_na(self) -> None:
+        """Test parsing native binary RDS integer vector containing NA."""
+        def i32(value: int) -> bytes:
+            return int(value).to_bytes(4, byteorder="little", signed=True)
+
+        data = b"".join((
+            b"B\n",
+            i32(2),
+            i32(0x00030002),
+            i32(0x00020300),
+            i32(13),  # INT object type
+            i32(1),   # vector length
+            i32(-2**31),  # R integer NA sentinel
+        ))
+        parsed = rdata.parser.parse_data(data, extension=".rds")
+
+        assert parsed.object.info.type == rdata.parser.RObjectType.INT
+        value = parsed.object.value
+        assert np.ma.isMaskedArray(value)  # type: ignore[no-untyped-call]
+        np.testing.assert_array_equal(value.mask, np.array([True]))
+
 
 if __name__ == "__main__":
     unittest.main()
