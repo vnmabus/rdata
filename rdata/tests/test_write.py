@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 TESTDATA_PATH = rdata.TESTDATA_PATH
 
 valid_compressions = [None, "bzip2", "gzip", "xz"]
-valid_formats = ["xdr", "ascii"]
+valid_formats = ["xdr", "ascii", "binary"]
 
 
 def decompress_data(data: bytes) -> bytes:
@@ -65,6 +65,8 @@ def parse_file_type_and_format(data: bytes) -> tuple[FileType, FileFormat]:
     if filetype in {
             FileTypes.rdata_binary_v2,
             FileTypes.rdata_binary_v3,
+            FileTypes.rdata_native_binary_v2,
+            FileTypes.rdata_native_binary_v3,
             FileTypes.rdata_ascii_v2,
             FileTypes.rdata_ascii_v3,
             }:
@@ -75,7 +77,15 @@ def parse_file_type_and_format(data: bytes) -> tuple[FileType, FileFormat]:
         file_type_str = "rds"
 
     rdataformat = rdata_format(view)
-    file_format_str = "xdr" if rdataformat is RdataFormats.XDR else "ascii"
+    if rdataformat is RdataFormats.XDR:
+        file_format_str = "xdr"
+    elif rdataformat in (RdataFormats.ASCII, RdataFormats.ASCII_CRLF):
+        file_format_str = "ascii"
+    elif rdataformat is RdataFormats.binary:
+        file_format_str = "binary"
+    else:
+        msg = "Unknown file format"
+        raise ValueError(msg)
 
     return file_type_str, file_format_str
 
@@ -236,6 +246,27 @@ def test_unparse_big_int(file_format: FileFormat, value: int) -> None:
     r_data = converter.convert_to_r_data(value)
     with pytest.raises(ValueError, match="(?i)not castable"):
         unparse_data(r_data, file_format=file_format)
+
+
+def test_unparse_binary_magic_rds() -> None:
+    """Test writing native binary RDS magic."""
+    converter = ConverterFromPythonToR()
+    r_data = converter.convert_to_r_data([1, 2, 3])
+
+    out_data = unparse_data(r_data, file_format="binary", file_type="rds")
+
+    assert out_data[:2] == b"B\n"
+
+
+def test_unparse_binary_magic_rda() -> None:
+    """Test writing native binary RDA magic."""
+    converter = ConverterFromPythonToR()
+    r_data = converter.convert_to_r_data({"x": [1]}, file_type="rda")
+
+    out_data = unparse_data(r_data, file_format="binary", file_type="rda")
+
+    assert out_data.startswith(b"RDB")
+    assert out_data[5:7] == b"B\n"
 
 
 def test_convert_dataframe_pandas_dtypes() -> None:

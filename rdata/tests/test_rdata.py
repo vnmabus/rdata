@@ -978,6 +978,58 @@ class SimpleTests(unittest.TestCase):
         data = rdata.read_rds(TESTDATA_PATH / "test_ascii_nan_inf.rds")
         np.testing.assert_equal(data, [0., np.nan, np.inf, -np.inf])
 
+    def test_native_binary_rds_little_endian(self) -> None:
+        """Test parsing native binary RDS in little-endian byte order."""
+        def i32(value: int) -> bytes:
+            return int(value).to_bytes(4, byteorder="little", signed=True)
+
+        data = b"".join((
+            b"B\n",
+            i32(2),
+            i32(0x00030002),
+            i32(0x00020300),
+            i32(254),
+        ))
+        parsed = rdata.parser.parse_data(data, extension=".rds")
+
+        assert parsed.versions.format == 2
+        assert parsed.object.info.type == rdata.parser.RObjectType.NILVALUE
+
+    def test_native_binary_rds_big_endian(self) -> None:
+        """Test parsing native binary RDS in big-endian byte order."""
+        def i32(value: int) -> bytes:
+            return int(value).to_bytes(4, byteorder="big", signed=True)
+
+        data = b"".join((
+            b"B\n",
+            i32(2),
+            i32(0x00030002),
+            i32(0x00020300),
+            i32(254),
+        ))
+        parsed = rdata.parser.parse_data(data, extension=".rds")
+
+        assert parsed.versions.format == 2
+        assert parsed.object.info.type == rdata.parser.RObjectType.NILVALUE
+
+    def test_native_binary_rda_header(self) -> None:
+        """Test parsing native binary RDA with RDB wrapper magic."""
+        def i32(value: int) -> bytes:
+            return int(value).to_bytes(4, byteorder="little", signed=True)
+
+        data = b"".join((
+            b"RDB2\n",
+            b"B\n",
+            i32(2),
+            i32(0x00030002),
+            i32(0x00020300),
+            i32(254),
+        ))
+        parsed = rdata.parser.parse_data(data, extension=".rda")
+
+        assert parsed.versions.format == 2
+        assert parsed.object.info.type == rdata.parser.RObjectType.NILVALUE
+
 
 if __name__ == "__main__":
     unittest.main()
