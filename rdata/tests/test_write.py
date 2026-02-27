@@ -175,14 +175,14 @@ def test_convert_to_r(fname: str, expand_altrep: bool) -> None:  # noqa: FBT001
 def test_convert_to_r_rda_missing_names() -> None:
     """Test checking that data for RDA has variable names."""
     converter = ConverterFromPythonToR()
-    with pytest.raises(TypeError, match="(?i)data must be a dictionary"):
+    with pytest.raises(TypeError, match=r"(?i)data must be a dictionary"):
         converter.convert_to_r_data("hello", file_type="rda")
 
 
 def test_convert_to_r_rda_nonstr_names() -> None:
     """Test checking that RDA variable names are strings."""
     converter = ConverterFromPythonToR()
-    with pytest.raises(ValueError, match="(?i)keys must be strings"):
+    with pytest.raises(ValueError, match=r"(?i)keys must be strings"):
         converter.convert_to_r_data({1: "hello"}, file_type="rda")
 
 
@@ -190,7 +190,7 @@ def test_convert_to_r_empty_rda() -> None:
     """Test checking that data for RDA has variable names."""
     py_data: dict[str, Any] = {}
     converter = ConverterFromPythonToR()
-    with pytest.raises(ValueError, match="(?i)data must not be empty"):
+    with pytest.raises(ValueError, match=r"(?i)data must not be empty"):
         converter.convert_to_r_data(py_data, file_type="rda")
 
 
@@ -199,7 +199,7 @@ def test_unparse_bad_rda() -> None:
     py_data = "hello"
     converter = ConverterFromPythonToR()
     r_data = converter.convert_to_r_data(py_data)
-    with pytest.raises(ValueError, match="(?i)must be dictionary-like"):
+    with pytest.raises(ValueError, match=r"(?i)must be dictionary-like"):
         unparse_data(r_data, file_type="rda")
 
 
@@ -208,7 +208,7 @@ def test_convert_to_r_bad_encoding() -> None:
     converter = ConverterFromPythonToR(
         encoding="non-existent",  # type: ignore [arg-type]
     )
-    with pytest.raises(LookupError, match="(?i)unknown encoding"):
+    with pytest.raises(LookupError, match=r"(?i)unknown encoding"):
         converter.convert_to_r_object("ä")
 
 
@@ -217,14 +217,14 @@ def test_convert_to_r_unsupported_encoding() -> None:
     converter = ConverterFromPythonToR(
         encoding="cp1250",  # type: ignore [arg-type]
     )
-    with pytest.raises(ValueError, match="(?i)unsupported encoding"):
+    with pytest.raises(ValueError, match=r"(?i)unsupported encoding"):
         converter.convert_to_r_object("ä")
 
 
 def test_convert_to_r_nonstr_dict_keys() -> None:
     """Test checking non-string dict keys."""
     converter = ConverterFromPythonToR()
-    with pytest.raises(ValueError, match="(?i)keys must be strings"):
+    with pytest.raises(ValueError, match=r"(?i)keys must be strings"):
         converter.convert_to_r_object({"a": 1, 2: 2})
 
 
@@ -234,7 +234,7 @@ def test_unparse_big_int(file_format: FileFormat, value: int) -> None:
     """Test checking too large integers."""
     converter = ConverterFromPythonToR()
     r_data = converter.convert_to_r_data(value)
-    with pytest.raises(ValueError, match="(?i)not castable"):
+    with pytest.raises(ValueError, match=r"(?i)not castable"):
         unparse_data(r_data, file_format=file_format)
 
 
@@ -331,12 +331,12 @@ def test_write_file(
     if file_format not in valid_formats:
         expectation = pytest.raises(
             ValueError,
-            match="(?i)unknown file format",
+            match=r"(?i)unknown file format",
         )
     if compression not in valid_compressions:
         expectation = pytest.raises(
             ValueError,
-            match="(?i)unknown compression",
+            match=r"(?i)unknown compression",
         )
 
     py_data = {"key": "Hello", "none": None}

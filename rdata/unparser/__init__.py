@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
     FileFormat = Literal["xdr", "ascii"]
     FileType = Literal["rds", "rda"]
-    Compression = Literal["gzip", "bzip2", "xz", None]
+    Compression = Literal["gzip", "bzip2", "xz"] | None
 
 
 def unparse_file(

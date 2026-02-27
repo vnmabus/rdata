@@ -47,6 +47,6 @@ df2 = pd.DataFrame({
     "color": ["red", "green", "blue"],
     "count": [12, 34, 56],
 })
-data = {"df1": df1, "df2": df2}
+data_dict = {"df1": df1, "df2": df2}
 
-rdata.write_rda("data.rda", data)
+rdata.write_rda("data.rda", data_dict)
