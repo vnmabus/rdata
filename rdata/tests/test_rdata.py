@@ -16,6 +16,7 @@ import rdata
 from rdata.missing import R_FLOAT_NA
 
 TESTDATA_PATH = rdata.TESTDATA_PATH
+NATIVE_BINARY_FORMAT_VERSION = 2
 
 
 class SimpleTests(unittest.TestCase):
@@ -992,7 +993,7 @@ class SimpleTests(unittest.TestCase):
         ))
         parsed = rdata.parser.parse_data(data, extension=".rds")
 
-        assert parsed.versions.format == 2
+        assert parsed.versions.format == NATIVE_BINARY_FORMAT_VERSION
         assert parsed.object.info.type == rdata.parser.RObjectType.NILVALUE
 
     def test_native_binary_rds_big_endian(self) -> None:
@@ -1009,7 +1010,7 @@ class SimpleTests(unittest.TestCase):
         ))
         parsed = rdata.parser.parse_data(data, extension=".rds")
 
-        assert parsed.versions.format == 2
+        assert parsed.versions.format == NATIVE_BINARY_FORMAT_VERSION
         assert parsed.object.info.type == rdata.parser.RObjectType.NILVALUE
 
     def test_native_binary_rda_header(self) -> None:
@@ -1027,7 +1028,7 @@ class SimpleTests(unittest.TestCase):
         ))
         parsed = rdata.parser.parse_data(data, extension=".rda")
 
-        assert parsed.versions.format == 2
+        assert parsed.versions.format == NATIVE_BINARY_FORMAT_VERSION
         assert parsed.object.info.type == rdata.parser.RObjectType.NILVALUE
 
     def test_native_binary_rds_int_na(self) -> None:

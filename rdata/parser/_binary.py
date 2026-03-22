@@ -8,6 +8,7 @@ import numpy.typing as npt
 
 from ._parser import AltRepConstructorMap, Parser
 
+_BYTEORDER_MARKER_SIZE = 4
 _SUPPORTED_FORMAT_VERSIONS = {2, 3}
 
 
@@ -30,11 +31,11 @@ class ParserBinary(Parser):
 
     @staticmethod
     def _detect_byteorder(data: memoryview) -> Literal["<", ">"]:
-        if len(data) < 4:
+        if len(data) < _BYTEORDER_MARKER_SIZE:
             msg = "Unknown binary endianness"
             raise NotImplementedError(msg)
 
-        first_int = bytes(data[:4])
+        first_int = bytes(data[:_BYTEORDER_MARKER_SIZE])
         little = int.from_bytes(first_int, byteorder="little", signed=True)
         big = int.from_bytes(first_int, byteorder="big", signed=True)
 
