@@ -1,6 +1,6 @@
 {
   "projectName": "rdata",
-  "projectOwner": "VNMabus",
+  "projectOwner": "vnmabus",
   "repoType": "github",
   "repoHost": "https://github.com",
   "files": [
@@ -115,8 +115,19 @@
       "contributions": [
         "bug"
       ]
+    },
+    {
+      "login": "traversc",
+      "name": "Travers",
+      "avatar_url": "https://avatars.githubusercontent.com/u/9452194?v=4",
+      "profile": "https://traversc.github.io",
+      "contributions": [
+        "code",
+        "test"
+      ]
     }
   ],
   "contributorsPerLine": 7,
-  "linkToUsage": true
+  "linkToUsage": true,
+  "commitType": "docs"
 }
