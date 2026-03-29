@@ -33,10 +33,13 @@ class ParserXDR(Parser):
         dtype = np.dtype(dtype)
         buffer = self.file.read(length * dtype.itemsize)
         # Read in big-endian order and convert to native byte order
+        # `frombuffer` on bytes creates a read-only view.
+        # On big-endian hosts conversion can be a no-op, so force a copy
+        # to keep arrays writable for downstream NA masking logic.
         return np.frombuffer(
             buffer,
             dtype=dtype.newbyteorder(">"),
-        ).astype(dtype, copy=False)
+        ).astype(dtype, copy=True)
 
     def parse_string(self, length: int) -> bytes:
         return self.file.read(length)

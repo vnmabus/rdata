@@ -16,6 +16,7 @@ import rdata
 from rdata.missing import R_FLOAT_NA
 
 TESTDATA_PATH = rdata.TESTDATA_PATH
+NATIVE_BINARY_FORMAT_VERSION = 2
 
 
 class SimpleTests(unittest.TestCase):
@@ -977,6 +978,79 @@ class SimpleTests(unittest.TestCase):
         """Test reading nan and inf in ascii."""
         data = rdata.read_rds(TESTDATA_PATH / "test_ascii_nan_inf.rds")
         np.testing.assert_equal(data, [0., np.nan, np.inf, -np.inf])
+
+    def test_native_binary_rds_little_endian(self) -> None:
+        """Test parsing native binary RDS in little-endian byte order."""
+        def i32(value: int) -> bytes:
+            return int(value).to_bytes(4, byteorder="little", signed=True)
+
+        data = b"".join((
+            b"B\n",
+            i32(2),
+            i32(0x00030002),
+            i32(0x00020300),
+            i32(254),
+        ))
+        parsed = rdata.parser.parse_data(data, extension=".rds")
+
+        assert parsed.versions.format == NATIVE_BINARY_FORMAT_VERSION
+        assert parsed.object.info.type == rdata.parser.RObjectType.NILVALUE
+
+    def test_native_binary_rds_big_endian(self) -> None:
+        """Test parsing native binary RDS in big-endian byte order."""
+        def i32(value: int) -> bytes:
+            return int(value).to_bytes(4, byteorder="big", signed=True)
+
+        data = b"".join((
+            b"B\n",
+            i32(2),
+            i32(0x00030002),
+            i32(0x00020300),
+            i32(254),
+        ))
+        parsed = rdata.parser.parse_data(data, extension=".rds")
+
+        assert parsed.versions.format == NATIVE_BINARY_FORMAT_VERSION
+        assert parsed.object.info.type == rdata.parser.RObjectType.NILVALUE
+
+    def test_native_binary_rda_header(self) -> None:
+        """Test parsing native binary RDA with RDB wrapper magic."""
+        def i32(value: int) -> bytes:
+            return int(value).to_bytes(4, byteorder="little", signed=True)
+
+        data = b"".join((
+            b"RDB2\n",
+            b"B\n",
+            i32(2),
+            i32(0x00030002),
+            i32(0x00020300),
+            i32(254),
+        ))
+        parsed = rdata.parser.parse_data(data, extension=".rda")
+
+        assert parsed.versions.format == NATIVE_BINARY_FORMAT_VERSION
+        assert parsed.object.info.type == rdata.parser.RObjectType.NILVALUE
+
+    def test_native_binary_rds_int_na(self) -> None:
+        """Test parsing native binary RDS integer vector containing NA."""
+        def i32(value: int) -> bytes:
+            return int(value).to_bytes(4, byteorder="little", signed=True)
+
+        data = b"".join((
+            b"B\n",
+            i32(2),
+            i32(0x00030002),
+            i32(0x00020300),
+            i32(13),  # INT object type
+            i32(1),   # vector length
+            i32(-2**31),  # R integer NA sentinel
+        ))
+        parsed = rdata.parser.parse_data(data, extension=".rds")
+
+        assert parsed.object.info.type == rdata.parser.RObjectType.INT
+        value = parsed.object.value
+        assert np.ma.isMaskedArray(value)  # type: ignore[no-untyped-call]
+        np.testing.assert_array_equal(value.mask, np.array([True]))
 
 
 if __name__ == "__main__":

@@ -26,6 +26,7 @@ from rdata.missing import R_INT_NA, mask_na_values
 
 if TYPE_CHECKING:
     from ._ascii import ParserASCII
+    from ._binary import ParserBinary
     from ._xdr import ParserXDR
 
 
@@ -101,6 +102,8 @@ class FileTypes(enum.Enum):
     xz = "xz"
     rdata_binary_v2 = "rdata version 2 (binary)"
     rdata_binary_v3 = "rdata version 3 (binary)"
+    rdata_native_binary_v2 = "rdata version 2 (native binary)"
+    rdata_native_binary_v3 = "rdata version 3 (native binary)"
     rdata_ascii_v2 = "rdata version 2 (ascii)"
     rdata_ascii_v3 = "rdata version 3 (ascii)"
 
@@ -111,6 +114,8 @@ magic_dict = {
     FileTypes.xz: b"\xFD7zXZ\x00",
     FileTypes.rdata_binary_v2: b"RDX2\n",
     FileTypes.rdata_binary_v3: b"RDX3\n",
+    FileTypes.rdata_native_binary_v2: b"RDB2\n",
+    FileTypes.rdata_native_binary_v3: b"RDB3\n",
     FileTypes.rdata_ascii_v2: b"RDA2\n",
     FileTypes.rdata_ascii_v3: b"RDA3\n",
 }
@@ -1218,6 +1223,8 @@ type=<RObjectType.CHAR: 9>,
         if filetype in {
             FileTypes.rdata_binary_v2,
             FileTypes.rdata_binary_v3,
+            FileTypes.rdata_native_binary_v2,
+            FileTypes.rdata_native_binary_v3,
             FileTypes.rdata_ascii_v2,
             FileTypes.rdata_ascii_v3,
             None,
@@ -1232,6 +1239,8 @@ type=<RObjectType.CHAR: 9>,
         new_data = lzma.decompress(data)
     elif filetype in {FileTypes.rdata_binary_v2,
                       FileTypes.rdata_binary_v3,
+                      FileTypes.rdata_native_binary_v2,
+                      FileTypes.rdata_native_binary_v3,
                       FileTypes.rdata_ascii_v2,
                       FileTypes.rdata_ascii_v3,
                       }:
@@ -1273,7 +1282,7 @@ def parse_rdata_binary(
     if format_type:
         data = data[len(format_dict[format_type]):]
 
-    parser_class: type[ParserXDR | ParserASCII]
+    parser_class: type[ParserXDR | ParserASCII | ParserBinary]
 
     if format_type is RdataFormats.XDR:
         from ._xdr import ParserXDR  # noqa: PLC0415
@@ -1281,6 +1290,9 @@ def parse_rdata_binary(
     elif format_type in (RdataFormats.ASCII, RdataFormats.ASCII_CRLF):
         from ._ascii import ParserASCII  # noqa: PLC0415
         parser_class = ParserASCII
+    elif format_type is RdataFormats.binary:
+        from ._binary import ParserBinary  # noqa: PLC0415
+        parser_class = ParserBinary
     else:
         msg = "Unknown file format"
         raise NotImplementedError(msg)
