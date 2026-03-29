@@ -19,7 +19,18 @@ def get_data_source(
     *,
     prefix: str = R_CODE_PREFIX,
 ) -> str:
-    """Get the part of the docstring containing the data source."""
+    """
+    Get the part of the docstring containing the data source.
+
+    Args:
+        function_or_class: Function or class whose docstring contains the data
+            source.
+        prefix: Prefix used to mark lines that contain the data source.
+
+    Returns:
+        The data source.
+
+    """
     doc = function_or_class.__doc__
     if doc is None:
         return ""
@@ -38,9 +49,21 @@ def execute_r_data_source(
     function_or_class: HasDoc,
     *,
     prefix: str = R_CODE_PREFIX,
+    append: str = "",
     **kwargs: Any,  # noqa: ANN401
 ) -> None:
-    """Execute R data source."""
+    """
+    Execute R data source.
+
+    Args:
+        function_or_class: Function or class whose docstring contains the data
+            source.
+        prefix: Prefix used to mark lines that contain the data source.
+        append: Code appended to the end (for example, to save the objects).
+        kwargs: Each keyword parameter corresponds to a variable to set at the
+            beginning of the code.
+
+    """
     source = get_data_source(
         function_or_class,
         prefix=prefix,
@@ -52,9 +75,9 @@ def execute_r_data_source(
     for key, value in kwargs.items():
         inits += f"{key} <- {value!r}\n"
 
-    source = inits + source
+    source = inits + source + append
 
-    with tempfile.NamedTemporaryFile("w") as file:
+    with tempfile.NamedTemporaryFile("w", delete_on_close=False) as file:
         file.write(source)
         file.flush()
         subprocess.check_call(  # noqa: S603
