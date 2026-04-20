@@ -504,7 +504,7 @@ def compact_seq_constructor(
         # Calculate stop with integer arithmetic
         # and use built-in range() for numerical stability
         stop = start + (n - 1) * step
-        value = np.array(range(start, stop + 1, step))
+        value = np.array(range(start, stop + 1, step), dtype=np.int32)
     else:
         # Calculate stop with floating-point arithmetic
         stop = start + (n - 1) * step
