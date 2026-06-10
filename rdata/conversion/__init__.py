@@ -10,6 +10,7 @@ from ._conversion import (
     RExternalPointer as RExternalPointer,
     RFunction as RFunction,
     RLanguage as RLanguage,
+    RNamespace as RNamespace,
     SimpleConverter as SimpleConverter,
     SrcFile as SrcFile,
     SrcFileCopy as SrcFileCopy,

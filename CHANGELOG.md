@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - ![Documentation] Add changelog.
 - ![R parsing] Parsing of binary RDA and RDS files is now supported.
+- ![R parsing] Parsing of namespace objects is now supported.
 
 ## [1.0.0] - 2025-08-15
 

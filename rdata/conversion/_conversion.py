@@ -82,6 +82,14 @@ class REnvironment(ChainMap[str, Any]):
         self.frame = frame
 
 
+@dataclass
+class RNamespace:
+    """R namespace."""
+
+    name: str
+    version: str | None
+
+
 def convert_list(
     r_list: parser.RObject,
     conversion_function: ConversionFunction,
@@ -840,6 +848,16 @@ class SimpleConverter(Converter):
 
         elif obj.info.type == parser.RObjectType.EMPTYENV:
             value = self.empty_environment
+
+        elif obj.info.type == parser.RObjectType.NAMESPACE:
+            value = RNamespace(
+                name=self._convert_next(obj.value[0]),
+                version=(
+                    None
+                    if len(obj.value) == 1
+                    else self._convert_next(obj.value[1])
+                ),
+            )
 
         elif obj.info.type == parser.RObjectType.MISSINGARG:
             value = NotImplemented

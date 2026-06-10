@@ -188,6 +188,7 @@ class RObjectType(enum.Enum):
     EMPTYENV = 242  # Empty environment
     BCREPREF = 243  # Bytecode repetition reference
     BCREPDEF = 244  # Bytecode repetition definition
+    NAMESPACE = 249  # Namespace
     MISSINGARG = 251  # Missinf argument
     GLOBALENV = 253  # Global environment
     NILVALUE = 254  # NIL value
@@ -732,6 +733,22 @@ class Parser(abc.ABC):
 
         return (code, constants)
 
+    def _parse_vector_value(
+        self,
+        reference_list: list[RObject] | None,
+        bytecode_rep_list: list[RObject | None] | None = None,
+    ) -> list[RObject]:
+        """Parse a vector or string value."""
+        length = self.parse_int()
+
+        return [
+            self.parse_R_object(
+                reference_list,
+                bytecode_rep_list,
+            )
+            for _ in range(length)
+        ]
+
     def parse_R_object(  # noqa: N802, C901, PLR0912, PLR0915
         self,
         reference_list: list[RObject] | None = None,
@@ -885,13 +902,10 @@ class Parser(abc.ABC):
             RObjectType.VEC,
             RObjectType.EXPR,
         }:
-            length = self.parse_int()
-
-            value = [None] * length
-
-            for i in range(length):
-                value[i] = self.parse_R_object(
-                    reference_list, bytecode_rep_list)
+            value = self._parse_vector_value(
+                reference_list,
+                bytecode_rep_list,
+            )
 
         elif info.type == RObjectType.BCODE:
             value = self._parse_bytecode(reference_list, bytecode_rep_list)
@@ -962,6 +976,15 @@ class Parser(abc.ABC):
             result = bytecode_rep_list[position]
             assert result
             return result
+
+        elif info.type == RObjectType.NAMESPACE:
+            assert self.parse_int() == 0  # 0 placeholder in format
+            value = self._parse_vector_value(
+                reference_list,
+                bytecode_rep_list,
+            )
+
+            add_reference = True
 
         elif info.type == RObjectType.MISSINGARG:  # noqa: SIM114
             value = None
