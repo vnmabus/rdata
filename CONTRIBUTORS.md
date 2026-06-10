@@ -23,6 +23,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/userLUX"><img src="https://avatars.githubusercontent.com/u/107994632?v=4?s=100" width="100px;" alt="userLUX"/><br /><sub><b>userLUX</b></sub></a><br /><a href="https://github.com/vnmabus/rdata/issues?q=author%3AuserLUX" title="Bug reports">🐛</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://traversc.github.io"><img src="https://avatars.githubusercontent.com/u/9452194?v=4?s=100" width="100px;" alt="Travers"/><br /><sub><b>Travers</b></sub></a><br /><a href="https://github.com/vnmabus/rdata/commits?author=traversc" title="Code">💻</a> <a href="https://github.com/vnmabus/rdata/commits?author=traversc" title="Tests">⚠️</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/pulpdood"><img src="https://avatars.githubusercontent.com/u/13587944?v=4?s=100" width="100px;" alt="Kevin"/><br /><sub><b>Kevin</b></sub></a><br /><a href="https://github.com/vnmabus/rdata/issues?q=author%3Apulpdood" title="Bug reports">🐛</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://elgabbas.netlify.app"><img src="https://avatars.githubusercontent.com/u/7375051?v=4?s=100" width="100px;" alt="Ahmed El-Gabbas"/><br /><sub><b>Ahmed El-Gabbas</b></sub></a><br /><a href="https://github.com/vnmabus/rdata/issues?q=author%3Aelgabbas" title="Bug reports">🐛</a></td>
     </tr>
   </tbody>
   <tfoot>
