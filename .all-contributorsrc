@@ -125,6 +125,15 @@
         "code",
         "test"
       ]
+    },
+    {
+      "login": "pulpdood",
+      "name": "Kevin",
+      "avatar_url": "https://avatars.githubusercontent.com/u/13587944?v=4",
+      "profile": "https://github.com/pulpdood",
+      "contributions": [
+        "bug"
+      ]
     }
   ],
   "contributorsPerLine": 7,
