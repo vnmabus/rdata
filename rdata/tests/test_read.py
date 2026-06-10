@@ -1531,3 +1531,20 @@ def test_encoding_unknown(
                 dataset_object,
                 np.array(["Íñigo"]),
             )
+
+
+@pytest.mark.read_test("test_namespace")
+def test_namespace(
+    dataset_object: rdata.conversion.RNamespace,
+) -> None:
+    r"""
+    Test of namespace objects.
+
+    Code for creating the object:
+
+    ::: test_namespace <- asNamespace("stats")
+
+    """
+    assert isinstance(dataset_object, rdata.conversion.RNamespace)
+    assert dataset_object.name == "stats"
+    assert isinstance(dataset_object.version, str)
