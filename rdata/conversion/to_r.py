@@ -26,6 +26,7 @@ from . import (
 )
 
 if TYPE_CHECKING:
+    from abc import abstractmethod
     from collections.abc import Callable, Mapping
     from typing import Any, Final, Literal, Protocol
 
@@ -40,12 +41,15 @@ if TYPE_CHECKING:
 
         format_version: int
 
+        @abstractmethod
         def convert_to_r_attributes(self, data: dict[str, Any]) -> RObject:
             """Convert dictionary to R attributes list."""
 
+        @abstractmethod
         def convert_to_r_sym(self, name: str) -> RObject:
             """Convert string to R symbol."""
 
+        @abstractmethod
         def convert_to_r_object(self, data: Any) -> RObject:  # noqa: ANN401
             """Convert Python data to R object."""
 
@@ -443,7 +447,7 @@ class ConverterFromPythonToR:
             constructor_dict: Dictionary mapping Python classes to
                 functions converting them to R classes.
         """
-        self.encoding = encoding
+        self.encoding: Encoding = encoding
         self.format_version = format_version
         self.r_version_serialized = r_version_serialized
         self.constructor_dict = constructor_dict
@@ -601,7 +605,7 @@ class ConverterFromPythonToR:
             if data.ndim == 0:
                 data = data[np.newaxis]
 
-            if data.dtype.kind in ["O"]:
+            if data.dtype.kind == "O":
                 assert data.ndim == 1
                 r_type = RObjectType.STR
                 r_value = []
@@ -616,11 +620,11 @@ class ConverterFromPythonToR:
                     r_value.append(r_el)
 
             # bytes object is converted to this dtype
-            elif data.dtype.kind in ["S"]:
+            elif data.dtype.kind == "S":
                 assert data.size == 1
                 return build_r_char(data[0], encoding=self.encoding)
 
-            elif data.dtype.kind in ["U"]:
+            elif data.dtype.kind == "U":
                 assert data.ndim == 1
                 r_type = RObjectType.STR
                 r_value = [

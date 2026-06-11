@@ -5,8 +5,8 @@
         "url": "https://rdata.readthedocs.io/en/latest/"
     },
     {
-    	"name": "0.11.2 (stable)",
-        "version": "0.11.2",
+    	"name": "1.0.0 (stable)",
+        "version": "1.0.0",
         "url": "https://rdata.readthedocs.io/en/stable/",
         "preferred": true
     }

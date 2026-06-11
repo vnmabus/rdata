@@ -11,6 +11,7 @@ from rdata.parser import (
 )
 
 from ._ascii import UnparserASCII
+from ._binary import UnparserBinary
 from ._xdr import UnparserXDR
 
 if TYPE_CHECKING:
@@ -20,9 +21,9 @@ if TYPE_CHECKING:
 
     from ._unparser import WriteableBinaryFile
 
-    FileFormat = Literal["xdr", "ascii"]
+    FileFormat = Literal["xdr", "ascii", "binary"]
     FileType = Literal["rds", "rda"]
-    Compression = Literal["gzip", "bzip2", "xz", None]
+    Compression = Literal["gzip", "bzip2", "xz"] | None
 
 
 def unparse_file(
@@ -84,7 +85,7 @@ def unparse_fileobj(
         file_format: File format.
         file_type: File type.
     """
-    unparser_class: type[UnparserXDR | UnparserASCII]
+    unparser_class: type[UnparserXDR | UnparserASCII | UnparserBinary]
 
     if file_format == "ascii":
         unparser_class = UnparserASCII
@@ -94,6 +95,10 @@ def unparse_fileobj(
         unparser_class = UnparserXDR
 
         rda_magic = "RDX"
+    elif file_format == "binary":
+        unparser_class = UnparserBinary
+
+        rda_magic = "RDB"
     else:
         msg = f"Unknown file format: {file_format}"
         raise ValueError(msg)
